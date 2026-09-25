@@ -165,10 +165,20 @@ func Clean(s string) string {
 
 	for _, p := range quotePairs {
 		open, close := p[0], p[1]
-		if len(s) >= len(open)+len(close) && strings.HasPrefix(s, open) && strings.HasSuffix(s, close) {
-			s = strings.TrimSpace(s[len(open) : len(s)-len(close)])
-			break
+		if len(s) < len(open)+len(close) || !strings.HasPrefix(s, open) || !strings.HasSuffix(s, close) {
+			continue
 		}
+		inner := s[len(open) : len(s)-len(close)]
+		// Only strip when the interior doesn't itself contain the pair's
+		// opening or closing quote character: otherwise the text has more
+		// than one quoted span (e.g. `"a" e "b"`) and stripping the outer
+		// characters would corrupt it instead of unwrapping a single
+		// wrapping pair.
+		if strings.Contains(inner, open) || strings.Contains(inner, close) {
+			continue
+		}
+		s = strings.TrimSpace(inner)
+		break
 	}
 
 	return s

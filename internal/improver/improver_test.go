@@ -297,6 +297,30 @@ func TestClean(t *testing.T) {
 			want: `Ele disse "oi" para todos`,
 		},
 		{
+			name: "multiple straight-double-quoted spans left unchanged",
+			in:   `"a" e "b"`,
+			want: `"a" e "b"`,
+		},
+		{
+			name: "multiple curly-quoted spans left unchanged",
+			in:   "“a” e “b”",
+			want: "“a” e “b”",
+		},
+		{
+			name: "multiple guillemet-quoted spans left unchanged",
+			in:   "«x» e «y»",
+			want: "«x» e «y»",
+		},
+		{
+			// An apostrophe is the same character as a closing single
+			// quote, so a single-quoted span containing one is treated as
+			// ambiguous (more than one quote character in play) and left
+			// untouched rather than risk truncating at the apostrophe.
+			name: "single quotes containing an apostrophe are left unchanged",
+			in:   "'it's raining'",
+			want: "'it's raining'",
+		},
+		{
 			name: "internal fence preserved when not wrapping whole text",
 			in:   "Antes\n```\nbloco\n```\nDepois",
 			want: "Antes\n```\nbloco\n```\nDepois",
