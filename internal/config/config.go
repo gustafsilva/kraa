@@ -130,6 +130,21 @@ func (c *Config) applyDefaults() {
 	if c.MaxInputChars == 0 {
 		c.MaxInputChars = defaultMaxInputChars
 	}
+	if len(c.Actions) == 0 {
+		c.Actions = defaultActions()
+	}
+}
+
+// defaultActions parses the built-in default template independently of
+// Default()/applyDefaults() and returns just its actions, so Load can
+// backfill the 8 default actions whenever a user's config.yaml omits the
+// actions key (or sets it to an empty list) without risking recursion.
+func defaultActions() []Action {
+	tmp := &Config{}
+	if err := yaml.Unmarshal([]byte(defaultConfigYAML), tmp); err != nil {
+		panic("config: defaultConfigYAML inválido: " + err.Error())
+	}
+	return tmp.Actions
 }
 
 // Validate checks required fields and action uniqueness. Error messages are

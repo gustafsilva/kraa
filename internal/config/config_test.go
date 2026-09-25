@@ -278,6 +278,130 @@ func TestValidate_EmptyInstructionFails(t *testing.T) {
 	}
 }
 
+func TestLoad_NoActionsKeyBackfillsDefaults(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	content := `
+provider:
+  base_url: "http://example.com/v1"
+  model: "gpt-test"
+`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("setup WriteFile: %v", err)
+	}
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	wantIDs := []string{
+		"improve-prompt", "add-context", "more-specific",
+		"formal", "casual", "shorter", "fix-grammar", "to-english",
+	}
+	if len(cfg.Actions) != len(wantIDs) {
+		t.Fatalf("len(Actions) = %d, want %d", len(cfg.Actions), len(wantIDs))
+	}
+	for i, id := range wantIDs {
+		if cfg.Actions[i].ID != id {
+			t.Errorf("Actions[%d].ID = %q, want %q", i, cfg.Actions[i].ID, id)
+		}
+	}
+}
+
+func TestLoad_EmptyActionsListBackfillsDefaults(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	content := `
+provider:
+  base_url: "http://example.com/v1"
+  model: "gpt-test"
+actions: []
+`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("setup WriteFile: %v", err)
+	}
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if len(cfg.Actions) != 8 {
+		t.Fatalf("len(Actions) = %d, want 8", len(cfg.Actions))
+	}
+	if cfg.Actions[0].ID != "improve-prompt" {
+		t.Errorf("Actions[0].ID = %q, want improve-prompt", cfg.Actions[0].ID)
+	}
+}
+
+func TestDefaultTemplate_PinnedValues(t *testing.T) {
+	cfg := Default()
+
+	if cfg.Hotkey != "CmdOrCtrl+Shift+Y" {
+		t.Errorf("Hotkey = %q, want CmdOrCtrl+Shift+Y", cfg.Hotkey)
+	}
+	if cfg.Provider.BaseURL != "http://localhost:11434/v1" {
+		t.Errorf("BaseURL = %q, want http://localhost:11434/v1", cfg.Provider.BaseURL)
+	}
+	if cfg.Provider.APIKey != "" {
+		t.Errorf("APIKey = %q, want empty string", cfg.Provider.APIKey)
+	}
+	if cfg.Provider.Model != "llama3.2" {
+		t.Errorf("Model = %q, want llama3.2", cfg.Provider.Model)
+	}
+	if cfg.Provider.TimeoutSeconds != 60 {
+		t.Errorf("TimeoutSeconds = %d, want 60", cfg.Provider.TimeoutSeconds)
+	}
+	if cfg.MaxInputChars != 20000 {
+		t.Errorf("MaxInputChars = %d, want 20000", cfg.MaxInputChars)
+	}
+
+	wantActions := []struct {
+		id       string
+		category string
+	}{
+		{"improve-prompt", "Prompt"},
+		{"add-context", "Prompt"},
+		{"more-specific", "Prompt"},
+		{"formal", "Mensagem"},
+		{"casual", "Mensagem"},
+		{"shorter", "Mensagem"},
+		{"fix-grammar", "Mensagem"},
+		{"to-english", "Mensagem"},
+	}
+	if len(cfg.Actions) != len(wantActions) {
+		t.Fatalf("len(Actions) = %d, want %d", len(cfg.Actions), len(wantActions))
+	}
+	for i, want := range wantActions {
+		got := cfg.Actions[i]
+		if got.ID != want.id {
+			t.Errorf("Actions[%d].ID = %q, want %q", i, got.ID, want.id)
+		}
+		if got.Category != want.category {
+			t.Errorf("Actions[%d].Category = %q, want %q", i, got.Category, want.category)
+		}
+	}
+
+	wantInstruction := "Reescreva o prompt a seguir para um LLM: deixe claro objetivo, " +
+		"contexto, restrições e formato de saída. Responda apenas com o prompt reescrito."
+	improvePrompt, ok := cfg.Action("improve-prompt")
+	if !ok {
+		t.Fatal(`Action("improve-prompt") not found`)
+	}
+	if improvePrompt.Instruction != wantInstruction {
+		t.Errorf("improve-prompt Instruction = %q, want %q", improvePrompt.Instruction, wantInstruction)
+	}
+}
+
+func TestValidate_EmptyActionIDFails(t *testing.T) {
+	cfg := Default()
+	cfg.Actions[0].ID = ""
+	if err := cfg.Validate(); err == nil {
+		t.Error("Validate() error = nil, want error for empty action id")
+	}
+}
+
 func TestConfig_Action(t *testing.T) {
 	cfg := Default()
 
