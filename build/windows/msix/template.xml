@@ -10,27 +10,27 @@
     <Installer
         Path="prompt-improve"
         Arguments=""
-        InstallLocation="C:\Program Files\My Company\My Product">
+        InstallLocation="C:\Program Files\Matrix IA\Prompt Improve">
     </Installer>
     <PackageInformation
-        PackageName="My Product"
-        PackageDisplayName="My Product"
-        PublisherName="CN=My Company"
-        PublisherDisplayName="My Company"
+        PackageName="Prompt Improve"
+        PackageDisplayName="Prompt Improve"
+        PublisherName="CN=Matrix IA"
+        PublisherDisplayName="Matrix IA"
         Version="0.1.0.0"
-        PackageDescription="A prompt-improve application">
+        PackageDescription="Melhore prompts e mensagens com IA a partir de qualquer app">
         <Capabilities>
             <Capability Name="runFullTrust" />
-            
+
         </Capabilities>
         <Applications>
             <Application
-                Id="com.example.promptimprove"
-                Description="A prompt-improve application"
-                DisplayName="My Product"
+                Id="dev.matrixia.prompt-improve"
+                Description="Melhore prompts e mensagens com IA a partir de qualquer app"
+                DisplayName="Prompt Improve"
                 ExecutableName="prompt-improve"
                 EntryPoint="Windows.FullTrustApplication">
-                
+
             </Application>
         </Applications>
         <Resources>
@@ -41,9 +41,9 @@
         </Dependencies>
         <Properties>
             <Framework>false</Framework>
-            <DisplayName>My Product</DisplayName>
-            <PublisherDisplayName>My Company</PublisherDisplayName>
-            <Description>A prompt-improve application</Description>
+            <DisplayName>Prompt Improve</DisplayName>
+            <PublisherDisplayName>Matrix IA</PublisherDisplayName>
+            <Description>Melhore prompts e mensagens com IA a partir de qualquer app</Description>
             <Logo>Assets\AppIcon.png</Logo>
         </Properties>
     </PackageInformation>
