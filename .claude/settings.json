@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go test:*)",
+      "Bash(go build:*)",
+      "Bash(go vet:*)",
+      "Bash(gofmt:*)",
+      "Bash(wails3 *)",
+      "Bash(npm --prefix frontend *)",
+      "Bash(npx shadcn@latest *)"
+    ]
+  }
+}

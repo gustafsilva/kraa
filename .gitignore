@@ -1,0 +1,23 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/vendor/
+
+# Wails / build output
+/build/bin
+/bin
+
+# Frontend
+frontend/node_modules
+frontend/dist
+
+# OS
+.DS_Store
+
+# Superpowers scratch (task tracking, not project docs)
+/.superpowers/
