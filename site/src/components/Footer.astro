@@ -1,0 +1,58 @@
+---
+import Logo from "./Logo.astro";
+import { href, REPO_URL, NPM_URL } from "@/lib/site";
+const cols = [
+  {
+    title: "Documentação",
+    links: [
+      { label: "Introdução", to: href("/docs/introducao/") },
+      { label: "Instalação", to: href("/docs/instalacao/npm/") },
+      { label: "Configuração", to: href("/docs/configuracao/arquivo/") },
+      { label: "CLI", to: href("/docs/referencia/cli/") },
+    ],
+  },
+  {
+    title: "Comunidade",
+    links: [
+      { label: "Contribuir", to: href("/docs/contribuir/ambiente/") },
+      { label: "Issues", to: `${REPO_URL}/issues` },
+      { label: "Código de conduta", to: `${REPO_URL}/blob/main/CODE_OF_CONDUCT.md` },
+      { label: "Segurança", to: `${REPO_URL}/blob/main/SECURITY.md` },
+    ],
+  },
+  {
+    title: "Projeto",
+    links: [
+      { label: "GitHub", to: REPO_URL },
+      { label: "Releases", to: `${REPO_URL}/releases` },
+      { label: "Changelog", to: `${REPO_URL}/blob/main/CHANGELOG.md` },
+      { label: "npm", to: NPM_URL },
+    ],
+  },
+];
+---
+<footer class="border-t border-border/60">
+  <div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+    <div class="space-y-3">
+      <Logo />
+      <p class="max-w-xs text-sm text-muted-foreground">
+        Melhore o texto selecionado em qualquer app com um LLM — local por padrão.
+      </p>
+    </div>
+    {cols.map((c) => (
+      <div>
+        <h3 class="mb-3 text-sm font-medium text-foreground">{c.title}</h3>
+        <ul class="space-y-2 text-sm">
+          {c.links.map((l) => (
+            <li><a href={l.to} class="text-muted-foreground transition-colors hover:text-foreground">{l.label}</a></li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </div>
+  <div class="border-t border-border/60">
+    <p class="mx-auto max-w-6xl px-4 py-6 text-xs text-muted-foreground sm:px-6">
+      Prompt Improve · projeto open source mantido pela comunidade.
+    </p>
+  </div>
+</footer>

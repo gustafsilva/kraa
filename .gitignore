@@ -33,3 +33,8 @@ frontend/dist/*
 
 # Superpowers scratch (task tracking, not project docs)
 /.superpowers/
+
+# Site de documentação (Astro)
+site/node_modules
+site/dist
+site/.astro

@@ -1,0 +1,50 @@
+name: Relatar um bug
+description: Algo não funciona como deveria.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por relatar! Antes, confira a [solução de problemas](https://gustafsilva.github.io/prompt-improve-beta/docs/ajuda/solucao-de-problemas/).
+  - type: textarea
+    id: what
+    attributes:
+      label: O que aconteceu?
+      description: O que você fez, o que esperava e o que aconteceu.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Como reproduzir
+      placeholder: |
+        1. Selecione um texto no app X
+        2. Aperte o atalho
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Sistema operacional
+      options: [macOS, Windows, Linux (X11), Linux (Wayland)]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versão
+      description: Saída de `prompt-improve --version`.
+    validations:
+      required: true
+  - type: input
+    id: provider
+    attributes:
+      label: Provider e modelo
+      placeholder: Ollama local, llama3.2
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Saída do `prompt-improve doctor`
+      description: Remova qualquer chave de API antes de colar.
+      render: text

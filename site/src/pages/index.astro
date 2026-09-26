@@ -1,0 +1,204 @@
+---
+import { Code } from "astro:components";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import GithubIcon from "@/components/GithubIcon.astro";
+import HeroDemo from "@/components/landing/HeroDemo";
+import CopyCommand from "@/components/landing/CopyCommand";
+import InstallTabs from "@/components/landing/InstallTabs";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import { INSTALL_CMD, REPO_URL, href } from "@/lib/site";
+
+const steps = [
+  { n: "01", title: "Selecione", text: "Marque o texto em qualquer app: e-mail, chat, editor, navegador, terminal.", keys: [] as string[] },
+  { n: "02", title: "Aperte o atalho", text: "O modal abre com a seleção. Escolha uma ação ou escreva uma instrução livre.", keys: ["⌘", "⇧", "Y"] },
+  { n: "03", title: "Substitua ou copie", text: "O resultado chega em stream e volta para o app de origem com um atalho.", keys: ["⌘", "↵"] },
+];
+
+const features = [
+  {
+    title: "Funciona em qualquer app",
+    text: "Captura a seleção e cola o resultado de volta no app de origem. Nada de copiar e colar entre janelas.",
+    icon: `<path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 9h18"/><path d="M7 13h6"/>`,
+    wide: true,
+  },
+  {
+    title: "Local por padrão",
+    text: "Vem configurado para o Ollama na sua máquina. Seu texto não sai do computador.",
+    icon: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
+  },
+  {
+    title: "Qualquer provider compatível",
+    text: "Ollama, Ollama Cloud, OpenAI ou qualquer endpoint /v1/chat/completions. Troque o modelo no próprio modal.",
+    icon: `<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>`,
+  },
+  {
+    title: "Ações que você define",
+    text: "8 ações prontas (melhorar prompt, mais formal, traduzir…) e as suas próprias em um YAML simples.",
+    icon: `<path d="M4 6h16M4 12h10M4 18h7"/><path d="m17 15 3 3-3 3"/>`,
+    wide: true,
+  },
+  {
+    title: "Resposta em stream",
+    text: "Veja o texto sendo escrito e cancele a qualquer momento com Esc.",
+    icon: `<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>`,
+  },
+  {
+    title: "macOS, Windows e Linux",
+    text: "Binário nativo e leve em cada sistema, com X11 e Wayland no Linux.",
+    icon: `<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>`,
+  },
+  {
+    title: "CLI com diagnóstico",
+    text: "start, stop, autostart e um doctor que aponta exatamente o que falta.",
+    icon: `<path d="m4 17 6-6-6-6"/><path d="M12 19h8"/>`,
+  },
+];
+
+const yaml = `provider:
+  base_url: "http://localhost:11434/v1"
+  model: "llama3.2"
+
+actions:
+  - id: bullet-points
+    category: Mensagem
+    label: Transformar em tópicos
+    instruction: >-
+      Reescreva o texto como uma lista de
+      tópicos curtos. Responda só com a lista.`;
+---
+<BaseLayout
+  title="Prompt Improve"
+  description="App de bandeja para macOS, Windows e Linux que melhora o texto selecionado em qualquer aplicativo usando um LLM, local por padrão via Ollama."
+>
+  <Header />
+  <main>
+    <!-- Hero -->
+    <section class="relative isolate overflow-hidden">
+      <div class="bg-grid absolute inset-0 -z-10 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,black,transparent)]"></div>
+      <div class="absolute top-0 left-1/2 -z-10 h-[28rem] w-[56rem] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,oklch(0.55_0.2_290/0.18),transparent)]"></div>
+
+      <div class="mx-auto flex max-w-6xl flex-col items-center px-4 pt-20 pb-16 text-center sm:px-6 sm:pt-28">
+        <a href={`${REPO_URL}/releases`} class="animate-in fade-in slide-in-from-bottom-2 duration-700">
+          <Badge variant="outline" className="h-7 gap-2 rounded-full border-white/10 bg-card/60 px-3 text-xs text-muted-foreground backdrop-blur hover:text-foreground">
+            <span class="size-1.5 rounded-full bg-success"></span>
+            Open source · macOS, Windows e Linux
+          </Badge>
+        </a>
+
+        <h1 class="text-gradient mt-6 max-w-3xl text-4xl font-semibold tracking-tighter text-balance sm:text-6xl sm:leading-[1.05] animate-in fade-in slide-in-from-bottom-3 duration-700">
+          Melhore qualquer texto sem sair do app.
+        </h1>
+        <p class="mt-5 max-w-xl text-base text-balance text-muted-foreground sm:text-lg animate-in fade-in slide-in-from-bottom-4 duration-700">
+          Selecione, aperte um atalho e deixe um LLM reescrever. O Prompt Improve roda na bandeja e,
+          por padrão, usa o <span class="text-foreground">Ollama local</span>.
+        </p>
+
+        <div class="mt-8 flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-700">
+          <CopyCommand client:load command={INSTALL_CMD} />
+          <div class="flex items-center gap-2">
+            <a href={href("/docs/introducao/")} class={buttonVariants({ size: "lg", className: "px-4" })}>Começar</a>
+            <a href={REPO_URL} target="_blank" rel="noreferrer" class={buttonVariants({ variant: "outline", size: "lg", className: "px-4" })}>
+              <GithubIcon class="size-4" /> Ver no GitHub
+            </a>
+          </div>
+        </div>
+
+        <div class="mt-16 w-full sm:mt-20">
+          <HeroDemo client:visible />
+        </div>
+      </div>
+    </section>
+
+    <!-- Como funciona -->
+    <section class="border-t border-border/60">
+      <div class="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+        <p class="text-sm font-medium text-brand">Como funciona</p>
+        <h2 class="mt-2 max-w-xl text-3xl font-semibold tracking-tight text-balance">Três passos, zero troca de janela.</h2>
+        <ol class="mt-12 grid gap-px overflow-hidden rounded-2xl border bg-border md:grid-cols-3">
+          {steps.map((s) => (
+            <li class="bg-background p-7">
+              <span class="font-mono text-xs text-muted-foreground">{s.n}</span>
+              <h3 class="mt-4 flex items-center gap-2.5 text-lg font-medium">
+                {s.title}
+                {s.keys.length > 0 && (
+                  <KbdGroup>
+                    {s.keys.map((k) => <Kbd className="border border-border font-mono">{k}</Kbd>)}
+                  </KbdGroup>
+                )}
+              </h3>
+              <p class="mt-2 text-sm leading-6 text-muted-foreground">{s.text}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <!-- Recursos -->
+    <section class="border-t border-border/60">
+      <div class="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+        <p class="text-sm font-medium text-brand">Recursos</p>
+        <h2 class="mt-2 max-w-xl text-3xl font-semibold tracking-tight text-balance">Pequeno, rápido e do seu jeito.</h2>
+        <div class="mt-12 grid gap-4 md:grid-cols-3">
+          {features.map((f) => (
+            <div class:list={["group relative overflow-hidden rounded-2xl border bg-card/40 p-6 transition-colors hover:bg-card/70", f.wide && "md:col-span-2"]}>
+              <div class="absolute -top-16 -right-16 size-40 rounded-full bg-brand/10 opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-100"></div>
+              <div class="flex size-9 items-center justify-center rounded-lg border bg-background/60">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="size-4.5 text-brand" set:html={f.icon} />
+              </div>
+              <h3 class="mt-5 font-medium">{f.title}</h3>
+              <p class="mt-1.5 max-w-md text-sm leading-6 text-muted-foreground">{f.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Configuração -->
+    <section class="border-t border-border/60">
+      <div class="mx-auto grid max-w-6xl items-center gap-12 px-4 py-24 sm:px-6 lg:grid-cols-2">
+        <div>
+          <p class="text-sm font-medium text-brand">Configuração</p>
+          <h2 class="mt-2 text-3xl font-semibold tracking-tight text-balance">Um arquivo YAML. Nada mais.</h2>
+          <p class="mt-4 max-w-md leading-7 text-muted-foreground">
+            Aponte para o provider que quiser, escolha o modelo e crie ações com a sua própria instrução.
+            A chave de API pode ficar na variável <code class="rounded border bg-muted/60 px-1 font-mono text-[0.85em] text-foreground">PROMPT_IMPROVE_API_KEY</code>,
+            fora do arquivo.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-2">
+            <a href={href("/docs/configuracao/arquivo/")} class={buttonVariants({ variant: "outline" })}>Referência do config.yaml</a>
+            <a href={href("/docs/configuracao/acoes-customizadas/")} class={buttonVariants({ variant: "ghost" })}>Criar uma ação →</a>
+          </div>
+        </div>
+        <div class="overflow-hidden rounded-2xl border bg-card shadow-2xl shadow-black/40">
+          <div class="flex items-center gap-2 border-b px-4 py-2.5">
+            <span class="size-2.5 rounded-full bg-white/10"></span>
+            <span class="size-2.5 rounded-full bg-white/10"></span>
+            <span class="size-2.5 rounded-full bg-white/10"></span>
+            <span class="ml-2 font-mono text-xs text-muted-foreground">config.yaml</span>
+          </div>
+          <Code code={yaml} lang="yaml" theme="github-dark-default" class="!bg-transparent px-5 py-4 font-mono text-[0.82rem] leading-6" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Instalação -->
+    <section class="relative isolate overflow-hidden border-t border-border/60">
+      <div class="absolute bottom-0 left-1/2 -z-10 h-80 w-[48rem] -translate-x-1/2 translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,oklch(0.55_0.2_290/0.2),transparent)]"></div>
+      <div class="mx-auto flex max-w-6xl flex-col items-center px-4 py-24 text-center sm:px-6">
+        <h2 class="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Instale em um comando.</h2>
+        <p class="mt-3 max-w-md text-muted-foreground">
+          Com o <a class="text-foreground underline decoration-brand/50 underline-offset-4 hover:decoration-brand" href={href("/docs/instalacao/ollama/")}>Ollama</a> rodando, é só isso.
+        </p>
+        <div class="mt-8 w-full">
+          <InstallTabs client:visible />
+        </div>
+        <a href={href("/docs/instalacao/npm/")} class={buttonVariants({ variant: "link", className: "mt-6 text-muted-foreground" })}>Guia completo de instalação →</a>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>

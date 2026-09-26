@@ -1,0 +1,97 @@
+---
+title: Solução de problemas
+description: Sintoma, causa e solução dos problemas mais comuns.
+---
+import Callout from "@/components/mdx/Callout";
+import Kbd from "@/components/mdx/Kbd";
+
+<Callout type="tip" title="Comece sempre por aqui">
+  ```bash
+  prompt-improve doctor
+  ```
+  Ele aponta binário ausente, provider fora do ar e dependências faltando no Linux.
+</Callout>
+
+<details>
+<summary>"Não foi possível conectar" / o modal mostra erro com `ollama serve`</summary>
+
+**Causa:** o servidor do LLM não está respondendo em `provider.base_url`.
+
+**Solução:** inicie o Ollama com `ollama serve` e confira se o modelo existe com `ollama list`.
+Com provider remoto, confira `base_url` e `api_key` (um HTTP 401/403 no `doctor` indica chave
+inválida).
+</details>
+
+<details>
+<summary>O modal abre vazio mesmo com texto selecionado</summary>
+
+**Causas possíveis:**
+
+- **macOS:** falta a permissão de Acessibilidade ([veja como conceder](/docs/plataformas/macos/)).
+- **Linux X11:** `xdotool` não instalado (`sudo apt install xdotool`).
+- **Wayland:** não há captura automática; aperte <Kbd keys={["Ctrl", "C"]} /> antes do atalho.
+- **App lento:** a captura espera até 400 ms pela área de transferência. Apps muito lentos para
+  responder ao "Copiar" simulado podem resultar em "nenhum texto selecionado". Tente de novo ou
+  cole o texto no campo.
+</details>
+
+<details>
+<summary>O botão "Substituir" não aparece</summary>
+
+A colagem automática não está disponível: sem permissão de Acessibilidade (macOS), sem
+`xdotool` (X11) ou no Wayland. Use **Copiar** e cole manualmente.
+</details>
+
+<details>
+<summary>O atalho global não funciona</summary>
+
+Outro app pode estar usando a combinação: o modal mostra um aviso nesse caso. Troque `hotkey` no
+[config.yaml](/docs/configuracao/arquivo/) e use **Recarregar configuração**. No Wayland,
+configure um [atalho do sistema](/docs/plataformas/linux/#wayland).
+</details>
+
+<details>
+<summary>O conteúdo da área de transferência sumiu</summary>
+
+Se ele não era texto (imagem, arquivos), a captura não consegue restaurá-lo. Veja
+[Privacidade](/docs/plataformas/privacidade/#área-de-transferência).
+</details>
+
+<details>
+<summary>macOS: cola a tecla errada ou não copia</summary>
+
+As teclas simuladas usam keycodes ANSI. Em layouts que não são ANSI, a tecla física pode não
+corresponder a <Kbd keys={["⌘", "C"]} />/<Kbd keys={["⌘", "V"]} />.
+</details>
+
+<details>
+<summary>Windows: erro ao colar em um app</summary>
+
+O app de destino provavelmente roda como administrador. Por causa do UIPI a colagem é bloqueada:
+use **Copiar**.
+</details>
+
+<details>
+<summary>Linux: o app não abre (erro sobre `libwebkit2gtk` ou `libgtk-3`)</summary>
+
+Instale as dependências de runtime: `sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0`.
+</details>
+
+<details>
+<summary>"Erro de configuração" no modal</summary>
+
+O `config.yaml` tem YAML inválido ou falhou na [validação](/docs/configuracao/arquivo/#validação).
+A mensagem indica o campo. Corrija e use **Recarregar configuração**.
+</details>
+
+<details>
+<summary>"Texto muito longo"</summary>
+
+O texto passou de `max_input_chars` (padrão: 20000). Aumente o valor no `config.yaml` ou envie um
+trecho menor.
+</details>
+
+## Ainda com problema?
+
+Abra uma [issue](https://github.com/gustafsilva/prompt-improve-beta/issues/new/choose) com o SO,
+a versão (`prompt-improve --version`), o provider/modelo e a saída do `prompt-improve doctor`.

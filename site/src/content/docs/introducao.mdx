@@ -1,0 +1,51 @@
+---
+title: Introdução
+description: O que é o Prompt Improve, para quem ele serve e como a documentação está organizada.
+---
+import CardGrid from "@/components/mdx/CardGrid.astro";
+import LinkCard from "@/components/mdx/LinkCard.astro";
+import Callout from "@/components/mdx/Callout";
+
+O **Prompt Improve** é um app de bandeja para macOS, Windows e Linux que melhora o texto
+selecionado em qualquer aplicativo usando um LLM compatível com a API OpenAI. Por padrão ele
+conversa com o [Ollama](https://ollama.com) rodando na sua máquina.
+
+Um atalho global captura a seleção e abre um modal com ações prontas (melhorar prompt, mais
+formal, corrigir gramática, traduzir…) e um campo de instrução livre. O resultado chega em
+stream e pode ser **substituído** direto no app de origem ou **copiado**.
+
+```text
+ seleciona texto   ──►   ⌘/Ctrl+Shift+Y   ──►   escolhe ação   ──►   resposta em stream
+ em qualquer app         (captura a seleção)    ou instrução           │
+                                                                       ├─► ⌘/Ctrl+Enter → Substituir
+                                                                       └─► ⌘/Ctrl+Shift+C → Copiar
+```
+
+## Para quem é
+
+- Quem escreve muitos **prompts** e quer deixá-los mais claros sem abrir outro chat.
+- Quem ajusta **mensagens** o dia todo: tom mais formal, texto mais curto, tradução rápida.
+- Quem quer tudo isso **local e privado**, com um modelo rodando no próprio computador.
+
+## Requisitos em resumo
+
+| | macOS | Windows | Linux (Ubuntu 22.04+) |
+|---|---|---|---|
+| LLM | Ollama local ou endpoint OpenAI-compatível | igual | igual |
+| Permissões | Acessibilidade | nenhuma | nenhuma |
+| Dependências | — | — | `libgtk-3-0`, `libwebkit2gtk-4.1-0`, `xdotool` (X11) |
+| Colagem automática | ✓ | ✓ | ✓ no X11 · só "Copiar" no Wayland |
+
+<Callout type="tip" title="Primeira vez aqui?">
+  Siga [Primeiros passos](/docs/uso/primeiros-passos/): em cerca de cinco minutos você instala o
+  Ollama, o app e faz a primeira melhoria.
+</Callout>
+
+## Explore a documentação
+
+<CardGrid>
+  <LinkCard title="Instalação" href="/docs/instalacao/npm/" description="npm, script sem Node e dependências por sistema." />
+  <LinkCard title="Configuração" href="/docs/configuracao/arquivo/" description="config.yaml, providers e ações customizadas." />
+  <LinkCard title="CLI" href="/docs/referencia/cli/" description="start, stop, trigger, doctor e os demais comandos." />
+  <LinkCard title="Solução de problemas" href="/docs/ajuda/solucao-de-problemas/" description="Sintoma, causa e solução dos erros mais comuns." />
+</CardGrid>

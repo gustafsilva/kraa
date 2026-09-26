@@ -1,0 +1,59 @@
+---
+title: Release
+description: Como uma versão é publicada no GitHub Releases e no npm.
+---
+import Callout from "@/components/mdx/Callout";
+import Steps from "@/components/mdx/Steps.astro";
+
+<Steps>
+
+1. **Atualize a versão e o changelog**
+
+   Altere `version` em `npm/package.json` e mova os itens de "Não lançado" do
+   [CHANGELOG.md](https://github.com/gustafsilva/prompt-improve-beta/blob/main/CHANGELOG.md) para
+   a nova versão.
+
+2. **Crie e envie a tag**
+
+   ```bash
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+
+   A tag precisa ser igual a `v` + `version` do `npm/package.json`: o workflow falha se não for.
+
+3. **Aguarde o workflow `release.yml`**
+
+   Ele builda as quatro plataformas, gera o `checksums.txt` (SHA-256) e publica o GitHub Release.
+
+4. **Publique no npm**
+
+   ```bash
+   cd npm && npm publish
+   ```
+
+   O `npm publish` é manual. O `prepack` compila o TypeScript antes.
+
+</Steps>
+
+## Assets do release
+
+| Asset | Plataforma |
+|---|---|
+| `prompt-improve-darwin-universal.app.zip` | macOS (arm64 + x64, assinatura ad-hoc) |
+| `prompt-improve-windows-amd64.exe` | Windows x64 |
+| `prompt-improve-linux-amd64` | Linux x64 |
+| `prompt-improve-linux-arm64` | Linux arm64 |
+| `checksums.txt` | SHA-256 de todos os assets |
+
+<Callout type="warning" title="Nomes são contrato">
+  O instalador npm (`npm/src/platform.ts`) e os scripts `scripts/install.sh` e
+  `scripts/install.ps1` baixam por esses nomes. Mudar um nome no `release.yml` exige mudar lá
+  também.
+</Callout>
+
+## Versionamento
+
+O projeto segue [SemVer](https://semver.org/lang/pt-BR/). Enquanto estiver em `0.x`, mudanças
+incompatíveis na configuração ou na CLI podem acontecer em versões menores e ficam registradas no
+changelog.
