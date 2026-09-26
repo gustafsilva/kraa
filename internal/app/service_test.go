@@ -135,7 +135,12 @@ func (k *fakeKeys) Paste() error {
 	return nil
 }
 
-type fakeWindow struct{ rec *recorder }
+type fakeWindow struct {
+	rec     *recorder
+	visible bool
+}
+
+func (w *fakeWindow) IsVisible() bool { return w.visible }
 
 func (w *fakeWindow) Show()         { w.rec.add("show") }
 func (w *fakeWindow) Hide()         { w.rec.add("hide") }
@@ -144,6 +149,7 @@ func (w *fakeWindow) ReleaseFocus() { w.rec.add("release-focus") }
 type harness struct {
 	svc  *ImproveService
 	host *Host
+	win  *fakeWindow
 	em   *fakeEmitter
 	rec  *recorder
 	cb   *fakeClipboard
@@ -156,6 +162,7 @@ func newHarness(t *testing.T, runner Runner, sess platform.Session) *harness {
 	cb := &fakeClipboard{}
 	keys := &fakeKeys{rec: rec, cb: cb}
 	em := &fakeEmitter{}
+	win := &fakeWindow{rec: rec}
 	cfg := config.Default()
 	svc, host := New(Options{
 		Config:      cfg,
@@ -163,13 +170,13 @@ func newHarness(t *testing.T, runner Runner, sess platform.Session) *harness {
 		Emitter:     em,
 		Clipboard:   cb,
 		Keys:        keys,
-		Window:      &fakeWindow{rec: rec},
+		Window:      win,
 		Session:     sess,
 		Sleep:       func(d time.Duration) { rec.add(fmt.Sprintf("sleep:%s", d)) },
 		CaptureWait: 30 * time.Millisecond,
 		PasteSettle: time.Millisecond,
 	})
-	return &harness{svc: svc, host: host, em: em, rec: rec, cb: cb, keys: keys}
+	return &harness{svc: svc, host: host, win: win, em: em, rec: rec, cb: cb, keys: keys}
 }
 
 var canSimulate = platform.Session{CanSimulateKeys: true}
@@ -319,8 +326,8 @@ func TestCloseCancelsInFlightAndHidesWindow(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("Close did not cancel the request")
 	}
-	if log := h.rec.snapshot(); len(log) != 1 || log[0] != "hide" {
-		t.Fatalf("side effects = %v, want [hide]", log)
+	if log := h.rec.snapshot(); strings.Join(log, "|") != "hide|release-focus" {
+		t.Fatalf("side effects = %v, want [hide release-focus]", log)
 	}
 	time.Sleep(10 * time.Millisecond)
 	for _, ev := range h.em.snapshot() {
@@ -590,4 +597,29 @@ func TestSetSessionUpdatesCanReplace(t *testing.T) {
 	if st := h.svc.GetState(); st.CanReplace || st.Warning != "sem permissão" {
 		t.Fatalf("state = %+v", st)
 	}
+}
+
+func TestTriggerWhileVisibleOnlyRefocusesWindow(t *testing.T) {
+	started := make(chan string, 1)
+	h := newHarness(t, blockingRunner(started), canSimulate)
+	id, _ := h.svc.Start(StartRequest{Text: "trabalho do usuário", ActionID: "fix"})
+	<-started
+	h.keys.selection = "outra coisa"
+	h.win.visible = true
+
+	h.host.Trigger()
+
+	if log := h.rec.snapshot(); strings.Join(log, "|") != "show" {
+		t.Fatalf("side effects = %v, want only show (no copy)", log)
+	}
+	if sel := selectionEvents(h.em); len(sel) != 0 {
+		t.Fatalf("selection events = %+v, want none", sel)
+	}
+	h.svc.mu.Lock()
+	cur := h.svc.cur
+	h.svc.mu.Unlock()
+	if cur == nil || cur.id != id || cur.ctx.Err() != nil {
+		t.Fatal("in-flight request was cancelled")
+	}
+	h.svc.Cancel(id)
 }

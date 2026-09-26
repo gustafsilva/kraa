@@ -46,6 +46,8 @@ func (w WailsWindow) Show() {
 
 func (w WailsWindow) Hide() { w.Window.Hide() }
 
+func (w WailsWindow) IsVisible() bool { return w.Window.IsVisible() }
+
 func (w WailsWindow) ReleaseFocus() {
 	if hideAppToReleaseFocus {
 		// App.Hide calls [NSApp hide:] directly; AppKit needs the main thread.

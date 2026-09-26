@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -55,9 +56,11 @@ func newRunner(cfg *config.Config) app.Runner {
 // hotkey and a system tray. The window is never destroyed when
 // closed/hidden: the app keeps running in the tray.
 func main() {
-	// Declared before application.New so the SingleInstance callback can
-	// close over it; it only runs after main() has assigned it.
-	var trigger func(capture bool)
+	// Set before app.Run; the SingleInstance callback reads it from another
+	// goroutine, hence atomic. A launch arriving before it is set is queued
+	// in pendingLaunch and replayed on ApplicationStarted.
+	var trigger atomic.Pointer[func(capture bool)]
+	var pendingLaunch atomic.Int32 // 0 none, 1 show window, 2 run trigger flow
 
 	wailsApp := application.New(application.Options{
 		Name:        "prompt-improve",
@@ -79,33 +82,35 @@ func main() {
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: "dev.matrixia.prompt-improve",
 			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
-				if trigger != nil {
-					trigger(slices.Contains(data.Args, triggerArg))
+				capture := slices.Contains(data.Args, triggerArg)
+				if fn := trigger.Load(); fn != nil {
+					(*fn)(capture)
+					return
 				}
+				want := int32(1)
+				if capture {
+					want = 2
+				}
+				pendingLaunch.CompareAndSwap(0, want)
 			},
 		},
 	})
 
 	window := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:        "Prompt Improve",
-		Width:        560,
-		Height:       520,
-		Frameless:    true,
-		AlwaysOnTop:  true,
-		Hidden:       true,
-		HideOnEscape: true,
+		Title:       "Prompt Improve",
+		Width:       560,
+		Height:      520,
+		Frameless:   true,
+		AlwaysOnTop: true,
+		Hidden:      true,
+		// No HideOnEscape: Esc is bound below to svc.Close so the stream is
+		// cancelled and focus is handed back to the source app.
 		Windows: application.WindowsWindow{
 			HiddenOnTaskbar: true,
 		},
 		BackgroundColour: application.NewRGB(6, 7, 15),
 		URL:              "/",
 	})
-	// Closing (e.g. Cmd+W / Alt+F4) hides instead of destroying the window.
-	window.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
-		e.Cancel()
-		window.Hide()
-	})
-
 	// macOS: ask once for the Accessibility permission (shows the system
 	// prompt); without it canReplace stays false and a warning is shown.
 	if runtime.GOOS == "darwin" {
@@ -129,6 +134,16 @@ func main() {
 	})
 	wailsApp.RegisterService(application.NewService(svc))
 
+	// Closing (e.g. Cmd+W / Alt+F4) and Esc go through Close: cancel the
+	// stream, hide instead of destroying, and return focus (macOS).
+	window.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		e.Cancel()
+		svc.Close()
+	})
+	window.RegisterKeyBinding("escape", func(application.Window) {
+		svc.Close()
+	})
+
 	if cfgErr != nil {
 		host.SetError(fmt.Sprintf("Erro ao carregar a configuração: %v. Usando a configuração padrão.", cfgErr))
 	}
@@ -139,23 +154,35 @@ func main() {
 		host.SetSession(platform.DetectSession())
 		host.Trigger()
 	}
-	trigger = func(capture bool) {
+	triggerFn := func(capture bool) {
 		if capture {
 			onHotkey()
 		} else {
 			host.ShowWindow()
 		}
 	}
+	trigger.Store(&triggerFn)
+
+	hotkeyWarning := func(hotkey string) string {
+		return fmt.Sprintf("Não foi possível registrar o atalho %s; ele pode estar em uso por outro app. Altere 'hotkey' na configuração ou use \"Abrir\" na bandeja.", hotkey)
+	}
 
 	// mu guards currentHotkey and cfgPath (tray callbacks run on goroutines).
 	var mu sync.Mutex
 	currentHotkey := cfg.Hotkey
+	// Before Run this only fails on a parse error; an OS rejection happens
+	// in flushPending (before ApplicationStarted) and is checked there.
 	if err := wailsApp.GlobalShortcut.Register(currentHotkey, onHotkey); err != nil {
 		log.Printf("atalho: %v", err)
-		host.SetHotkeyWarning(fmt.Sprintf("Não foi possível registrar o atalho %s. Use \"Abrir\" na bandeja.", currentHotkey))
+		host.SetHotkeyWarning(hotkeyWarning(currentHotkey))
 	}
 
+	// reloadMu serializes whole reloads so configs apply in click order.
+	var reloadMu sync.Mutex
 	reload := func() {
+		reloadMu.Lock()
+		defer reloadMu.Unlock()
+
 		newCfg, path, err := loadConfig()
 		if err != nil {
 			log.Printf("config: %v", err)
@@ -176,10 +203,12 @@ func main() {
 		_ = wailsApp.GlobalShortcut.Unregister(currentHotkey)
 		if err := wailsApp.GlobalShortcut.Register(newCfg.Hotkey, onHotkey); err != nil {
 			log.Printf("atalho: %v", err)
-			host.SetHotkeyWarning(fmt.Sprintf("Não foi possível registrar o atalho %s. Mantido %s.", newCfg.Hotkey, currentHotkey))
 			if err := wailsApp.GlobalShortcut.Register(currentHotkey, onHotkey); err != nil {
 				log.Printf("atalho: %v", err)
+				host.SetHotkeyWarning(fmt.Sprintf("Não foi possível registrar o atalho %s. Nenhum atalho ativo; use \"Abrir\" na bandeja.", newCfg.Hotkey))
+				return
 			}
+			host.SetHotkeyWarning(fmt.Sprintf("Não foi possível registrar o atalho %s. Mantido %s.", newCfg.Hotkey, currentHotkey))
 			return
 		}
 		currentHotkey = newCfg.Hotkey
@@ -230,11 +259,19 @@ func main() {
 	tray.SetMenu(trayMenu)
 
 	wailsApp.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(*application.ApplicationEvent) {
+		mu.Lock()
+		if !wailsApp.GlobalShortcut.IsRegistered(currentHotkey) {
+			log.Printf("atalho: %s não registrado pelo SO", currentHotkey)
+			host.SetHotkeyWarning(hotkeyWarning(currentHotkey))
+		}
+		mu.Unlock()
+
+		pending := pendingLaunch.Swap(0)
 		switch {
-		case slices.Contains(os.Args[1:], triggerArg):
-			// First launch came from the --trigger shortcut itself.
+		case pending == 2 || slices.Contains(os.Args[1:], triggerArg):
+			// Launched (or re-launched early) via the --trigger shortcut.
 			go onHotkey()
-		case cfgErr != nil:
+		case pending == 1 || cfgErr != nil:
 			host.ShowWindow()
 		}
 	})

@@ -24,7 +24,8 @@ export function Cancel(id: string): $CancellablePromise<void> {
 }
 
 /**
- * Close cancels any in-flight request and hides the window.
+ * Close cancels any in-flight request, hides the window and gives focus
+ * back to the previously active app.
  */
 export function Close(): $CancellablePromise<void> {
     return $Call.ByID(1672743312);

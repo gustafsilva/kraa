@@ -53,6 +53,7 @@ type Window interface {
 	Show()
 	Hide()
 	ReleaseFocus()
+	IsVisible() bool
 }
 
 // ActionDTO is an action as exposed to the frontend (no instruction).
@@ -147,8 +148,10 @@ type ImproveService struct {
 	focusDelay  time.Duration
 	pasteSettle time.Duration
 
-	triggerMu sync.Mutex
-	seq       atomic.Uint64
+	// clipboardMu serializes Trigger (capture) and Replace (paste), which
+	// both borrow the system clipboard.
+	clipboardMu sync.Mutex
+	seq         atomic.Uint64
 }
 
 // Host drives the service from main.go (hotkey, tray, config reload).
@@ -247,6 +250,8 @@ func (s *ImproveService) Replace(text string) error {
 		return errors.New("Não há texto para substituir.")
 	}
 
+	s.clipboardMu.Lock()
+	defer s.clipboardMu.Unlock()
 	s.win.Hide()
 	s.win.ReleaseFocus()
 	s.sleep(s.focusDelay)
@@ -264,12 +269,14 @@ func (s *ImproveService) Copy(text string) error {
 	return nil
 }
 
-// Close cancels any in-flight request and hides the window.
+// Close cancels any in-flight request, hides the window and gives focus
+// back to the previously active app.
 func (s *ImproveService) Close() {
 	s.mu.Lock()
 	s.cancelLocked()
 	s.mu.Unlock()
 	s.win.Hide()
+	s.win.ReleaseFocus()
 }
 
 // ---- internals -------------------------------------------------------------
@@ -379,11 +386,18 @@ func errorMessage(err error, cfg *config.Config) string {
 
 // Trigger runs the hotkey flow: capture the selection (while the source app
 // still has focus), publish it, then show the window. Safe to call from any
-// goroutine; concurrent triggers are serialized.
+// goroutine; concurrent triggers are serialized. When the modal is already
+// visible it is only refocused: capturing would copy from our own webview
+// and wipe the user's in-progress work.
 func (h *Host) Trigger() {
 	s := h.s
-	s.triggerMu.Lock()
-	defer s.triggerMu.Unlock()
+	s.clipboardMu.Lock()
+	defer s.clipboardMu.Unlock()
+
+	if s.win.IsVisible() {
+		s.win.Show()
+		return
+	}
 
 	s.mu.Lock()
 	sess := s.session
