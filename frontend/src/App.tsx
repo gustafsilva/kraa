@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ActionList } from "@/components/ActionList";
 import { PreviewPane } from "@/components/PreviewPane";
 import { Footer } from "@/components/Footer";
+import { ModelPicker } from "@/components/ModelPicker";
 import { useImprove } from "@/hooks/useImprove";
 
 function App() {
@@ -28,6 +29,11 @@ function App() {
     replace,
     copy,
     close,
+    model,
+    models,
+    modelsError,
+    modelSaving,
+    setModel,
   } = useImprove();
 
   const [freeInstruction, setFreeInstruction] = useState("");
@@ -97,7 +103,16 @@ function App() {
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
       <header className="flex shrink-0 items-center justify-between border-b px-3 py-2 [--wails-draggable:drag]">
-        <span className="text-sm font-medium">Prompt Improve</span>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="shrink-0 text-sm font-medium">Prompt Improve</span>
+          <ModelPicker
+            model={model}
+            models={models}
+            error={modelsError}
+            disabled={isStreaming || modelSaving}
+            onChange={(m) => void setModel(m)}
+          />
+        </div>
         <button
           type="button"
           aria-label="Fechar"

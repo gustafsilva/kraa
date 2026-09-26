@@ -13,8 +13,11 @@ export const ImproveService = {
     canReplace: true,
     warning: "",
     error: "",
+    model: "",
   }),
+  ListModels: vi.fn().mockResolvedValue([]),
   Replace: vi.fn().mockResolvedValue(undefined),
+  SetModel: vi.fn().mockResolvedValue(undefined),
   Start: vi.fn().mockResolvedValue("req-1"),
 };
 
@@ -25,11 +28,16 @@ export function resetImproveServiceMock() {
   ImproveService.Replace.mockClear();
   ImproveService.Start.mockClear();
   ImproveService.GetState.mockClear();
+  ImproveService.ListModels.mockReset();
+  ImproveService.ListModels.mockResolvedValue([]);
+  ImproveService.SetModel.mockReset();
+  ImproveService.SetModel.mockResolvedValue(undefined);
   ImproveService.GetState.mockResolvedValue({
     text: "",
     actions: [],
     canReplace: true,
     warning: "",
     error: "",
+    model: "",
   });
 }

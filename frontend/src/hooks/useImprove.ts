@@ -28,6 +28,14 @@ export interface ImproveState {
   requestError: string;
   /** Replace()/Copy() rejection message (PT-BR), unrelated to the request stream. */
   actionError: string;
+  /** provider.model currently in use (State.model). */
+  model: string;
+  /** Models offered by the provider (ListModels), sorted. */
+  models: string[];
+  /** ListModels/SetModel failure (PT-BR), shown next to the picker. */
+  modelsError: string;
+  /** True while SetModel is saving + reloading the config. */
+  modelSaving: boolean;
 }
 
 export interface StartOptions {
@@ -48,6 +56,8 @@ export interface UseImproveResult extends ImproveState {
   replace: () => Promise<void>;
   copy: () => Promise<void>;
   close: () => Promise<void>;
+  /** Persists the chosen model (config.yaml); applies to the next request. */
+  setModel: (model: string) => Promise<void>;
 }
 
 type BufferedEvent =
@@ -65,6 +75,10 @@ const initialState: ImproveState = {
   output: "",
   requestError: "",
   actionError: "",
+  model: "",
+  models: [],
+  modelsError: "",
+  modelSaving: false,
 };
 
 /**
@@ -125,6 +139,17 @@ export function useImprove(): UseImproveResult {
     [applyBuffered]
   );
 
+  const loadModels = useCallback(() => {
+    ImproveService.ListModels()
+      .then((models: string[] | null) => {
+        setState((s) => ({ ...s, models: models ?? [], modelsError: "" }));
+      })
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        setState((s) => ({ ...s, models: [], modelsError: message }));
+      });
+  }, []);
+
   useEffect(() => {
     const offChunk = Events.On("improve:chunk", (ev) => {
       const payload = ev.data as ChunkEvent;
@@ -160,6 +185,8 @@ export function useImprove(): UseImproveResult {
         actionError: "",
       }));
       setSelectionSeq((n) => n + 1);
+      // Each modal opening refreshes the list (a model may have been pulled).
+      loadModels();
     });
     // state:changed never touches `text`: the backend only changes its text
     // on a capture (Trigger), which is announced by selection:new, so the
@@ -173,6 +200,7 @@ export function useImprove(): UseImproveResult {
         canReplace: payload.canReplace,
         warning: payload.warning,
         configError: payload.error,
+        model: payload.model,
       }));
     });
 
@@ -187,7 +215,9 @@ export function useImprove(): UseImproveResult {
           canReplace: s.canReplace,
           warning: s.warning,
           configError: s.error,
+          model: s.model,
         }));
+        loadModels();
       })
       .catch(() => {
         // GetState failures surface later via state:changed; nothing to do here.
@@ -200,7 +230,7 @@ export function useImprove(): UseImproveResult {
       offSelection();
       offStateChanged();
     };
-  }, [handleEvent]);
+  }, [handleEvent, loadModels]);
 
   const startWithRequest = useCallback(
     (req: StartRequest) => {
@@ -293,6 +323,17 @@ export function useImprove(): UseImproveResult {
     await ImproveService.Close();
   }, []);
 
+  const setModel = useCallback(async (model: string) => {
+    setState((s) => ({ ...s, modelSaving: true, modelsError: "" }));
+    try {
+      await ImproveService.SetModel(model);
+      setState((s) => ({ ...s, model, modelSaving: false }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setState((s) => ({ ...s, modelSaving: false, modelsError: message }));
+    }
+  }, []);
+
   return {
     ...state,
     selectionSeq,
@@ -303,5 +344,6 @@ export function useImprove(): UseImproveResult {
     replace,
     copy,
     close,
+    setModel,
   };
 }

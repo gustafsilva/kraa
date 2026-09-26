@@ -102,6 +102,10 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
   "Copiar" aparece (sem colagem automática).
 
 **Todos os SOs**
+- Seletor de modelo no topo do modal: lista os modelos instalados no
+  Ollama, a troca grava `provider.model` no `config.yaml` (resto do arquivo
+  intacto) e vale para a próxima melhoria; com o Ollama parado, mostra só o
+  modelo atual e o erro com `ollama serve`.
 - Ollama parado: mensagem de erro legível com a dica `ollama serve`
   (nunca um stack trace).
 - `go test ./...` e `npm --prefix frontend test` passam antes de cada
