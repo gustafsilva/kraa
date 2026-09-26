@@ -55,31 +55,47 @@ func (e *APIError) Error() string {
 }
 
 type openAIClient struct {
-	baseURL    string
-	apiKey     string
-	model      string
-	timeout    time.Duration
-	httpClient *http.Client
+	baseURL     string
+	apiKey      string
+	model       string
+	timeout     time.Duration
+	temperature *float64
+	httpClient  *http.Client
+}
+
+// Option configura um Client criado por NewOpenAIClient.
+type Option func(*openAIClient)
+
+// WithTemperature envia temperature em toda requisição (sem a opção, o
+// campo é omitido e vale o padrão do servidor).
+func WithTemperature(t float64) Option {
+	return func(c *openAIClient) { c.temperature = &t }
 }
 
 // NewOpenAIClient cria um Client que conversa com um endpoint compatível com
 // a API OpenAI em {baseURL}/chat/completions. apiKey pode ser vazio (nesse
 // caso nenhum header Authorization é enviado). timeout limita a duração
-// total de cada chamada a Stream.
-func NewOpenAIClient(baseURL, apiKey, model string, timeout time.Duration) Client {
-	return &openAIClient{
+// total de cada chamada a Stream. opts ajusta parâmetros opcionais da
+// requisição, como a temperatura (WithTemperature).
+func NewOpenAIClient(baseURL, apiKey, model string, timeout time.Duration, opts ...Option) Client {
+	c := &openAIClient{
 		baseURL:    strings.TrimRight(baseURL, "/"),
 		apiKey:     apiKey,
 		model:      model,
 		timeout:    timeout,
 		httpClient: &http.Client{},
 	}
+	for _, o := range opts {
+		o(c)
+	}
+	return c
 }
 
 type chatRequest struct {
-	Model    string    `json:"model"`
-	Messages []Message `json:"messages"`
-	Stream   bool      `json:"stream"`
+	Model       string    `json:"model"`
+	Messages    []Message `json:"messages"`
+	Stream      bool      `json:"stream"`
+	Temperature *float64  `json:"temperature,omitempty"` // ponteiro: 0 é enviado, nil é omitido
 }
 
 type sseErrorPayload struct {
@@ -103,7 +119,7 @@ func (c *openAIClient) Stream(ctx context.Context, msgs []Message, onChunk func(
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
-	body, err := json.Marshal(chatRequest{Model: c.model, Messages: msgs, Stream: true})
+	body, err := json.Marshal(chatRequest{Model: c.model, Messages: msgs, Stream: true, Temperature: c.temperature})
 	if err != nil {
 		return fmt.Errorf("montar corpo da requisição: %w", err)
 	}

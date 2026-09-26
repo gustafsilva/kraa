@@ -15,6 +15,7 @@ func init() {
 	application.RegisterEvent[ErrorEvent](EventError)
 	application.RegisterEvent[SelectionEvent](EventSelection)
 	application.RegisterEvent[State](EventState)
+	application.RegisterEvent[ProfileDTO](EventProfile)
 }
 
 // WailsEmitter emits events through app.Event.

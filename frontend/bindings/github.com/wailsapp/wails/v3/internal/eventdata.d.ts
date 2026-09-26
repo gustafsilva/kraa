@@ -15,6 +15,7 @@ declare module "@wailsio/runtime" {
             "improve:chunk": app$0.ChunkEvent;
             "improve:done": app$0.DoneEvent;
             "improve:error": app$0.ErrorEvent;
+            "profile:open": app$0.ProfileDTO;
             "selection:new": app$0.SelectionEvent;
             "state:changed": app$0.State;
         }

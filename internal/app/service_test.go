@@ -158,6 +158,9 @@ type harness struct {
 	rec  *recorder
 	cb   *fakeClipboard
 	keys *fakeKeys
+
+	profileWin *fakeWindow
+	profileRec *recorder
 }
 
 func newHarness(t *testing.T, runner Runner, sess platform.Session) *harness {
@@ -167,20 +170,26 @@ func newHarness(t *testing.T, runner Runner, sess platform.Session) *harness {
 	keys := &fakeKeys{rec: rec, cb: cb}
 	em := &fakeEmitter{}
 	win := &fakeWindow{rec: rec}
+	profileRec := &recorder{}
+	profileWin := &fakeWindow{rec: profileRec}
 	cfg := config.Default()
 	svc, host := New(Options{
-		Config:      cfg,
-		Runner:      runner,
-		Emitter:     em,
-		Clipboard:   cb,
-		Keys:        keys,
-		Window:      win,
-		Session:     sess,
-		Sleep:       func(d time.Duration) { rec.add(fmt.Sprintf("sleep:%s", d)) },
-		CaptureWait: 30 * time.Millisecond,
-		PasteSettle: time.Millisecond,
+		Config:        cfg,
+		Runner:        runner,
+		Emitter:       em,
+		Clipboard:     cb,
+		Keys:          keys,
+		Window:        win,
+		ProfileWindow: profileWin,
+		Session:       sess,
+		Sleep:         func(d time.Duration) { rec.add(fmt.Sprintf("sleep:%s", d)) },
+		CaptureWait:   30 * time.Millisecond,
+		PasteSettle:   time.Millisecond,
 	})
-	return &harness{svc: svc, host: host, win: win, em: em, rec: rec, cb: cb, keys: keys}
+	return &harness{
+		svc: svc, host: host, win: win, em: em, rec: rec, cb: cb, keys: keys,
+		profileWin: profileWin, profileRec: profileRec,
+	}
 }
 
 var canSimulate = platform.Session{CanSimulateKeys: true}

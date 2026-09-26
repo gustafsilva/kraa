@@ -11,6 +11,7 @@ export type {
     ChunkEvent,
     DoneEvent,
     ErrorEvent,
+    ProfileDTO,
     SelectionEvent,
     StartRequest,
     State

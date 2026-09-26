@@ -363,3 +363,44 @@ func TestStream_EndsWithoutDoneReturnsNil(t *testing.T) {
 		t.Errorf("got %q, want %q", got.String(), "sem fim")
 	}
 }
+
+func captureBody(t *testing.T, opts ...Option) map[string]any {
+	t.Helper()
+	var gotBody map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		if err := json.Unmarshal(raw, &gotBody); err != nil {
+			t.Errorf("unmarshal body: %v", err)
+		}
+		writeSSE(w, r, []string{`data: [DONE]`})
+	}))
+	defer server.Close()
+
+	client := NewOpenAIClient(server.URL, "", "m", 5*time.Second, opts...)
+	if err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, func(string) {}); err != nil {
+		t.Fatalf("Stream() error = %v", err)
+	}
+	return gotBody
+}
+
+func TestStream_SendsTemperatureWhenSet(t *testing.T) {
+	body := captureBody(t, WithTemperature(0.2))
+	if body["temperature"] != 0.2 {
+		t.Errorf("temperature = %v, want 0.2", body["temperature"])
+	}
+}
+
+func TestStream_SendsZeroTemperature(t *testing.T) {
+	body := captureBody(t, WithTemperature(0))
+	v, ok := body["temperature"]
+	if !ok || v != 0.0 {
+		t.Errorf("temperature = %v (present=%v), want 0", v, ok)
+	}
+}
+
+func TestStream_OmitsTemperatureByDefault(t *testing.T) {
+	body := captureBody(t)
+	if _, ok := body["temperature"]; ok {
+		t.Errorf("temperature present = %v, want omitted", body["temperature"])
+	}
+}

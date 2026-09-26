@@ -49,7 +49,11 @@ func loadConfig() (*config.Config, string, error) {
 // newRunner builds the LLM client + improver for cfg.
 func newRunner(cfg *config.Config) app.Runner {
 	p := cfg.Provider
-	client := llm.NewOpenAIClient(p.BaseURL, p.APIKey, p.Model, time.Duration(p.TimeoutSeconds)*time.Second)
+	var opts []llm.Option
+	if p.Temperature != nil {
+		opts = append(opts, llm.WithTemperature(*p.Temperature))
+	}
+	client := llm.NewOpenAIClient(p.BaseURL, p.APIKey, p.Model, time.Duration(p.TimeoutSeconds)*time.Second, opts...)
 	return improver.New(cfg, client)
 }
 
@@ -120,6 +124,17 @@ func main() {
 		BackgroundColour: application.NewRGB(22, 23, 27), // --background (dark)
 		URL:              "/",
 	})
+	// "Perfil do usuário": a regular (framed) window opened from the tray.
+	// Same frontend bundle; main.tsx renders ProfileWindow for ?view=profile.
+	profileWindow := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name:             "profile",
+		Title:            "Perfil do usuário",
+		Width:            520,
+		Height:           460,
+		Hidden:           true,
+		BackgroundColour: application.NewRGB(22, 23, 27), // --background (dark)
+		URL:              "/?view=profile",
+	})
 	// macOS: ask once for the Accessibility permission (shows the system
 	// prompt); without it canReplace stays false and a warning is shown.
 	if runtime.GOOS == "darwin" {
@@ -141,6 +156,8 @@ func main() {
 		Keys:      platform.NewKeySender(),
 		Window:    app.WailsWindow{App: wailsApp, Window: window},
 		Session:   platform.DetectSession(),
+
+		ProfileWindow: app.WailsWindow{App: wailsApp, Window: profileWindow},
 	})
 	wailsApp.RegisterService(application.NewService(svc))
 
@@ -152,6 +169,15 @@ func main() {
 	})
 	window.RegisterKeyBinding("escape", func(application.Window) {
 		svc.Close()
+	})
+
+	// Closing the profile window only hides it (the app lives in the tray).
+	profileWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		e.Cancel()
+		svc.CloseProfile()
+	})
+	profileWindow.RegisterKeyBinding("escape", func(application.Window) {
+		svc.CloseProfile()
 	})
 
 	if cfgErr != nil {
@@ -241,6 +267,22 @@ func main() {
 		return nil
 	})
 
+	// Profile window: persist the profile block in config.yaml, then reload
+	// so the next improvement uses it.
+	host.SetProfileSaver(func(p config.Profile) error {
+		mu.Lock()
+		path := cfgPath
+		mu.Unlock()
+		if path == "" {
+			return errors.New("o caminho do config.yaml é desconhecido")
+		}
+		if err := config.SaveProfile(path, p); err != nil {
+			return err
+		}
+		reload()
+		return nil
+	})
+
 	tray := wailsApp.SystemTray.New()
 	tray.SetTooltip("Prompt Improve")
 
@@ -255,6 +297,9 @@ func main() {
 
 	trayMenu.Add("Abrir").OnClick(func(ctx *application.Context) {
 		host.ShowWindow()
+	})
+	trayMenu.Add("Perfil do usuário…").OnClick(func(ctx *application.Context) {
+		host.ShowProfile()
 	})
 	trayMenu.Add("Editar configuração").OnClick(func(ctx *application.Context) {
 		mu.Lock()

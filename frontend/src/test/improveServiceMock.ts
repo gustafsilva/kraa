@@ -6,6 +6,7 @@ import { vi } from "vitest";
 export const ImproveService = {
   Cancel: vi.fn().mockResolvedValue(undefined),
   Close: vi.fn().mockResolvedValue(undefined),
+  CloseProfile: vi.fn().mockResolvedValue(undefined),
   Copy: vi.fn().mockResolvedValue(undefined),
   GetState: vi.fn().mockResolvedValue({
     text: "",
@@ -15,8 +16,10 @@ export const ImproveService = {
     error: "",
     model: "",
   }),
+  GetProfile: vi.fn().mockResolvedValue({ enabled: false, text: "" }),
   ListModels: vi.fn().mockResolvedValue([]),
   Replace: vi.fn().mockResolvedValue(undefined),
+  SaveProfile: vi.fn().mockResolvedValue(undefined),
   SetModel: vi.fn().mockResolvedValue(undefined),
   Start: vi.fn().mockResolvedValue("req-1"),
 };
@@ -32,6 +35,11 @@ export function resetImproveServiceMock() {
   ImproveService.ListModels.mockResolvedValue([]);
   ImproveService.SetModel.mockReset();
   ImproveService.SetModel.mockResolvedValue(undefined);
+  ImproveService.CloseProfile.mockClear();
+  ImproveService.GetProfile.mockReset();
+  ImproveService.GetProfile.mockResolvedValue({ enabled: false, text: "" });
+  ImproveService.SaveProfile.mockReset();
+  ImproveService.SaveProfile.mockResolvedValue(undefined);
   ImproveService.GetState.mockResolvedValue({
     text: "",
     actions: [],

@@ -31,14 +31,26 @@ type Provider struct {
 	APIKey         string `yaml:"api_key"`
 	Model          string `yaml:"model"`
 	TimeoutSeconds int    `yaml:"timeout_seconds"`
+	// Temperature, when set, is sent to the provider; nil keeps the
+	// server default (reasoning models may reject other values).
+	Temperature *float64 `yaml:"temperature"`
 }
 
 // Action is a pre-configured prompt-rewrite action shown in the modal.
+// UseProfile sends the user profile (when enabled) along with the action.
 type Action struct {
 	ID          string `yaml:"id"`
 	Category    string `yaml:"category"`
 	Label       string `yaml:"label"`
 	Instruction string `yaml:"instruction"`
+	UseProfile  bool   `yaml:"use_profile"`
+}
+
+// Profile describes who uses the app; when Enabled and non-empty, Text is
+// sent to the LLM on requests that use the profile.
+type Profile struct {
+	Enabled bool   `yaml:"enabled"`
+	Text    string `yaml:"text"`
 }
 
 // Config is the full user configuration for Prompt Improve.
@@ -46,6 +58,7 @@ type Config struct {
 	Hotkey        string   `yaml:"hotkey"`
 	Provider      Provider `yaml:"provider"`
 	MaxInputChars int      `yaml:"max_input_chars"`
+	Profile       Profile  `yaml:"profile"`
 	Actions       []Action `yaml:"actions"`
 }
 
@@ -164,6 +177,9 @@ func (c *Config) Validate() error {
 	}
 	if c.Provider.TimeoutSeconds < 0 {
 		return fmt.Errorf("config: timeout_seconds não pode ser negativo (use 0 para o padrão de %d)", defaultTimeoutSeconds)
+	}
+	if t := c.Provider.Temperature; t != nil && (*t < 0 || *t > 2) {
+		return fmt.Errorf("config: temperature precisa estar entre 0 e 2 (ou remova a linha para usar o padrão do servidor)")
 	}
 	if c.MaxInputChars < 0 {
 		return fmt.Errorf("config: max_input_chars não pode ser negativo (use 0 para o padrão de %d)", defaultMaxInputChars)

@@ -35,6 +35,14 @@ export interface ErrorEvent {
 }
 
 /**
+ * ProfileDTO is the user profile as exposed to the frontend.
+ */
+export interface ProfileDTO {
+    "enabled": boolean;
+    "text": string;
+}
+
+/**
  * SelectionEvent is the payload of selection:new.
  */
 export interface SelectionEvent {

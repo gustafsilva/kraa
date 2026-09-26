@@ -193,6 +193,29 @@ O arquivo de configuração é criado automaticamente no primeiro uso, em:
 Pela bandeja do sistema é possível abrir ("Editar configuração") e recarregar
 ("Recarregar configuração") esse arquivo sem reiniciar o app.
 
+### Perfil do usuário
+
+Em **"Perfil do usuário…"** na bandeja você descreve quem usa o app (ex.:
+"Sou desenvolvedor sênior fullstack; prefiro respostas técnicas"). Com
+"Usar perfil" marcado, o texto é enviado ao LLM nas ações com
+`use_profile: true` (por padrão, as da categoria "Prompt") e na instrução
+livre. Ele fica no bloco `profile` do `config.yaml`:
+
+```yaml
+profile:
+  enabled: true
+  text: Sou desenvolvedor sênior fullstack; prefiro respostas técnicas.
+```
+
+As ações da categoria "Prompt" reescrevem o texto sem inventar fatos:
+usam só o que está no texto, na instrução ou no perfil, e marcam
+informações que faltam com placeholders entre colchetes, como
+`[público-alvo]`, em vez de supor.
+
+Configurações criadas antes desta versão mantêm as instruções antigas das
+ações. Para receber as novas, apague (ou renomeie) o `config.yaml`: ele é
+recriado com o template atual no próximo início.
+
 ### Provider: Ollama local (padrão)
 
 ```yaml
@@ -201,7 +224,13 @@ provider:
   api_key: ""
   model: "llama3.2"
   timeout_seconds: 60
+  temperature: 0.2
 ```
+
+`temperature` (opcional, entre 0 e 2; `0.2` no template): quanto menor,
+mais fiel ao texto original e menos invenção. Remova a linha para usar o
+padrão do servidor. Modelos de raciocínio da OpenAI só aceitam o valor
+padrão; com eles, remova a linha.
 
 ### Provider: Ollama Cloud
 
@@ -245,11 +274,15 @@ actions:
   - id: bullet-points
     category: Mensagem
     label: Transformar em tópicos
+    use_profile: true
     instruction: >-
       Reescreva o texto a seguir como uma lista de tópicos curtos e
       objetivos, preservando as informações essenciais. Responda apenas
       com a lista.
 ```
+
+`use_profile` (opcional, padrão `false`) envia o perfil do usuário junto com
+a ação.
 
 O app vem com 8 ações padrão (3 na categoria "Prompt", 5 em "Mensagem");
 qualquer ação adicionada aparece junto delas no modal.

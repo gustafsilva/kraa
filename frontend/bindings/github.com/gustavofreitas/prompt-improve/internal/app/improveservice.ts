@@ -32,10 +32,24 @@ export function Close(): $CancellablePromise<void> {
 }
 
 /**
+ * CloseProfile hides the profile window.
+ */
+export function CloseProfile(): $CancellablePromise<void> {
+    return $Call.ByID(3865186613);
+}
+
+/**
  * Copy puts text in the clipboard.
  */
 export function Copy(text: string): $CancellablePromise<void> {
     return $Call.ByID(1123328113, text);
+}
+
+/**
+ * GetProfile returns the profile of the current configuration.
+ */
+export function GetProfile(): $CancellablePromise<$models.ProfileDTO> {
+    return $Call.ByID(3475515869);
 }
 
 /**
@@ -61,6 +75,15 @@ export function ListModels(): $CancellablePromise<string[] | null> {
  */
 export function Replace(text: string): $CancellablePromise<void> {
     return $Call.ByID(1682521732, text);
+}
+
+/**
+ * SaveProfile validates p (enabled requires text; at most maxProfileChars
+ * after trimming; CRLF becomes LF), persists it and reloads the
+ * configuration. Errors are PT-BR and user-facing.
+ */
+export function SaveProfile(p: $models.ProfileDTO): $CancellablePromise<void> {
+    return $Call.ByID(1063210010, p);
 }
 
 /**

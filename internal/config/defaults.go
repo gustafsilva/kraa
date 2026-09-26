@@ -17,36 +17,72 @@ provider:
   api_key: "" # a env PROMPT_IMPROVE_API_KEY tem precedência se definida
   model: "llama3.2" # também pode ser trocado pelo seletor no topo do modal
   timeout_seconds: 60
+  # temperature: quanto menor, mais fiel ao texto original (menos
+  # invenção). Remova a linha para usar o padrão do servidor; modelos de
+  # raciocínio (ex.: o-series/gpt-5 da OpenAI) só aceitam o padrão.
+  temperature: 0.2
 
 # max_input_chars: tamanho máximo (em caracteres) do texto selecionado
 # aceito para melhoria.
 max_input_chars: 20000
 
+# profile: descreve quem usa o app (cargo, stack, preferências). Com
+# enabled: true, o texto é enviado ao LLM nas ações com use_profile: true
+# e na instrução livre, para calibrar contexto e nível técnico. Também pode
+# ser editado em "Perfil do usuário…" na bandeja.
+profile:
+  enabled: false
+  text: >-
+    Sou profissional de tecnologia e uso IA no dia a dia de trabalho.
+    Prefiro textos objetivos, com termos técnicos quando fizerem sentido.
+
 # actions: ações pré-configuradas exibidas no modal, agrupadas por
-# categoria. Cada ação precisa de um id único.
+# categoria. Cada ação precisa de um id único. use_profile: true envia o
+# perfil (se ativo) junto com a ação.
 actions:
   - id: improve-prompt
     category: Prompt
     label: Melhorar prompt
+    use_profile: true
     instruction: >-
-      Reescreva o prompt a seguir para um LLM: deixe claro objetivo,
-      contexto, restrições e formato de saída. Responda apenas com o
-      prompt reescrito.
+      Reescreva o prompt em <texto> para que um LLM o execute bem,
+      preservando a intenção e todos os requisitos do autor. Organize o
+      que o autor escreveu deixando claros o objetivo, o contexto, as
+      restrições e o formato de saída; quando o autor der o motivo de uma
+      restrição, mantenha-o junto dela. Ajuste a estrutura à
+      complexidade: um pedido simples continua curto e em prosa, e um
+      pedido com várias partes ganha seções curtas (Objetivo, Contexto,
+      Restrições, Formato de saída). Escreva instruções afirmativas e
+      coerentes entre si. Use somente informações presentes no prompt
+      original ou no perfil; quando faltar uma informação essencial,
+      insira um placeholder entre colchetes, como [público-alvo], em vez
+      de supor. Mantenha fora técnicas que o autor não pediu, como
+      personas ou "pense passo a passo". Responda apenas com o prompt
+      reescrito.
   - id: add-context
     category: Prompt
     label: Adicionar contexto
+    use_profile: true
     instruction: >-
-      Reescreva o prompt a seguir adicionando contexto relevante que
-      ajude o LLM a entender melhor a tarefa, mantendo a intenção
-      original. Responda apenas com o prompt reescrito.
+      Reescreva o prompt em <texto> explicitando o contexto que ajude um
+      LLM a entender a tarefa: para que serve o resultado, quem vai usá-lo
+      e quais informações de fundo importam. Tire esse contexto somente do
+      próprio prompt e do perfil; para cada item que não estiver lá,
+      insira um placeholder entre colchetes, como [público-alvo], em vez
+      de supor. Preserve a intenção e todos os requisitos do autor.
+      Responda apenas com o prompt reescrito.
   - id: more-specific
     category: Prompt
     label: Mais específico
+    use_profile: true
     instruction: >-
-      Reescreva o prompt a seguir tornando-o mais específico e
-      detalhado, removendo ambiguidades e explicitando expectativas de
-      formato e escopo de saída. Responda apenas com o prompt
-      reescrito.
+      Reescreva o prompt em <texto> tornando-o mais específico: troque
+      termos vagos por critérios concretos e explicite o escopo, o tamanho
+      e o formato de saída esperados. Quando o próprio prompt ou o perfil
+      não definirem um desses critérios, insira um placeholder entre
+      colchetes, como [tamanho], em vez de supor um valor. Preserve a
+      intenção e todos os requisitos do autor. Responda apenas com o
+      prompt reescrito.
   - id: formal
     category: Mensagem
     label: Mais formal
