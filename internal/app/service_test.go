@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
@@ -677,4 +679,113 @@ func TestTriggerWhileVisibleOnlyRefocusesWindow(t *testing.T) {
 		t.Fatal("in-flight request was cancelled")
 	}
 	h.svc.Cancel(id)
+}
+
+// ---- modelo ----------------------------------------------------------------
+
+func configWithBaseURL(baseURL string) *config.Config {
+	cfg := config.Default()
+	cfg.Provider.BaseURL = baseURL
+	cfg.Provider.Model = "llama3.2"
+	return cfg
+}
+
+func TestStateIncludesCurrentModel(t *testing.T) {
+	h := newHarness(t, nil, canSimulate)
+	h.host.Configure(configWithBaseURL("http://x/v1"), nil)
+
+	if got := h.svc.GetState().Model; got != "llama3.2" {
+		t.Errorf("State.Model = %q, want llama3.2", got)
+	}
+}
+
+func TestListModelsReturnsProviderModels(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[{"id":"qwen3"},{"id":"llama3.2:latest"}]}`))
+	}))
+	defer server.Close()
+
+	h := newHarness(t, nil, canSimulate)
+	h.host.Configure(configWithBaseURL(server.URL), nil)
+
+	got, err := h.svc.ListModels()
+	if err != nil {
+		t.Fatalf("ListModels() error = %v", err)
+	}
+	if strings.Join(got, ",") != "llama3.2:latest,qwen3" {
+		t.Errorf("got %v", got)
+	}
+}
+
+func TestListModelsUnreachableSuggestsOllamaServe(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	url := server.URL
+	server.Close()
+
+	h := newHarness(t, nil, canSimulate)
+	h.host.Configure(configWithBaseURL(url), nil)
+
+	_, err := h.svc.ListModels()
+	if err == nil || !strings.Contains(err.Error(), "ollama serve") {
+		t.Fatalf("err = %v, want hint with 'ollama serve'", err)
+	}
+}
+
+func TestListModelsAPIErrorIsPTBR(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":{"message":"invalid api key"}}`))
+	}))
+	defer server.Close()
+
+	h := newHarness(t, nil, canSimulate)
+	h.host.Configure(configWithBaseURL(server.URL), nil)
+
+	_, err := h.svc.ListModels()
+	if err == nil || !strings.Contains(err.Error(), "Não foi possível listar os modelos") || !strings.Contains(err.Error(), "api_key") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestSetModelCallsSaverWithTrimmedModel(t *testing.T) {
+	h := newHarness(t, nil, canSimulate)
+	var got []string
+	h.host.SetModelSaver(func(m string) error { got = append(got, m); return nil })
+
+	if err := h.svc.SetModel("  qwen3  "); err != nil {
+		t.Fatalf("SetModel() error = %v", err)
+	}
+	if len(got) != 1 || got[0] != "qwen3" {
+		t.Errorf("saver calls = %v", got)
+	}
+}
+
+func TestSetModelRejectsEmpty(t *testing.T) {
+	h := newHarness(t, nil, canSimulate)
+	called := false
+	h.host.SetModelSaver(func(string) error { called = true; return nil })
+
+	if err := h.svc.SetModel("  "); err == nil {
+		t.Fatal("SetModel() error = nil, want error")
+	}
+	if called {
+		t.Error("saver should not be called")
+	}
+}
+
+func TestSetModelWrapsSaverError(t *testing.T) {
+	h := newHarness(t, nil, canSimulate)
+	h.host.SetModelSaver(func(string) error { return errors.New("disco cheio") })
+
+	err := h.svc.SetModel("qwen3")
+	if err == nil || !strings.Contains(err.Error(), "Não foi possível salvar o modelo") || !strings.Contains(err.Error(), "disco cheio") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestSetModelWithoutSaverFails(t *testing.T) {
+	h := newHarness(t, nil, canSimulate)
+	if err := h.svc.SetModel("qwen3"); err == nil {
+		t.Fatal("SetModel() error = nil, want error")
+	}
 }

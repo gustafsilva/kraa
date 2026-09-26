@@ -34,6 +34,8 @@ const (
 	defaultCaptureWait = 400 * time.Millisecond
 	defaultFocusDelay  = 150 * time.Millisecond
 	defaultPasteSettle = 300 * time.Millisecond
+
+	defaultListModelsTimeout = 5 * time.Second
 )
 
 // Emitter sends an event to the frontend.
@@ -56,6 +58,10 @@ type Window interface {
 	IsVisible() bool
 }
 
+// ModelSaver persists the chosen model (config.yaml) and applies it; main.go
+// provides it through Host.SetModelSaver.
+type ModelSaver func(model string) error
+
 // ActionDTO is an action as exposed to the frontend (no instruction).
 type ActionDTO struct {
 	ID       string `json:"id"`
@@ -70,6 +76,7 @@ type State struct {
 	CanReplace bool        `json:"canReplace"`
 	Warning    string      `json:"warning"`
 	Error      string      `json:"error"`
+	Model      string      `json:"model"`
 }
 
 // StartRequest is the input of Start.
@@ -137,6 +144,7 @@ type ImproveService struct {
 	loadErr       string
 	hotkeyWarning string
 	warning       string
+	saveModel     ModelSaver
 	cur           *request
 
 	em  Emitter
@@ -286,6 +294,42 @@ func (s *ImproveService) Close() {
 	s.win.ReleaseFocus()
 }
 
+// ListModels returns the models offered by the provider (for Ollama, the
+// installed ones), sorted. Errors are PT-BR and user-facing.
+func (s *ImproveService) ListModels() ([]string, error) {
+	s.mu.Lock()
+	p := s.cfg.Provider
+	s.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultListModelsTimeout)
+	defer cancel()
+	models, err := llm.ListModels(ctx, p.BaseURL, p.APIKey)
+	if err != nil {
+		return nil, errors.New(listModelsMessage(err, p.BaseURL))
+	}
+	return models, nil
+}
+
+// SetModel persists model as provider.model and reloads the configuration;
+// the new model arrives on state:changed. Requests already running keep
+// the previous model.
+func (s *ImproveService) SetModel(model string) error {
+	model = strings.TrimSpace(model)
+	if model == "" {
+		return errors.New("Escolha um modelo.")
+	}
+	s.mu.Lock()
+	save := s.saveModel
+	s.mu.Unlock()
+	if save == nil {
+		return errors.New("Não é possível trocar o modelo agora.")
+	}
+	if err := save(model); err != nil {
+		return fmt.Errorf("Não foi possível salvar o modelo: %w", err)
+	}
+	return nil
+}
+
 // ---- internals -------------------------------------------------------------
 
 func (s *ImproveService) cancelLocked() {
@@ -340,6 +384,7 @@ func (s *ImproveService) stateLocked() State {
 		CanReplace: s.session.CanSimulateKeys,
 		Warning:    s.warningLocked(),
 		Error:      s.loadErr,
+		Model:      s.cfg.Provider.Model,
 	}
 }
 
@@ -387,6 +432,24 @@ func errorMessage(err error, cfg *config.Config) string {
 		return "Ação desconhecida. Recarregue a configuração."
 	}
 	return "Erro inesperado: " + err.Error()
+}
+
+// listModelsMessage maps ListModels errors to PT-BR, user-facing messages.
+func listModelsMessage(err error, baseURL string) string {
+	var apiErr *llm.APIError
+	switch {
+	case errors.Is(err, llm.ErrUnreachable):
+		return fmt.Sprintf("Não foi possível conectar em %s. O Ollama está rodando? (ollama serve)", baseURL)
+	case errors.Is(err, context.DeadlineExceeded):
+		return "Tempo esgotado ao listar os modelos."
+	case errors.As(err, &apiErr):
+		msg := "Não foi possível listar os modelos: " + apiErr.Message
+		if apiErr.Status == 401 || apiErr.Status == 403 {
+			msg += " — verifique a api_key"
+		}
+		return msg
+	}
+	return "Não foi possível listar os modelos: " + err.Error()
 }
 
 // ---- Host ------------------------------------------------------------------
@@ -491,4 +554,12 @@ func (h *Host) SetWarning(msg string) {
 	defer s.mu.Unlock()
 	s.warning = msg
 	s.emitStateLocked()
+}
+
+// SetModelSaver sets how SetModel persists and applies a model choice.
+func (h *Host) SetModelSaver(save ModelSaver) {
+	s := h.s
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.saveModel = save
 }
