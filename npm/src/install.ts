@@ -29,6 +29,8 @@ export interface InstallDeps {
   log: (msg: string) => void;
   /** Timeout de cada download (padrão: DOWNLOAD_TIMEOUT_MS). */
   downloadTimeoutMs?: number;
+  /** Operações de fs injetáveis nos testes (padrão: node:fs). */
+  fs?: Pick<typeof fs, "renameSync">;
 }
 
 /** Tempo máximo de cada download (checksums.txt e asset), incluindo o corpo. */
@@ -70,6 +72,27 @@ async function download(d: InstallDeps, url: string): Promise<Buffer> {
   } catch (err) {
     if (signal.aborted) {
       throw new Error(`Tempo esgotado (${ms / 1000}s) ao baixar ${url}`);
+    }
+    throw err;
+  }
+}
+
+/** Mensagem quando o binário atual está em uso e não pode ser substituído. */
+export const BINARY_IN_USE_MESSAGE =
+  "Feche o Prompt Improve (prompt-improve stop) e rode prompt-improve install novamente";
+
+/**
+ * Move o binário baixado para o destino. No Windows, renomear por cima de um
+ * .exe em execução falha com EPERM/EBUSY; isso vira uma mensagem PT-BR
+ * acionável em vez do erro cru do Node.
+ */
+function replaceBinary(d: InstallDeps, from: string, to: string): void {
+  try {
+    (d.fs ?? fs).renameSync(from, to);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException | null)?.code;
+    if (code === "EPERM" || code === "EBUSY") {
+      throw new Error(`Não foi possível substituir ${to}: o arquivo está em uso. ${BINARY_IN_USE_MESSAGE}.`);
     }
     throw err;
   }
@@ -123,7 +146,7 @@ export async function install(d: InstallDeps): Promise<"skipped" | "installed"> 
     } else {
       const bin = binaryPath(d.platform, d.env, d.home);
       fs.chmodSync(file, 0o755);
-      fs.renameSync(file, bin);
+      replaceBinary(d, file, bin);
     }
   } finally {
     fs.rmSync(staging, { recursive: true, force: true });

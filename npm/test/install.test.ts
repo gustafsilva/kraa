@@ -92,6 +92,33 @@ describe("install", () => {
     ]);
   });
 
+  it.each(["EPERM", "EBUSY"])(
+    "binário em uso (%s no rename, ex.: .exe rodando no Windows) vira mensagem PT-BR e não deixa temporários",
+    async (code) => {
+      const bin = Buffer.from("bin");
+      const asset = "prompt-improve-linux-amd64";
+      const fetch = fakeFetch({ [asset]: bin, "checksums.txt": `${sha(bin)}  ${asset}\n` });
+      const renameSync = vi.fn(() => {
+        throw Object.assign(new Error(`${code}: operation not permitted, rename`), { code });
+      });
+      await expect(install(deps({ fetch, fs: { renameSync } }))).rejects.toThrow(
+        "Feche o Prompt Improve (prompt-improve stop) e rode prompt-improve install novamente",
+      );
+      expect(renameSync).toHaveBeenCalledTimes(1);
+      expect(lsRecursive(path.join(home, ".local/share/prompt-improve"))).toEqual([]);
+    },
+  );
+
+  it("outros erros do rename continuam propagando como estão", async () => {
+    const bin = Buffer.from("bin");
+    const asset = "prompt-improve-linux-amd64";
+    const fetch = fakeFetch({ [asset]: bin, "checksums.txt": `${sha(bin)}  ${asset}\n` });
+    const renameSync = vi.fn(() => {
+      throw Object.assign(new Error("ENOSPC: no space left on device"), { code: "ENOSPC" });
+    });
+    await expect(install(deps({ fetch, fs: { renameSync } }))).rejects.toThrow("ENOSPC");
+  });
+
   it("checksum inválido aborta e remove o arquivo parcial", async () => {
     const asset = "prompt-improve-linux-amd64";
     const fetch = fakeFetch({
