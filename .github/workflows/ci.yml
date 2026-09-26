@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  # Mantido em sincronia com o `go install` abaixo; veja CLAUDE.md para a
+  # versão do Wails v3 usada no projeto (fixada no go.mod).
+  WAILS3_VERSION: v3.0.0-beta.26
+
+jobs:
+  lint:
+    name: Lint (gofmt + go vet)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: gofmt
+        run: |
+          fmt_out="$(gofmt -l .)"
+          if [ -n "$fmt_out" ]; then
+            echo "Os arquivos abaixo não estão formatados (rode 'gofmt -w .'):"
+            echo "$fmt_out"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+  build:
+    name: Build e testes (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      # Ubuntu 24.04 (runner atual do ubuntu-latest): headers de GTK3 e
+      # WebKitGTK 4.1, que é o que o wails3 v3.0.0-beta.26 usa no Linux
+      # (betas mais recentes migraram para GTK4/webkitgtk-6.0, mas ainda não
+      # é a versão fixada neste projeto).
+      - name: Instala dependências do Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      # `wails3 build`/`wails3 task` embutem seu próprio runner do Task
+      # internamente, então não é preciso instalar o binário `task`
+      # separadamente (ex.: via arduino/setup-task) nesta pipeline.
+      - name: Instala wails3 (versão fixada)
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS3_VERSION }}
+
+      - name: Instala dependências do frontend
+        run: npm ci
+        working-directory: frontend
+
+      - name: Testes Go (com -race)
+        if: runner.os != 'Windows'
+        run: go test ./... -race
+
+      # -race exige CGO_ENABLED=1 com um compilador C funcional. Os runners
+      # windows-latest não garantem gcc/clang no PATH, e o código
+      # específico do Windows (internal/platform/keys_windows.go) não usa
+      # cgo (só o macOS usa, via ApplicationServices/CoreGraphics) — então,
+      # em vez de depender de um toolchain C não garantido, rodamos os
+      # testes sem -race apenas no Windows.
+      - name: Testes Go (sem -race no Windows)
+        if: runner.os == 'Windows'
+        run: go test ./...
+
+      - name: Testes do frontend
+        run: npm test
+        working-directory: frontend
+
+      - name: Build (wails3 build)
+        run: wails3 build
+
+      - name: Publica artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prompt-improve-${{ matrix.os }}
+          path: bin/
+          if-no-files-found: error
