@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { RotateCcw, X } from "lucide-react";
+import { CornerDownLeft, PenLine, RotateCcw, Sparkles, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,9 +102,12 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
-      <header className="flex shrink-0 items-center justify-between border-b px-3 py-2 [--wails-draggable:drag]">
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-2.5 [--wails-draggable:drag]">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="shrink-0 text-sm font-medium">Prompt Improve</span>
+          <span className="flex shrink-0 items-center gap-1.5 text-[13px] font-semibold tracking-tight">
+            <PenLine className="size-3.5 text-pencil" aria-hidden="true" />
+            Prompt Improve
+          </span>
           <ModelPicker
             model={model}
             models={models}
@@ -117,13 +120,13 @@ function App() {
           type="button"
           aria-label="Fechar"
           onClick={() => void close()}
-          className="[--wails-draggable:no-drag] rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="[--wails-draggable:no-drag] rounded-md p-1 text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
         >
           <X className="size-4" />
         </button>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden p-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-hidden px-5 py-3.5">
         {configError && (
           <Alert variant="destructive">
             <AlertTitle>Erro de configuração</AlertTitle>
@@ -137,8 +140,8 @@ function App() {
           </Alert>
         )}
 
-        <div className="flex shrink-0 flex-col gap-1">
-          <label htmlFor="source-text" className="text-xs font-medium text-foreground/80">
+        <div className="-ml-3 flex shrink-0 flex-col gap-1 border-l-2 border-graphite pl-2.5 transition-colors focus-within:border-pencil">
+          <label htmlFor="source-text" className="text-[11px] font-medium text-muted-foreground">
             Texto a melhorar
           </label>
           <Textarea
@@ -146,7 +149,7 @@ function App() {
             value={text}
             onChange={(event) => setText(event.target.value)}
             placeholder="Cole ou digite o texto aqui"
-            className="max-h-24 min-h-12 resize-none text-xs md:text-xs [--wails-draggable:no-drag]"
+            className="max-h-20 min-h-10 resize-none rounded-none border-0 bg-transparent p-0 text-[13px] leading-relaxed text-foreground/85 shadow-none focus-visible:ring-0 md:text-[13px] dark:bg-transparent [--wails-draggable:no-drag]"
           />
         </div>
 
@@ -157,20 +160,33 @@ function App() {
           onKeyDownCapture={handleReplaceShortcutCapture}
         />
 
-        <Input
-          value={freeInstruction}
-          onChange={(event) => setFreeInstruction(event.target.value)}
-          onKeyDown={handleFreeInstructionKeyDown}
-          onKeyDownCapture={handleReplaceShortcutCapture}
-          placeholder="Ou descreva o que deseja (instrução livre)…"
-          aria-label="Instrução livre"
-          className="shrink-0 [--wails-draggable:no-drag]"
-        />
+        <div className="relative shrink-0 [--wails-draggable:no-drag]">
+          <Sparkles
+            className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            value={freeInstruction}
+            onChange={(event) => setFreeInstruction(event.target.value)}
+            onKeyDown={handleFreeInstructionKeyDown}
+            onKeyDownCapture={handleReplaceShortcutCapture}
+            placeholder="Ou descreva o que deseja (instrução livre)…"
+            aria-label="Instrução livre"
+            className="h-9 rounded-full bg-card pr-10 pl-8.5 text-[13px] md:text-[13px]"
+          />
+          <CornerDownLeft
+            className={`pointer-events-none absolute top-1/2 right-3.5 size-3.5 -translate-y-1/2 transition-opacity ${
+              freeInstruction.trim() ? "text-pencil opacity-100" : "text-muted-foreground opacity-40"
+            }`}
+            aria-hidden="true"
+          />
+        </div>
 
         <PreviewPane
           value={output}
           onChange={setOutput}
           editable={status === "done"}
+          streaming={isStreaming}
           placeholder={isStreaming ? "Gerando…" : "O resultado aparece aqui."}
         />
 

@@ -108,7 +108,7 @@ func main() {
 	window := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:       "Prompt Improve",
 		Width:       560,
-		Height:      520,
+		Height:      580,
 		Frameless:   true,
 		AlwaysOnTop: true,
 		Hidden:      true,
@@ -117,7 +117,7 @@ func main() {
 		Windows: application.WindowsWindow{
 			HiddenOnTaskbar: true,
 		},
-		BackgroundColour: application.NewRGB(6, 7, 15),
+		BackgroundColour: application.NewRGB(22, 23, 27), // --background (dark)
 		URL:              "/",
 	})
 	// macOS: ask once for the Accessibility permission (shows the system
