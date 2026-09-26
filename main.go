@@ -57,7 +57,6 @@ func newRunner(cfg *config.Config) app.Runner {
 // internal/autostart's interface (kept Wails-free) doesn't need.
 type menuCheckbox struct{ item *application.MenuItem }
 
-func (c menuCheckbox) Checked() bool           { return c.item.Checked() }
 func (c menuCheckbox) SetChecked(checked bool) { c.item.SetChecked(checked) }
 
 // main is the application entry point. It creates the Wails app, a hidden
@@ -279,7 +278,12 @@ func main() {
 		autostartItem.SetChecked(enabled)
 		toggler := autostart.NewToggler(autostartMgr)
 		autostartItem.OnClick(func(ctx *application.Context) {
-			toggler.Toggle(menuCheckbox{autostartItem}, func(msg string) {
+			// want and gen are this click's own intent, captured before
+			// Toggle blocks on the lock; see Toggler's doc comment for why
+			// Toggle must not re-derive them from the checkbox itself.
+			want := ctx.IsChecked()
+			gen := toggler.NextGeneration()
+			toggler.Toggle(want, gen, menuCheckbox{autostartItem}, func(msg string) {
 				if msg != "" {
 					log.Printf("autostart: %s", msg)
 				}
