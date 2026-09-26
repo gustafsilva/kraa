@@ -26,6 +26,8 @@ export interface ImproveState {
   output: string;
   /** improve:error message for the current/last request. */
   requestError: string;
+  /** Replace()/Copy() rejection message (PT-BR), unrelated to the request stream. */
+  actionError: string;
 }
 
 export interface StartOptions {
@@ -60,6 +62,7 @@ const initialState: ImproveState = {
   status: "idle",
   output: "",
   requestError: "",
+  actionError: "",
 };
 
 /**
@@ -72,6 +75,16 @@ const initialState: ImproveState = {
  * replayed and the rest are dropped. Once resolved, any live event whose id
  * no longer matches the current request (e.g. a late chunk for an id that
  * was superseded by a subsequent Start) is ignored.
+ *
+ * Overlapping Start() calls: calling start() again before a previous Start()
+ * promise has resolved must not let that older promise's resolution mutate
+ * pending/current-id/buffer state once it finally settles — those belong to
+ * whichever start() call is the latest, regardless of resolution order.
+ * Each startWithRequest() run is tagged with a monotonically increasing
+ * `generation`; a .then/.catch only touches pendingRef/currentIdRef/
+ * bufferRef when its generation is still the latest one. A stale resolution
+ * (an older generation) is a no-op for local state, but it does defensively
+ * Cancel() its own id in case the backend hasn't already cancelled it.
  */
 export function useImprove(): UseImproveResult {
   const [state, setState] = useState<ImproveState>(initialState);
@@ -81,6 +94,7 @@ export function useImprove(): UseImproveResult {
   const pendingRef = useRef(false);
   const bufferRef = useRef<BufferedEvent[]>([]);
   const lastRequestRef = useRef<StartRequest | null>(null);
+  const generationRef = useRef(0);
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -121,6 +135,10 @@ export function useImprove(): UseImproveResult {
     });
     const offSelection = Events.On("selection:new", (ev) => {
       const payload = ev.data as SelectionEvent;
+      // Invalidate any Start() still in flight so its eventual resolution
+      // (or buffered events) can't resurrect state for a request this new
+      // selection has made irrelevant.
+      generationRef.current += 1;
       currentIdRef.current = null;
       pendingRef.current = false;
       bufferRef.current = [];
@@ -133,6 +151,7 @@ export function useImprove(): UseImproveResult {
         status: "idle",
         output: "",
         requestError: "",
+        actionError: "",
       }));
       setSelectionSeq((n) => n + 1);
     });
@@ -177,10 +196,18 @@ export function useImprove(): UseImproveResult {
       lastRequestRef.current = req;
       bufferRef.current = [];
       pendingRef.current = true;
+      const generation = (generationRef.current += 1);
       setState((s) => ({ ...s, status: "streaming", output: "", requestError: "" }));
 
       ImproveService.Start(req)
         .then((id: string) => {
+          if (generation !== generationRef.current) {
+            // A newer start() call has superseded this one; pending/current/
+            // buffer already belong to that newer generation. Don't touch
+            // them — just make sure this id's request is actually cancelled.
+            ImproveService.Cancel(id).catch(() => {});
+            return;
+          }
           currentIdRef.current = id;
           pendingRef.current = false;
           const buffered = bufferRef.current;
@@ -191,6 +218,7 @@ export function useImprove(): UseImproveResult {
           }
         })
         .catch((err: unknown) => {
+          if (generation !== generationRef.current) return;
           pendingRef.current = false;
           bufferRef.current = [];
           const message = err instanceof Error ? err.message : String(err);
@@ -221,11 +249,27 @@ export function useImprove(): UseImproveResult {
   }, []);
 
   const replace = useCallback(async () => {
-    await ImproveService.Replace(stateRef.current.output);
+    setState((s) => ({ ...s, actionError: "" }));
+    try {
+      await ImproveService.Replace(stateRef.current.output);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setState((s) => ({ ...s, actionError: message }));
+    }
   }, []);
 
   const copy = useCallback(async () => {
-    await ImproveService.Copy(stateRef.current.output);
+    setState((s) => ({ ...s, actionError: "" }));
+    try {
+      await ImproveService.Copy(stateRef.current.output);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setState((s) => ({ ...s, actionError: message }));
+      return;
+    }
+    // Only give focus back to the source app once the clipboard write
+    // actually succeeded — a failed Copy should leave the window open so
+    // the user can see the error and retry.
     await ImproveService.Close();
   }, []);
 

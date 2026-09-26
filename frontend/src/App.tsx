@@ -18,6 +18,7 @@ function App() {
     status,
     output,
     requestError,
+    actionError,
     selectionSeq,
     start,
     retry,
@@ -29,20 +30,47 @@ function App() {
 
   const [freeInstruction, setFreeInstruction] = useState("");
 
-  // ⌘/Ctrl+Enter → Substituir · ⌘/Ctrl+Shift+C → Copiar
+  const hasOutput = output.trim().length > 0;
+
+  function isReplaceShortcut(event: { metaKey: boolean; ctrlKey: boolean; key: string }) {
+    return (event.metaKey || event.ctrlKey) && event.key === "Enter";
+  }
+
+  // Plain Enter in the action search / free-instruction field starts a
+  // request; ⌘/Ctrl+Enter must never do that — it's reserved for Substituir.
+  // cmdk's own root handler treats *any* Enter (modified or not) as "select
+  // the highlighted action", and the free-instruction field's own handler
+  // doesn't look at modifiers either, so both would fire Start() alongside
+  // this shortcut without this interception. We steal the event in the
+  // capture phase (before cmdk / the field's onKeyDown ever see it) and stop
+  // it from propagating any further, so the *global* keydown listener below
+  // never gets it either — this handler is the single place that calls
+  // replace() for ⌘/Ctrl+Enter raised from these two fields.
+  function handleReplaceShortcutCapture(event: React.KeyboardEvent) {
+    if (!isReplaceShortcut(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (canReplace && hasOutput) void replace();
+  }
+
+  // ⌘/Ctrl+Enter → Substituir · ⌘/Ctrl+Shift+C → Copiar, as a global
+  // fallback for when focus is anywhere else (preview textarea, buttons, no
+  // focus at all). The action search and free-instruction fields intercept
+  // ⌘/Ctrl+Enter themselves before it can bubble here (see
+  // handleReplaceShortcutCapture), so this never double-fires for them.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const mod = event.metaKey || event.ctrlKey;
       if (!mod) return;
       if (event.key === "Enter") {
-        if (canReplace && output) {
+        if (canReplace && hasOutput) {
           event.preventDefault();
           void replace();
         }
         return;
       }
       if (event.shiftKey && event.key.toLowerCase() === "c") {
-        if (output) {
+        if (hasOutput) {
           event.preventDefault();
           void copy();
         }
@@ -50,10 +78,11 @@ function App() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [canReplace, output, replace, copy]);
+  }, [canReplace, hasOutput, replace, copy]);
 
   function handleFreeInstructionKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Enter" && freeInstruction.trim()) {
+    if (isReplaceShortcut(event)) return;
+    if (event.key === "Enter" && !event.metaKey && !event.ctrlKey && freeInstruction.trim()) {
       event.preventDefault();
       start({ freeInstruction: freeInstruction.trim() });
     }
@@ -98,12 +127,18 @@ function App() {
           </div>
         </div>
 
-        <ActionList actions={actions} onSelectAction={(actionId) => start({ actionId })} focusToken={selectionSeq} />
+        <ActionList
+          actions={actions}
+          onSelectAction={(actionId) => start({ actionId })}
+          focusToken={selectionSeq}
+          onKeyDownCapture={handleReplaceShortcutCapture}
+        />
 
         <Input
           value={freeInstruction}
           onChange={(event) => setFreeInstruction(event.target.value)}
           onKeyDown={handleFreeInstructionKeyDown}
+          onKeyDownCapture={handleReplaceShortcutCapture}
           placeholder="Ou descreva o que deseja (instrução livre)…"
           aria-label="Instrução livre"
           className="shrink-0 [--wails-draggable:no-drag]"
@@ -133,11 +168,18 @@ function App() {
             </AlertDescription>
           </Alert>
         )}
+
+        {actionError && (
+          <Alert variant="destructive">
+            <AlertTitle>Não foi possível concluir a ação</AlertTitle>
+            <AlertDescription>{actionError}</AlertDescription>
+          </Alert>
+        )}
       </div>
 
       <Footer
         canReplace={canReplace}
-        hasOutput={output.trim().length > 0}
+        hasOutput={hasOutput}
         onReplace={() => void replace()}
         onCopy={() => void copy()}
       />

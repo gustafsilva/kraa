@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -201,5 +201,70 @@ describe("<App />", () => {
 
     expect(screen.getByText("Erro de configuração")).toBeInTheDocument();
     expect(screen.getByText("Falha ao carregar configuração.")).toBeInTheDocument();
+  });
+
+  /** Runs Start + improve:done so `output`/canReplace are ready for shortcut tests. */
+  async function produceOutput(text = "Resultado final.") {
+    ImproveService.Start.mockResolvedValueOnce("req-1");
+    const search = screen.getByRole("combobox", { name: /buscar ação/i });
+    await userEvent.setup().type(search, "Corrigir{Enter}");
+    await waitFor(() => expect(ImproveService.Start).toHaveBeenCalledTimes(1));
+    act(() => {
+      emit("improve:done", { id: "req-1", text });
+    });
+    await screen.findByDisplayValue(text);
+  }
+
+  describe("atalho ⌘/Ctrl+Enter — não deve iniciar um novo pedido", () => {
+    it("no campo de busca de ações chama Replace uma vez e não chama Start", async () => {
+      await renderAppHydrated();
+      await produceOutput("Resultado final.");
+      expect(ImproveService.Start).toHaveBeenCalledTimes(1);
+
+      const search = screen.getByRole("combobox", { name: /buscar ação/i });
+      search.focus();
+      fireEvent.keyDown(search, { key: "Enter", ctrlKey: true });
+
+      await waitFor(() => expect(ImproveService.Replace).toHaveBeenCalledTimes(1));
+      expect(ImproveService.Replace).toHaveBeenCalledWith("Resultado final.");
+      expect(ImproveService.Start).toHaveBeenCalledTimes(1);
+    });
+
+    it("no campo de instrução livre chama Replace uma vez e não chama Start", async () => {
+      await renderAppHydrated();
+      await produceOutput("Resultado final.");
+      expect(ImproveService.Start).toHaveBeenCalledTimes(1);
+
+      const freeInput = screen.getByRole("textbox", { name: /instrução livre/i });
+      await userEvent.setup().type(freeInput, "outra instrução");
+      fireEvent.keyDown(freeInput, { key: "Enter", metaKey: true });
+
+      await waitFor(() => expect(ImproveService.Replace).toHaveBeenCalledTimes(1));
+      expect(ImproveService.Replace).toHaveBeenCalledWith("Resultado final.");
+      expect(ImproveService.Start).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("uma rejeição de Replace mostra um Alert com a mensagem", async () => {
+    ImproveService.Replace.mockRejectedValueOnce(new Error("Colagem automática indisponível."));
+    await renderAppHydrated();
+    await produceOutput("Resultado final.");
+
+    const replaceButton = screen.getByRole("button", { name: /substituir/i });
+    await userEvent.setup().click(replaceButton);
+
+    expect(await screen.findByText("Colagem automática indisponível.")).toBeInTheDocument();
+  });
+
+  it("uma rejeição de Copy mostra um Alert e NÃO chama Close", async () => {
+    ImproveService.Copy.mockRejectedValueOnce(new Error("Não foi possível copiar."));
+    await renderAppHydrated();
+    await produceOutput("Resultado final.");
+
+    const copyButton = screen.getByRole("button", { name: /copiar/i });
+    await userEvent.setup().click(copyButton);
+
+    expect(await screen.findByText("Não foi possível copiar.")).toBeInTheDocument();
+    expect(ImproveService.Close).not.toHaveBeenCalled();
   });
 });

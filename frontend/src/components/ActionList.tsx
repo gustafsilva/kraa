@@ -14,9 +14,16 @@ interface ActionListProps {
   onSelectAction: (actionId: string) => void;
   /** Bumped by the caller (selectionSeq) to (re)focus the search input. */
   focusToken?: number;
+  /**
+   * Intercepts a keydown before cmdk's own root handler sees it — used by
+   * the caller to steal ⌘/Ctrl+Enter for the global "Substituir" shortcut
+   * instead of letting cmdk treat it as a plain Enter (which would select
+   * the highlighted action and call Start()).
+   */
+  onKeyDownCapture?: (event: React.KeyboardEvent) => void;
 }
 
-export function ActionList({ actions, onSelectAction, focusToken }: ActionListProps) {
+export function ActionList({ actions, onSelectAction, focusToken, onKeyDownCapture }: ActionListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const groups = useMemo(() => {
@@ -36,7 +43,11 @@ export function ActionList({ actions, onSelectAction, focusToken }: ActionListPr
   }, [focusToken]);
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 [--wails-draggable:no-drag]">
+    <div
+      ref={containerRef}
+      className="flex min-h-0 flex-1 [--wails-draggable:no-drag]"
+      onKeyDownCapture={onKeyDownCapture}
+    >
       <Command className="flex-1 rounded-lg border" shouldFilter label="Buscar ação">
         <CommandInput placeholder="Buscar ação…" aria-label="Buscar ação" />
         <CommandList className="max-h-none flex-1">

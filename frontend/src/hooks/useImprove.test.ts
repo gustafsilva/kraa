@@ -273,6 +273,150 @@ describe("useImprove", () => {
 
       expect(result.current.output).toBe("");
     });
+
+    it("keeps the latest overlapping start()'s state when the OLDER Start resolves first", async () => {
+      let resolveReq1!: (id: string) => void;
+      let resolveReq2!: (id: string) => void;
+      ImproveService.Start.mockImplementationOnce(
+        () => new Promise<string>((resolve) => { resolveReq1 = resolve; })
+      ).mockImplementationOnce(
+        () => new Promise<string>((resolve) => { resolveReq2 = resolve; })
+      );
+
+      const { result } = renderHook(() => useImprove());
+
+      // Two overlapping start() calls before either Start() promise settles.
+      act(() => {
+        result.current.start({ actionId: "a1" });
+      });
+      act(() => {
+        result.current.start({ actionId: "a2" });
+      });
+
+      // Events for both ids arrive while both requests are still pending.
+      act(() => {
+        emit("improve:chunk", { id: "req-old", delta: "velho" });
+        emit("improve:chunk", { id: "req-new", delta: "novo" });
+      });
+
+      // req1 (the OLDER start() call) resolves first — this must be a no-op
+      // for local state (it's stale) beyond defensively cancelling itself.
+      await act(async () => {
+        resolveReq1("req-old");
+        await Promise.resolve();
+      });
+      expect(result.current.output).toBe("");
+      expect(ImproveService.Cancel).toHaveBeenCalledWith("req-old");
+      expect(ImproveService.Cancel).not.toHaveBeenCalledWith("req-new");
+
+      // req2 (the LATEST start() call) resolves next — its buffered chunk
+      // must be applied, and req1's buffered chunk must stay dropped.
+      await act(async () => {
+        resolveReq2("req-new");
+        await Promise.resolve();
+      });
+      expect(result.current.output).toBe("novo");
+
+      // A further live event for the superseded id is still ignored.
+      act(() => {
+        emit("improve:chunk", { id: "req-old", delta: " mais velho" });
+      });
+      expect(result.current.output).toBe("novo");
+
+      act(() => {
+        emit("improve:done", { id: "req-new", text: "novo final" });
+      });
+      expect(result.current.output).toBe("novo final");
+      expect(result.current.status).toBe("done");
+    });
+
+    it("keeps the latest overlapping start()'s state when the NEWER Start resolves first", async () => {
+      let resolveReq1!: (id: string) => void;
+      let resolveReq2!: (id: string) => void;
+      ImproveService.Start.mockImplementationOnce(
+        () => new Promise<string>((resolve) => { resolveReq1 = resolve; })
+      ).mockImplementationOnce(
+        () => new Promise<string>((resolve) => { resolveReq2 = resolve; })
+      );
+
+      const { result } = renderHook(() => useImprove());
+
+      act(() => {
+        result.current.start({ actionId: "a1" });
+      });
+      act(() => {
+        result.current.start({ actionId: "a2" });
+      });
+
+      act(() => {
+        emit("improve:chunk", { id: "req-new", delta: "novo" });
+      });
+
+      // req2 (the LATEST start() call) resolves FIRST this time.
+      await act(async () => {
+        resolveReq2("req-new");
+        await Promise.resolve();
+      });
+      expect(result.current.output).toBe("novo");
+
+      // req1 (the OLDER call) resolves afterwards — must not clobber the
+      // current id/output, and must defensively cancel its own id.
+      await act(async () => {
+        resolveReq1("req-old");
+        await Promise.resolve();
+      });
+      expect(result.current.output).toBe("novo");
+      expect(ImproveService.Cancel).toHaveBeenCalledWith("req-old");
+
+      // Live events for req-old (now doubly stale) are ignored; req-new's
+      // still apply normally.
+      act(() => {
+        emit("improve:chunk", { id: "req-old", delta: "ignorar" });
+        emit("improve:chunk", { id: "req-new", delta: " mundo" });
+      });
+      expect(result.current.output).toBe("novo mundo");
+    });
+  });
+
+  describe("Replace()/Copy() failures", () => {
+    it("replace() surfaces a rejection as actionError without touching status/output", async () => {
+      ImproveService.Replace.mockRejectedValueOnce(new Error("Colagem automática indisponível."));
+      const { result } = renderHook(() => useImprove());
+
+      await act(async () => {
+        await result.current.replace();
+      });
+
+      expect(result.current.actionError).toBe("Colagem automática indisponível.");
+    });
+
+    it("copy() surfaces a rejection as actionError and does NOT call Close", async () => {
+      ImproveService.Copy.mockRejectedValueOnce(new Error("Não foi possível copiar."));
+      const { result } = renderHook(() => useImprove());
+
+      await act(async () => {
+        await result.current.copy();
+      });
+
+      expect(result.current.actionError).toBe("Não foi possível copiar.");
+      expect(ImproveService.Close).not.toHaveBeenCalled();
+    });
+
+    it("a successful replace()/copy() clears any previous actionError", async () => {
+      ImproveService.Replace.mockRejectedValueOnce(new Error("falhou"));
+      const { result } = renderHook(() => useImprove());
+
+      await act(async () => {
+        await result.current.replace();
+      });
+      expect(result.current.actionError).toBe("falhou");
+
+      ImproveService.Replace.mockResolvedValueOnce(undefined);
+      await act(async () => {
+        await result.current.replace();
+      });
+      expect(result.current.actionError).toBe("");
+    });
   });
 
   it("copy() calls Copy then Close, in order", async () => {
