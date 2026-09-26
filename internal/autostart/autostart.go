@@ -1,7 +1,9 @@
 package autostart
 
 import (
+	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -89,10 +91,19 @@ func (m *Manager) autostartFile() string {
 func (m *Manager) Enabled() (bool, error) {
 	if m.goos == "windows" {
 		// The exit code is the signal: `reg query` exits non-zero when the
-		// value is absent. We don't otherwise distinguish error causes,
-		// mirroring the CLI's own "is it registered" check.
+		// value is absent, which is a normal "not registered" outcome, not
+		// an error. But an *exec.Error means reg.exe itself couldn't be
+		// started (missing binary, permissions, ...): that's a real failure
+		// worth surfacing to the caller instead of silently reporting false.
 		_, err := m.runReg("query", RegRunKey, "/v", RegValue)
-		return err == nil, nil
+		if err == nil {
+			return true, nil
+		}
+		var startErr *exec.Error
+		if errors.As(err, &startErr) {
+			return false, err
+		}
+		return false, nil
 	}
 	if _, err := os.Stat(m.autostartFile()); err != nil {
 		if os.IsNotExist(err) {

@@ -52,6 +52,14 @@ func newRunner(cfg *config.Config) app.Runner {
 	return improver.New(cfg, client)
 }
 
+// menuCheckbox adapts *application.MenuItem to autostart.Checkbox: it only
+// discards MenuItem.SetChecked's chained return value, which
+// internal/autostart's interface (kept Wails-free) doesn't need.
+type menuCheckbox struct{ item *application.MenuItem }
+
+func (c menuCheckbox) Checked() bool           { return c.item.Checked() }
+func (c menuCheckbox) SetChecked(checked bool) { c.item.SetChecked(checked) }
+
 // main is the application entry point. It creates the Wails app, a hidden
 // frameless window, the ImproveService bound to the frontend, the global
 // hotkey and a system tray. The window is never destroyed when
@@ -255,7 +263,10 @@ func main() {
 	// exact same LaunchAgent/registry key/.desktop artifacts as the npm CLI
 	// (`prompt-improve autostart on|off`). If New fails (e.g. `wails3 dev`
 	// running from a temp path outside a .app bundle on macOS), the item is
-	// hidden since there's nothing autostart-able to toggle.
+	// hidden since there's nothing autostart-able to toggle. Clicks go
+	// through a Toggler, which serializes them: Wails runs every click's
+	// OnClick in its own goroutine, so two quick clicks could otherwise run
+	// Enable/Disable concurrently.
 	autostartItem := trayMenu.AddCheckbox("Iniciar com o sistema", false)
 	if autostartMgr, err := autostart.New(); err != nil {
 		log.Printf("autostart: %v", err)
@@ -266,25 +277,14 @@ func main() {
 			log.Printf("autostart: %v", err)
 		}
 		autostartItem.SetChecked(enabled)
+		toggler := autostart.NewToggler(autostartMgr)
 		autostartItem.OnClick(func(ctx *application.Context) {
-			want := ctx.IsChecked()
-			var err error
-			if want {
-				err = autostartMgr.Enable()
-			} else {
-				err = autostartMgr.Disable()
-			}
-			if err != nil {
-				log.Printf("autostart: %v", err)
-				autostartItem.SetChecked(!want)
-				verb := "ativar"
-				if !want {
-					verb = "desativar"
+			toggler.Toggle(menuCheckbox{autostartItem}, func(msg string) {
+				if msg != "" {
+					log.Printf("autostart: %s", msg)
 				}
-				host.SetWarning(fmt.Sprintf("Não foi possível %s \"Iniciar com o sistema\": %v", verb, err))
-				return
-			}
-			host.SetWarning("")
+				host.SetWarning(msg)
+			})
 		})
 	}
 

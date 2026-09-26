@@ -3,6 +3,7 @@ package autostart
 import (
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -171,19 +172,37 @@ func TestWindowsDisableIsIdempotentWhenRegDeleteFails(t *testing.T) {
 	}
 }
 
-func TestWindowsEnabledPropagatesUnexpectedErrorAsFalse(t *testing.T) {
-	// Enabled() only inspects the exit code (err == nil); it doesn't try to
-	// distinguish "not registered" from other reg.exe failures, mirroring
-	// the CLI's own check.
+func TestWindowsEnabledTreatsNormalNonZeroExitAsNotRegistered(t *testing.T) {
+	// A plain non-zero exit (the ordinary "value not found" case) is not
+	// registered, and not an error worth surfacing.
 	m := &Manager{
 		goos: "windows",
 		runReg: func(args ...string) ([]byte, error) {
-			return nil, errors.New("reg.exe not found")
+			return nil, errors.New("exit status 1")
 		},
 	}
 	enabled, err := m.Enabled()
 	if err != nil {
-		t.Fatalf("Enabled() error = %v, want nil", err)
+		t.Fatalf("Enabled() error = %v, want nil for a normal non-zero exit", err)
+	}
+	if enabled {
+		t.Fatal("Enabled() = true, want false")
+	}
+}
+
+func TestWindowsEnabledPropagatesErrorWhenRegCannotStart(t *testing.T) {
+	// *exec.Error means reg.exe itself couldn't be started (missing binary,
+	// permissions, ...): that's not "not registered", it's a real failure
+	// the caller (main.go) should log.
+	m := &Manager{
+		goos: "windows",
+		runReg: func(args ...string) ([]byte, error) {
+			return nil, &exec.Error{Name: "reg", Err: exec.ErrNotFound}
+		},
+	}
+	enabled, err := m.Enabled()
+	if err == nil {
+		t.Fatal("Enabled() error = nil, want an error when reg.exe can't be started")
 	}
 	if enabled {
 		t.Fatal("Enabled() = true, want false")
