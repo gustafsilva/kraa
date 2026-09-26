@@ -197,7 +197,7 @@ export function useImprove(): UseImproveResult {
       bufferRef.current = [];
       pendingRef.current = true;
       const generation = (generationRef.current += 1);
-      setState((s) => ({ ...s, status: "streaming", output: "", requestError: "" }));
+      setState((s) => ({ ...s, status: "streaming", output: "", requestError: "", actionError: "" }));
 
       ImproveService.Start(req)
         .then((id: string) => {

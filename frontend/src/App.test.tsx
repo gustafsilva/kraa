@@ -243,6 +243,23 @@ describe("<App />", () => {
       expect(ImproveService.Replace).toHaveBeenCalledWith("Resultado final.");
       expect(ImproveService.Start).toHaveBeenCalledTimes(1);
     });
+
+    it("Enter sem modificador no campo de instrução livre continua chamando Start (não Replace)", async () => {
+      await renderAppHydrated();
+
+      const freeInput = screen.getByRole("textbox", { name: /instrução livre/i });
+      await userEvent.setup().type(freeInput, "outra instrução");
+      fireEvent.keyDown(freeInput, { key: "Enter" });
+
+      await waitFor(() =>
+        expect(ImproveService.Start).toHaveBeenCalledWith({
+          text: "Texto capturado de teste",
+          actionId: "",
+          freeInstruction: "outra instrução",
+        })
+      );
+      expect(ImproveService.Replace).not.toHaveBeenCalled();
+    });
   });
 
   it("uma rejeição de Replace mostra um Alert com a mensagem", async () => {

@@ -417,6 +417,22 @@ describe("useImprove", () => {
       });
       expect(result.current.actionError).toBe("");
     });
+
+    it("start() clears a leftover actionError from a previous Replace/Copy failure", async () => {
+      ImproveService.Replace.mockRejectedValueOnce(new Error("Colagem automática indisponível."));
+      const { result } = renderHook(() => useImprove());
+
+      await act(async () => {
+        await result.current.replace();
+      });
+      expect(result.current.actionError).toBe("Colagem automática indisponível.");
+
+      act(() => {
+        result.current.start({ actionId: "a1" });
+      });
+
+      expect(result.current.actionError).toBe("");
+    });
   });
 
   it("copy() calls Copy then Close, in order", async () => {
