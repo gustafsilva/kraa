@@ -58,6 +58,9 @@ type fakeManager struct {
 	inFlight   int32
 	overlapped bool
 
+	enableCalls  int32
+	disableCalls int32
+
 	started    chan struct{}
 	enableGate <-chan struct{}
 }
@@ -78,6 +81,7 @@ func (f *fakeManager) signalStarted() {
 }
 
 func (f *fakeManager) Enable() error {
+	atomic.AddInt32(&f.enableCalls, 1)
 	defer f.mark()()
 	f.signalStarted()
 	if f.enableGate != nil {
@@ -94,6 +98,7 @@ func (f *fakeManager) Enable() error {
 }
 
 func (f *fakeManager) Disable() error {
+	atomic.AddInt32(&f.disableCalls, 1)
 	defer f.mark()()
 	f.signalStarted()
 	time.Sleep(time.Millisecond)
@@ -175,38 +180,49 @@ func TestToggleSurfacesEnabledCheckFailureAndLeavesCheckboxUnchanged(t *testing.
 	}
 }
 
-// TestToggleSerializesConcurrentClicks fires 50 clicks, each genuinely
-// concurrent with the next (dispatched while the previous one is still
-// inside its critical section, confirmed via fakeManager.started) and
-// asserts Enable/Disable never overlap, and the checkbox ends up matching
-// the manager's real Enabled() state.
+// TestToggleBurstFinalStateMatchesLastClickByGeneration fires N clicks as a
+// true simultaneous burst: no synchronization forces one-at-a-time handoff,
+// so goroutines genuinely race for Toggler's lock. sync.Mutex does not
+// guarantee FIFO among simultaneous waiters, so a lower generation can
+// acquire the lock after a higher one already ran — this test's job is to
+// prove that no longer matters (ruling R21): regardless of the actual
+// execution order, Enable/Disable never overlap, the checkbox always ends
+// up equal to the manager's real Enabled(), and both always equal the want
+// of the highest-numbered generation (the last click, by allocation order),
+// never some other click's outcome.
 //
-// Clicks are handed off one at a time (never more than one waiter queued)
-// specifically so click dispatch order and lock-acquisition order match:
-// Go's sync.Mutex only guarantees strict ordering between whoever currently
-// holds it and the next single arrival, not fairness across a burst of
-// simultaneous waiters. That matches real tray usage (a person cannot
-// literally click twice in the same instant) and keeps this test
-// deterministic rather than dependent on scheduler-specific mutex fairness.
-func TestToggleSerializesConcurrentClicks(t *testing.T) {
-	mgr := &fakeManager{started: make(chan struct{})}
+// An earlier version of this test dispatched clicks one at a time (waiting
+// for each to enter its critical section before firing the next), which
+// avoided the very reordering this test exists to catch and silently
+// turned a real production bug into what looked like scheduler-specific
+// flakiness. This version restores true, unsynchronized concurrency.
+func TestToggleBurstFinalStateMatchesLastClickByGeneration(t *testing.T) {
+	mgr := &fakeManager{}
 	box := &fakeCheckbox{}
 	toggler := NewToggler(mgr)
 
 	const clicks = 50
 	var wg sync.WaitGroup
 	want := false
+	var lastGen uint64
+	var lastWant bool
 	for i := 0; i < clicks; i++ {
 		want = !want
-		gen := toggler.NextGeneration()
+		gen := toggler.NextGeneration() // gens allocated in click order
+		lastGen, lastWant = gen, want
+
+		// Mirrors Wails flipping the checkbox synchronously on each click;
+		// harmless to the outcome (Toggle never reads it) but keeps this
+		// close to what main.go's OnClick actually experiences.
+		box.mu.Lock()
+		box.checked = !box.checked
+		box.mu.Unlock()
 
 		wg.Add(1)
 		go func(want bool, gen uint64) {
 			defer wg.Done()
 			toggler.Toggle(want, gen, box, func(string) {})
 		}(want, gen)
-
-		<-mgr.started // wait for this click to enter its critical section
 	}
 	wg.Wait()
 
@@ -218,7 +234,51 @@ func TestToggleSerializesConcurrentClicks(t *testing.T) {
 		t.Fatalf("Enabled: %v", err)
 	}
 	if got := box.Checked(); got != enabled {
-		t.Fatalf("checkbox = %v, want it resynced to Enabled() = %v", got, enabled)
+		t.Fatalf("checkbox = %v, disk/registry Enabled() = %v; they must always agree", got, enabled)
+	}
+	if enabled != lastWant {
+		t.Fatalf("Enabled() = %v, want %v (the last click by generation, gen=%d)", enabled, lastWant, lastGen)
+	}
+}
+
+// TestToggleSkipsSupersededClickEntirely is the deterministic, goroutine-free
+// regression test for ruling R21. sync.Mutex isn't FIFO: a lower-generation
+// click (allocated earlier) can still acquire the lock *after* a higher one
+// already ran. Calling Toggle directly in that order — higher generation
+// first, lower second — reproduces exactly that outcome without needing any
+// synchronization. Before this fix, only the checkbox resync was
+// gen-guarded, so the superseded (lower-gen) call still ran its own
+// Disable, silently undoing the newer click's Enable on disk while the
+// checkbox kept showing the newer (correct) "on" — disk said off, checkbox
+// showed checked. The fix must skip the ENTIRE call — no Enable/Disable, no
+// resync, no onWarn — the moment it's found to be stale.
+func TestToggleSkipsSupersededClickEntirely(t *testing.T) {
+	mgr := &fakeManager{}
+	box := &fakeCheckbox{}
+	toggler := NewToggler(mgr)
+
+	// g2 (off) and g3 (on) are both already allocated (as if both clicks
+	// already happened), but g3 is the one that reaches Toggle first —
+	// the exact non-FIFO-mutex interleaving R21 describes.
+	g2 := toggler.NextGeneration()
+	g3 := toggler.NextGeneration()
+
+	toggler.Toggle(true, g3, box, func(string) {})
+
+	g2Warned := false
+	toggler.Toggle(false, g2, box, func(string) { g2Warned = true })
+
+	if enabled, err := mgr.Enabled(); err != nil || !enabled {
+		t.Fatalf("Enabled() = %v, %v; want true (g3, the newer click, turned it on)", enabled, err)
+	}
+	if !box.Checked() {
+		t.Fatal("checkbox should be true, matching the newer click (g3)")
+	}
+	if n := atomic.LoadInt32(&mgr.disableCalls); n != 0 {
+		t.Fatalf("Disable was called %d time(s) for the superseded click g2, want 0", n)
+	}
+	if g2Warned {
+		t.Fatal("the superseded click (g2) must not call onWarn at all")
 	}
 }
 
