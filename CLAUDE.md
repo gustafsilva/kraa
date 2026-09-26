@@ -11,7 +11,9 @@ app: `dev.matrixia.prompt-improve`.
 
 ## Stack
 
-Go 1.24+, Wails v3 (versão fixada no `go.mod`), React + TypeScript + Vite,
+Go 1.25+ (`go 1.25.0` no `go.mod`; a CI usa `go-version-file: go.mod`),
+Wails v3 (versão fixada no `go.mod`, `v3.0.0-beta.26`; `@wailsio/runtime`
+fixado na mesma versão em `frontend/package.json`), React + TypeScript + Vite,
 Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
 
 ## Mapa de pacotes
@@ -19,12 +21,14 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
 | Pacote | Responsabilidade |
 |---|---|
 | `main.go` | Bootstrap Wails: app, tray, janela, atalho global, single-instance. |
-| `internal/config` | Tipos de config, `Load`/`Save`/`Default`, validação, ações padrão. |
+| `internal/config` | Tipos de config, `Load`/`Default`/`ApplyEnv`, validação, ações padrão. |
 | `internal/llm` | Cliente OpenAI-compatível com streaming SSE (`/v1/chat/completions`). |
 | `internal/improver` | Monta mensagens (system + user) a partir de ação/instrução e roda o stream. |
 | `internal/platform` | Interfaces `Clipboard`/`KeySender`, `Capture`/`Paste`, detecção de sessão e teclas por SO (`keys_darwin.go`, `keys_windows.go`, `keys_linux.go`, `session_linux.go`). |
 | `internal/app` | `ImproveService` exposto ao frontend (bindings) e adapters do Wails (clipboard, emitter). |
-| `frontend/src` | Modal em React: `App.tsx`, `components/*` (ActionList, PreviewPane, Footer), `lib/useImprove.ts`. |
+| `internal/autostart` | "Iniciar com o sistema": LaunchAgent (macOS), chave `Run` do registro (Windows), `.desktop` (Linux); usado pela bandeja e com os mesmos artefatos da CLI npm. Não importa o Wails. |
+| `frontend/src` | Modal em React: `App.tsx`, `components/*` (ActionList, PreviewPane, Footer), `hooks/useImprove.ts`. |
+| `npm/` | Pacote npm (TypeScript): instalador do binário (`postinstall`/`install`) e CLI `prompt-improve` (start/stop/trigger/config/doctor/autostart). |
 
 ## Comandos
 
@@ -33,6 +37,14 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
 - `wails3 generate bindings -ts` — regenera os bindings TS a partir dos métodos Go expostos.
 - `go test ./...` — testes do backend.
 - `npm --prefix frontend test` — testes do frontend (Vitest).
+- `npm --prefix npm test` — testes do instalador/CLI npm (Vitest).
+- **Linux**: `go build`/`go vet`/`go test` precisam de `-tags gtk3` (GTK3 +
+  WebKit2GTK 4.1; o padrão do Wails beta.26 é GTK4/WebKitGTK 6.0, ausente
+  no Ubuntu 22.04). Ex.: `go test -tags gtk3 ./...`. O `wails3 build` já
+  aplica a tag (`build/linux/Taskfile.yml`).
+- `frontend/dist/.gitkeep` é rastreado para o `//go:embed all:frontend/dist`
+  compilar sem build do frontend; um plugin no `vite.config.ts` o recria
+  após cada `vite build`.
 
 ## Regras
 
@@ -74,7 +86,8 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
   anterior.
 - Sem permissão de Acessibilidade: aviso no modal, "Substituir" some, só
   "Copiar" funciona.
-- Sem seleção: modal abre vazio e editável.
+- Sem seleção: modal abre vazio e editável (colar/digitar no campo "Texto a
+  melhorar" e escolher uma ação usa o texto digitado).
 - `Esc` durante o stream fecha sem erro no log.
 
 **Windows**

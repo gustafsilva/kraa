@@ -28,13 +28,18 @@ streaming — para então **Substituir** o texto no app de origem ou
   rede — por padrão, [Ollama](https://ollama.com) local.
 - **macOS**: permissão de Acessibilidade (ver [Permissões e
   plataformas](#permissões-e-plataformas)).
+- **Ubuntu (runtime)**: o binário usa GTK3 + WebKit2GTK 4.1, então instale
+  `libgtk-3-0` e `libwebkit2gtk-4.1-0` (ver [Dependências no
+  Linux](#dependências-no-linux)).
 - **Ubuntu (X11)**: [`xdotool`](https://github.com/jordansissel/xdotool)
-  instalado para a colagem automática.
-- **Ubuntu (Wayland)**: nenhuma dependência extra, mas sem colagem
-  automática (ver abaixo).
+  instalado para a captura e a colagem automáticas.
+- **Ubuntu (Wayland)**: nenhuma dependência extra, mas sem captura nem
+  colagem automáticas: copie o texto com `Ctrl+C` antes do atalho (ver
+  abaixo).
 - **Windows**: nenhum requisito adicional.
-- Para compilar a partir do código: Go 1.24+, Node 22+ e a CLI do Wails v3
-  (versão fixada no `go.mod`, `v3.0.0-beta.26`).
+- Para compilar a partir do código: Go 1.25+ (`go 1.25.0` no `go.mod`),
+  Node 22+ e a CLI do Wails v3 (versão fixada no `go.mod`,
+  `v3.0.0-beta.26`).
 
 ## Instalação do Ollama
 
@@ -85,6 +90,19 @@ irm https://raw.githubusercontent.com/gustavofreitas/prompt-improve/main/scripts
 
 Os scripts instalam o último release; para uma versão específica, defina
 `PROMPT_IMPROVE_VERSION` (ex.: `PROMPT_IMPROVE_VERSION=0.1.0`).
+
+#### Dependências no Linux
+
+Nem o pacote npm nem o `install.sh` instalam pacotes do sistema. O binário
+Linux depende de GTK3 e WebKit2GTK 4.1 em runtime, e no X11 do `xdotool`
+para capturar/colar:
+
+```bash
+sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0   # obrigatórias
+sudo apt install xdotool                          # X11: captura e colagem automáticas
+```
+
+`prompt-improve doctor` verifica o `xdotool` e a sessão (X11/Wayland).
 
 ### Comandos da CLI (`prompt-improve`)
 
@@ -246,8 +264,12 @@ qualquer ação adicionada aparece junto delas no modal.
   (`sudo apt install xdotool`). Sem ele, um aviso aparece no modal e só
   "Copiar" funciona.
 - **Ubuntu / Wayland**: o protocolo não permite simular teclas globalmente,
-  então **só "Copiar" está disponível** — não há colagem automática. Para o
-  atalho global, duas opções:
+  então o app **não consegue copiar a seleção sozinho**: o texto vem do que
+  já estiver na área de transferência. Selecione o texto e aperte **`Ctrl+C`
+  antes do atalho**; o modal abre com esse conteúdo (e você ainda pode
+  editá-lo ou colar outro texto no campo). Pelo mesmo motivo **só "Copiar"
+  está disponível** — não há colagem automática. O mesmo vale para o X11
+  sem `xdotool`. Para o atalho global, duas opções:
   - usar um portal de atalho global compatível (quando disponível na sua
     distro/compositor); ou
   - configurar um atalho de teclado customizado no GNOME
@@ -289,10 +311,13 @@ qualquer ação adicionada aparece junto delas no modal.
 wails3 dev                          # app em modo desenvolvimento (tray + hot reload)
 wails3 build                        # build de produção
 wails3 generate bindings -ts        # regenera os bindings TS após mudar métodos Go
-go test ./...                       # testes do backend
+go test ./...                       # testes do backend (Linux: go test -tags gtk3 ./...)
 npm --prefix frontend test          # testes do frontend (Vitest)
 npm --prefix npm test               # testes do instalador/CLI npm (Vitest)
 ```
+
+No Linux, todo comando `go` que compila o `main` ou o `internal/app`
+(`go build`, `go vet`, `go test`) precisa de `-tags gtk3` (ver acima).
 
 Releases: empurrar uma tag `vX.Y.Z` igual à `version` de `npm/package.json`
 dispara `.github/workflows/release.yml`, que builda as 4 plataformas e publica
@@ -303,15 +328,17 @@ o GitHub Release com os assets e o `checksums.txt`. O `npm publish` é manual.
 | Pacote | Responsabilidade |
 |---|---|
 | `main.go` | Bootstrap Wails: app, tray, janela, atalho global, single-instance. |
-| `internal/config` | Tipos de config, `Load`/`Save`/`Default`, validação, ações padrão. |
+| `internal/config` | Tipos de config, `Load`/`Default`/`ApplyEnv`, validação, ações padrão. |
 | `internal/llm` | Cliente OpenAI-compatível com streaming SSE (`/v1/chat/completions`). |
 | `internal/improver` | Monta mensagens (system + user) a partir de ação/instrução e roda o stream. |
 | `internal/platform` | Interfaces `Clipboard`/`KeySender`, `Capture`/`Paste`, detecção de sessão e teclas por SO. |
 | `internal/app` | `ImproveService` exposto ao frontend (bindings) e adapters do Wails. |
-| `frontend/src` | Modal em React: `App.tsx`, `components/*`, `lib/useImprove.ts`. |
+| `internal/autostart` | "Iniciar com o sistema" (LaunchAgent, chave `Run` do registro, `.desktop`), compartilhado entre a bandeja e a CLI npm. |
+| `frontend/src` | Modal em React: `App.tsx`, `components/*`, `hooks/useImprove.ts`. |
+| `npm/` | Pacote npm: instalador (`postinstall`) e CLI `prompt-improve` (start/stop/trigger/config/doctor/autostart). |
 
 Mais detalhes de arquitetura, regras do projeto e skills/MCPs relevantes
-estão em [`CLAUDE.md`](./CLAUDE.md); o plano e o spec de design completos
-ficam em
-[`.superpowers/sdd/2026-09-25-prompt-improve/`](./.superpowers/sdd/2026-09-25-prompt-improve/)
-e em [`docs/superpowers/`](./docs/superpowers/).
+estão em [`CLAUDE.md`](./CLAUDE.md); o spec de design e o plano completos
+ficam em [`docs/superpowers/`](./docs/superpowers/)
+([spec](./docs/superpowers/specs/2026-09-25-prompt-improve-design.md),
+[plano](./docs/superpowers/plans/2026-09-25-prompt-improve.md)).
