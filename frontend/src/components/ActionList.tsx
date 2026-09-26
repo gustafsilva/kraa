@@ -45,20 +45,32 @@ export function ActionList({ actions, onSelectAction, focusToken, onKeyDownCaptu
   return (
     <div
       ref={containerRef}
-      className="flex min-h-0 flex-1 [--wails-draggable:no-drag]"
+      className="flex max-h-[34%] min-h-20 shrink-0 [--wails-draggable:no-drag]"
       onKeyDownCapture={onKeyDownCapture}
     >
-      <Command className="flex-1 rounded-lg border" shouldFilter label="Buscar ação">
-        <CommandInput placeholder="Buscar ação…" aria-label="Buscar ação" />
-        <CommandList className="max-h-none flex-1">
-          <CommandEmpty>Nenhuma ação encontrada.</CommandEmpty>
+      <Command className="flex-1 bg-transparent p-0" shouldFilter label="Buscar ação">
+        <CommandInput
+          placeholder="Buscar ação…"
+          aria-label="Buscar ação"
+          className="text-[13px]"
+          wrapperClassName="p-0 *:data-[slot=input-group]:h-8.5! *:data-[slot=input-group]:rounded-full! *:data-[slot=input-group]:pl-1"
+        />
+        <CommandList className="max-h-none flex-1 pt-2.5 pb-2 [scrollbar-width:thin] [mask-image:linear-gradient(to_bottom,black_calc(100%-14px),transparent)]">
+          <CommandEmpty className="py-3 text-left text-[13px] text-muted-foreground">
+            Nenhuma ação encontrada. Descreva o que deseja na instrução livre.
+          </CommandEmpty>
           {groups.map(([category, items]) => (
-            <CommandGroup key={category} heading={category}>
+            <CommandGroup
+              key={category}
+              heading={category}
+              className="flex items-start gap-3 p-0 pb-1.5 **:[[cmdk-group-heading]]:w-18 **:[[cmdk-group-heading]]:shrink-0 **:[[cmdk-group-heading]]:truncate **:[[cmdk-group-heading]]:px-0 **:[[cmdk-group-heading]]:pt-1.5 **:[[cmdk-group-heading]]:pb-0 **:[[cmdk-group-heading]]:text-[11px] **:[[cmdk-group-items]]:flex **:[[cmdk-group-items]]:flex-1 **:[[cmdk-group-items]]:flex-wrap **:[[cmdk-group-items]]:gap-1.5"
+            >
               {items.map((action) => (
                 <CommandItem
                   key={action.id}
                   value={`${action.label} ${category}`}
                   onSelect={() => onSelectAction(action.id)}
+                  className="rounded-full border border-border bg-card px-3 py-1 text-[13px] transition-colors hover:border-foreground/20 data-selected:border-pencil/60 data-selected:bg-pencil-wash data-selected:text-accent-foreground *:[svg]:hidden"
                 >
                   {action.label}
                 </CommandItem>

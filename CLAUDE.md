@@ -27,7 +27,7 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
 | `internal/platform` | Interfaces `Clipboard`/`KeySender`, `Capture`/`Paste`, detecção de sessão e teclas por SO (`keys_darwin.go`, `keys_windows.go`, `keys_linux.go`, `session_linux.go`). |
 | `internal/app` | `ImproveService` exposto ao frontend (bindings) e adapters do Wails (clipboard, emitter). |
 | `internal/autostart` | "Iniciar com o sistema": LaunchAgent (macOS), chave `Run` do registro (Windows), `.desktop` (Linux); usado pela bandeja e com os mesmos artefatos da CLI npm. Não importa o Wails. |
-| `frontend/src` | Modal em React: `App.tsx`, `components/*` (ActionList, PreviewPane, Footer), `hooks/useImprove.ts`. |
+| `frontend/src` | Modal em React: `App.tsx`, `components/*` (ActionList, PreviewPane, Footer), `hooks/useImprove.ts`; `profile/ProfileWindow` (janela do perfil, `?view=profile`). |
 | `npm/` | Pacote npm (TypeScript): instalador do binário (`postinstall`/`install`) e CLI `prompt-improve` (start/stop/trigger/config/doctor/autostart). |
 | `site/` | Site de documentação (Astro + MDX + React + Tailwind + shadcn/ui, só tema escuro) publicado no GitHub Pages por `.github/workflows/docs.yml`. Páginas em `site/src/content/docs/**/*.mdx`; a ordem da barra lateral fica em `site/src/lib/site.ts` (`NAV`). |
 
@@ -112,5 +112,16 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
   modelo atual e o erro com `ollama serve`.
 - Ollama parado: mensagem de erro legível com a dica `ollama serve`
   (nunca um stack trace).
+- Bandeja → "Perfil do usuário…": abre a janela com o perfil atual;
+  salvar com "Usar perfil" marcado grava `profile` no `config.yaml`
+  (resto intacto) e a próxima melhoria de prompt reflete o perfil.
+  "Mais formal" não recebe o perfil.
+- Ativar o perfil com o texto vazio: mensagem "Escreva o perfil antes de
+  ativá-lo." e a janela continua aberta.
+- Fechar a janela (X ou `Esc`) só a oculta; reabrir descarta edições não
+  salvas.
+- macOS: com a janela do perfil aberta, usar o atalho do modal e fechar o
+  modal (o app é ocultado para devolver o foco) — conferir se a janela do
+  perfil volta ao abrir de novo pela bandeja.
 - `go test ./...` e `npm --prefix frontend test` passam antes de cada
   commit de task.

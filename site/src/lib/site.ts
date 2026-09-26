@@ -42,6 +42,7 @@ export const NAV: NavSection[] = [
     items: [
       { title: "Atalhos", slug: "uso/atalhos" },
       { title: "Seletor de modelo", slug: "uso/seletor-de-modelo" },
+      { title: "Perfil do usuário", slug: "uso/perfil-do-usuario" },
     ],
   },
   {

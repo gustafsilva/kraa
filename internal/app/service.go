@@ -119,7 +119,9 @@ type Options struct {
 	Clipboard platform.Clipboard
 	Keys      platform.KeySender
 	Window    Window
-	Session   platform.Session
+	// ProfileWindow is the "Perfil do usuário" window (optional).
+	ProfileWindow Window
+	Session       platform.Session
 
 	Sleep       func(time.Duration)
 	CaptureWait time.Duration
@@ -145,12 +147,15 @@ type ImproveService struct {
 	hotkeyWarning string
 	warning       string
 	saveModel     ModelSaver
+	saveProfile   ProfileSaver
 	cur           *request
 
 	em  Emitter
 	cb  platform.Clipboard
 	ks  platform.KeySender
 	win Window
+	// profileWin is immutable after New (read without mu).
+	profileWin Window
 
 	sleep       func(time.Duration)
 	captureWait time.Duration
@@ -176,6 +181,7 @@ func New(o Options) (*ImproveService, *Host) {
 		cb:          o.Clipboard,
 		ks:          o.Keys,
 		win:         o.Window,
+		profileWin:  o.ProfileWindow,
 		sleep:       o.Sleep,
 		captureWait: o.CaptureWait,
 		focusDelay:  o.FocusDelay,

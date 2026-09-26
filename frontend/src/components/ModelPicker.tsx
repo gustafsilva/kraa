@@ -24,7 +24,8 @@ export function ModelPicker({ model, models, error, disabled, onChange }: ModelP
         onChange={(event) => {
           if (event.target.value !== model) onChange(event.target.value);
         }}
-        className="max-w-56 shrink-0 text-xs"
+        className="max-w-56 shrink-0"
+        selectClassName="h-6.5 rounded-full border-transparent bg-muted pl-3 text-xs text-muted-foreground hover:text-foreground data-[size=sm]:h-6.5 data-[size=sm]:rounded-full dark:bg-muted dark:hover:bg-muted"
       >
         {options.map((m) => (
           <NativeSelectOption key={m} value={m}>

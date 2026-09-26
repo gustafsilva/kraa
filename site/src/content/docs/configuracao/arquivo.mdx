@@ -29,7 +29,10 @@ Para abrir: **Editar configuração** na bandeja ou `prompt-improve config`. Dep
 | `provider.api_key` | string | `""` | Chave de API. A variável `PROMPT_IMPROVE_API_KEY` tem precedência. |
 | `provider.model` | string | `"llama3.2"` | Modelo usado. **Obrigatório.** Também muda pelo seletor do modal. |
 | `provider.timeout_seconds` | inteiro | `60` | Tempo máximo de uma requisição. `0` usa o padrão. |
+| `provider.temperature` | número | `0.2` | Opcional, de 0 a 2. Menor = mais fiel ao texto. Sem a chave, vale o padrão do servidor. Veja [Providers](/docs/configuracao/providers/). |
 | `max_input_chars` | inteiro | `20000` | Tamanho máximo do texto aceito. `0` usa o padrão. |
+| `profile.enabled` | booleano | `false` | Envia o perfil ao LLM. Veja [Perfil do usuário](/docs/uso/perfil-do-usuario/). |
+| `profile.text` | string | texto genérico | Quem você é (cargo, stack, preferências). Até 2000 caracteres pela janela da bandeja. |
 | `actions` | lista | 8 ações | Ações do modal. Veja [Ações customizadas](/docs/configuracao/acoes-customizadas/). |
 
 Chaves omitidas voltam ao valor padrão. Se `actions` for omitida ou vazia, as 8 ações padrão
@@ -45,17 +48,24 @@ provider:
   api_key: ""
   model: "llama3.2"
   timeout_seconds: 60
+  temperature: 0.2
 
 max_input_chars: 20000
+
+profile:
+  enabled: false
+  text: >-
+    Sou profissional de tecnologia e uso IA no dia a dia de trabalho.
+    Prefiro textos objetivos, com termos técnicos quando fizerem sentido.
 
 actions:
   - id: improve-prompt
     category: Prompt
     label: Melhorar prompt
+    use_profile: true
     instruction: >-
-      Reescreva o prompt a seguir para um LLM: deixe claro objetivo,
-      contexto, restrições e formato de saída. Responda apenas com o
-      prompt reescrito.
+      Reescreva o prompt em <texto> para que um LLM o execute bem,
+      preservando a intenção e todos os requisitos do autor. (...)
   # ...mais 7 ações padrão
 ```
 
@@ -65,6 +75,7 @@ Ao carregar, o app recusa a configuração e mostra o erro no modal quando:
 
 - `base_url` ou `model` está vazio;
 - `timeout_seconds` ou `max_input_chars` é negativo;
+- `temperature` está fora do intervalo de 0 a 2;
 - uma ação não tem `id`, `label` ou `instruction`, ou repete um `id`.
 
 ## Variável de ambiente `PROMPT_IMPROVE_API_KEY`

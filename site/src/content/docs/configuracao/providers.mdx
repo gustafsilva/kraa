@@ -16,7 +16,12 @@ provider:
   api_key: ""
   model: "llama3.2"
   timeout_seconds: 60
+  temperature: 0.2
 ```
+
+`temperature` é opcional (de 0 a 2). Quanto menor, mais fiel ao texto original e menos
+invenção; o template usa `0.2`. Sem a chave, vale o padrão do servidor. Modelos de raciocínio da
+OpenAI (o-series, gpt-5) só aceitam o padrão: remova a linha ao usá-los.
 
 Veja [Ollama](/docs/instalacao/ollama/) para instalar e baixar modelos.
 

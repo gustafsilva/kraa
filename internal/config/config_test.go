@@ -371,14 +371,112 @@ func TestDefaultTemplate_PinnedValues(t *testing.T) {
 		}
 	}
 
-	wantInstruction := "Reescreva o prompt a seguir para um LLM: deixe claro objetivo, " +
-		"contexto, restrições e formato de saída. Responda apenas com o prompt reescrito."
+	wantInstruction := "Reescreva o prompt em <texto> para que um LLM o execute bem, " +
+		"preservando a intenção e todos os requisitos do autor. Organize o que o autor " +
+		"escreveu deixando claros o objetivo, o contexto, as restrições e o formato de " +
+		"saída; quando o autor der o motivo de uma restrição, mantenha-o junto dela. " +
+		"Ajuste a estrutura à complexidade: um pedido simples continua curto e em prosa, " +
+		"e um pedido com várias partes ganha seções curtas (Objetivo, Contexto, " +
+		"Restrições, Formato de saída). Escreva instruções afirmativas e coerentes entre " +
+		"si. Use somente informações presentes no prompt original ou no perfil; quando " +
+		"faltar uma informação essencial, insira um placeholder entre colchetes, como " +
+		"[público-alvo], em vez de supor. Mantenha fora técnicas que o autor não pediu, " +
+		"como personas ou \"pense passo a passo\". Responda apenas com o prompt reescrito."
 	improvePrompt, ok := cfg.Action("improve-prompt")
 	if !ok {
 		t.Fatal(`Action("improve-prompt") not found`)
 	}
 	if improvePrompt.Instruction != wantInstruction {
 		t.Errorf("improve-prompt Instruction = %q, want %q", improvePrompt.Instruction, wantInstruction)
+	}
+}
+
+func TestDefaultTemplate_ProfileDisabledWithGenericText(t *testing.T) {
+	cfg := Default()
+
+	if cfg.Profile.Enabled {
+		t.Error("Profile.Enabled = true, want false")
+	}
+	want := "Sou profissional de tecnologia e uso IA no dia a dia de trabalho. " +
+		"Prefiro textos objetivos, com termos técnicos quando fizerem sentido."
+	if cfg.Profile.Text != want {
+		t.Errorf("Profile.Text = %q, want %q", cfg.Profile.Text, want)
+	}
+}
+
+func TestDefaultTemplate_UseProfileOnlyOnPromptActions(t *testing.T) {
+	for _, a := range Default().Actions {
+		want := a.Category == "Prompt"
+		if a.UseProfile != want {
+			t.Errorf("%s: UseProfile = %v, want %v", a.ID, a.UseProfile, want)
+		}
+	}
+}
+
+func TestDefaultTemplate_PromptActionsAskForPlaceholders(t *testing.T) {
+	for _, id := range []string{"improve-prompt", "add-context", "more-specific"} {
+		a, ok := Default().Action(id)
+		if !ok {
+			t.Fatalf("Action(%q) not found", id)
+		}
+		if !strings.Contains(a.Instruction, "placeholder entre colchetes") ||
+			!strings.Contains(a.Instruction, "em vez de supor") {
+			t.Errorf("%s instruction %q lacks the no-invention/placeholder rule", id, a.Instruction)
+		}
+		if !strings.Contains(a.Instruction, "Preserv") && !strings.Contains(a.Instruction, "preserv") {
+			t.Errorf("%s instruction %q lacks the preserve-intent rule", id, a.Instruction)
+		}
+	}
+}
+
+func TestLoad_LegacyConfigWithoutProfileKeepsItDisabled(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	legacy := "provider:\n  base_url: \"http://x/v1\"\n  model: \"m\"\n" +
+		"actions:\n  - id: a\n    category: Prompt\n    label: A\n    instruction: faça\n"
+	if err := os.WriteFile(path, []byte(legacy), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Profile.Enabled || cfg.Profile.Text != "" {
+		t.Errorf("Profile = %+v, want zero value", cfg.Profile)
+	}
+	if cfg.Actions[0].UseProfile {
+		t.Error("UseProfile = true for an action without use_profile, want false")
+	}
+}
+
+func TestDefaultTemplate_LowTemperature(t *testing.T) {
+	cfg := Default()
+	if cfg.Provider.Temperature == nil || *cfg.Provider.Temperature != 0.2 {
+		t.Errorf("Temperature = %v, want 0.2", cfg.Provider.Temperature)
+	}
+}
+
+func TestLoad_WithoutTemperatureLeavesItUnset(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte("provider:\n  base_url: \"http://x/v1\"\n  model: \"m\"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Provider.Temperature != nil {
+		t.Errorf("Temperature = %v, want nil (server default)", *cfg.Provider.Temperature)
+	}
+}
+
+func TestValidate_TemperatureOutOfRangeFails(t *testing.T) {
+	for _, v := range []float64{-0.1, 2.1} {
+		cfg := Default()
+		cfg.Provider.Temperature = &v
+		if err := cfg.Validate(); err == nil {
+			t.Errorf("Validate(temperature=%v) = nil, want error", v)
+		}
 	}
 }
 

@@ -39,6 +39,9 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
+    --color-pencil: var(--pencil);
+    --color-pencil-wash: var(--pencil-wash);
+    --color-graphite: var(--graphite);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -49,24 +52,24 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    --background: #fafafb;
+    --foreground: #17171c;
+    --card: #ffffff;
+    --card-foreground: #17171c;
+    --popover: #ffffff;
+    --popover-foreground: #17171c;
+    --primary: #2b59ff;
+    --primary-foreground: #ffffff;
+    --secondary: #efeff3;
+    --secondary-foreground: #17171c;
+    --muted: #f1f1f4;
+    --muted-foreground: #6b6b76;
+    --accent: #eef1ff;
+    --accent-foreground: #1d3fd6;
+    --destructive: #d92d3a;
+    --border: #e6e6eb;
+    --input: #dcdce3;
+    --ring: #2b59ff;
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -81,27 +84,31 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+    /* Blue-pencil revision marks: graphite = original, pencil = revised. */
+    --pencil: #2b59ff;
+    --pencil-wash: #eef1ff;
+    --graphite: #c9c9d1;
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --background: #16171b;
+    --foreground: #ececf1;
+    --card: #1d1e23;
+    --card-foreground: #ececf1;
+    --popover: #1d1e23;
+    --popover-foreground: #ececf1;
+    --primary: #7d95ff;
+    --primary-foreground: #0e1330;
+    --secondary: #25262c;
+    --secondary-foreground: #ececf1;
+    --muted: #222328;
+    --muted-foreground: #8f8f9a;
+    --accent: #232a45;
+    --accent-foreground: #b7c4ff;
+    --destructive: #ff6b72;
+    --border: #2a2b31;
+    --input: #34353c;
+    --ring: #7d95ff;
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -115,6 +122,10 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+    /* Blue-pencil revision marks: graphite = original, pencil = revised. */
+    --pencil: #7d95ff;
+    --pencil-wash: #232a45;
+    --graphite: #45464e;
 }
 
 @layer base {
@@ -130,4 +141,27 @@
   html {
     @apply font-sans;
     }
+}
+
+@layer base {
+  ::selection {
+    @apply bg-pencil-wash text-foreground;
+  }
+  kbd {
+    @apply inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-[5px] border border-current/20 px-1 font-sans text-[10px] leading-none font-medium;
+  }
+}
+
+/* The result's pencil rule breathes while the model is still writing. */
+@keyframes pencil-breathe {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+@layer utilities {
+  .pencil-writing {
+    animation: pencil-breathe 1.4s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pencil-writing { animation: none; }
+  }
 }

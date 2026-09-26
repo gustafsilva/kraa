@@ -21,5 +21,15 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - Site de documentação em `site/` (Astro + MDX + shadcn/ui), publicado no GitHub Pages pelo
   workflow `docs.yml`.
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` e templates de issue e de pull request.
+- Perfil do usuário (bloco `profile` do `config.yaml`, desativado por padrão), editável em
+  "Perfil do usuário…" na bandeja e enviado ao LLM nas ações com `use_profile: true` e na
+  instrução livre.
+- `provider.temperature` (template: `0.2`), enviada só quando definida.
+
+### Alterado
+
+- System prompt e instruções das ações de Prompt revisados: usam só o que está no texto, na
+  instrução e no perfil, com placeholders (`[público-alvo]`) em vez de suposições, e formato
+  adaptado à complexidade do pedido.
 
 [Não lançado]: https://github.com/gustafsilva/prompt-improve-beta/commits/main
