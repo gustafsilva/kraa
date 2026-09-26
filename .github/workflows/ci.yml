@@ -88,8 +88,11 @@ jobs:
       # `wails3 build`/`wails3 task` embutem seu próprio runner do Task
       # internamente, então não é preciso instalar o binário `task`
       # separadamente (ex.: via arduino/setup-task) nesta pipeline.
+      # A própria CLI importa `internal/operatingsystem`, que no Linux faz
+      # cgo com GTK4/WebKitGTK 6.0 sem a tag — por isso `-tags gtk3` também
+      # aqui (R15). A tag não afeta macOS nem Windows.
       - name: Instala wails3 (versão fixada)
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS3_VERSION }}
+        run: go install -tags gtk3 github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS3_VERSION }}
 
       - name: Instala dependências do frontend
         run: npm ci

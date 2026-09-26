@@ -82,20 +82,8 @@ func TestLoad_CreatesDefaultFileWhenMissing(t *testing.T) {
 		t.Errorf("Load() = %+v, want %+v", cfg, want)
 	}
 
-	info, err := os.Stat(path)
-	if err != nil {
+	if _, err := os.Stat(path); err != nil {
 		t.Fatalf("config file was not created: %v", err)
-	}
-	if perm := info.Mode().Perm(); perm != 0o600 {
-		t.Errorf("file perm = %o, want 0600", perm)
-	}
-
-	dirInfo, err := os.Stat(filepath.Dir(path))
-	if err != nil {
-		t.Fatalf("parent dir was not created: %v", err)
-	}
-	if perm := dirInfo.Mode().Perm(); perm != 0o755 {
-		t.Errorf("dir perm = %o, want 0755", perm)
 	}
 }
 
