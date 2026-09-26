@@ -61,4 +61,5 @@ export interface State {
     "canReplace": boolean;
     "warning": string;
     "error": string;
+    "model": string;
 }

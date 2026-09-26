@@ -46,6 +46,14 @@ export function GetState(): $CancellablePromise<$models.State> {
 }
 
 /**
+ * ListModels returns the models offered by the provider (for Ollama, the
+ * installed ones), sorted. Errors are PT-BR and user-facing.
+ */
+export function ListModels(): $CancellablePromise<string[] | null> {
+    return $Call.ByID(1437161750);
+}
+
+/**
  * Replace pastes text into the source app (hides the window, returns focus,
  * then pastes and restores the clipboard). Fails when automatic paste is not
  * available in this session. When the paste itself fails, the window is
@@ -53,6 +61,15 @@ export function GetState(): $CancellablePromise<$models.State> {
  */
 export function Replace(text: string): $CancellablePromise<void> {
     return $Call.ByID(1682521732, text);
+}
+
+/**
+ * SetModel persists model as provider.model and reloads the configuration;
+ * the new model arrives on state:changed. Requests already running keep
+ * the previous model.
+ */
+export function SetModel(model: string): $CancellablePromise<void> {
+    return $Call.ByID(1639218321, model);
 }
 
 /**

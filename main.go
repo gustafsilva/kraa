@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -223,6 +224,22 @@ func main() {
 		currentHotkey = newCfg.Hotkey
 		host.SetHotkeyWarning("")
 	}
+
+	// Model picker: persist provider.model in config.yaml, then reload so
+	// the new runner and state:changed (with the model) take effect.
+	host.SetModelSaver(func(model string) error {
+		mu.Lock()
+		path := cfgPath
+		mu.Unlock()
+		if path == "" {
+			return errors.New("o caminho do config.yaml é desconhecido")
+		}
+		if err := config.SaveModel(path, model); err != nil {
+			return err
+		}
+		reload()
+		return nil
+	})
 
 	tray := wailsApp.SystemTray.New()
 	tray.SetTooltip("Prompt Improve")
