@@ -14,6 +14,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "./src"),
+      "@bindings": path.resolve(import.meta.dirname, "./bindings"),
     },
   },
   plugins: [react(), tailwindcss(), wails("./bindings")],

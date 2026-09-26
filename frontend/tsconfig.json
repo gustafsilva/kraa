@@ -17,7 +17,8 @@
     /* Path aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@bindings/*": ["./bindings/*"]
     },
 
     /* Linting */
@@ -31,4 +32,5 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src", "bindings"],
+  "exclude": ["src/test", "src/**/*.test.ts", "src/**/*.test.tsx"],
 }
