@@ -1,0 +1,134 @@
+---
+import type { MarkdownHeading } from "astro";
+import BaseLayout from "./BaseLayout.astro";
+import Header from "@/components/Header.astro";
+import Sidebar from "@/components/docs/Sidebar.astro";
+import Toc from "@/components/docs/Toc.astro";
+import { FLAT_NAV, NAV, REPO_URL, href } from "@/lib/site";
+
+interface Props {
+  title: string;
+  description: string;
+  slug: string;
+  headings: MarkdownHeading[];
+}
+const { title, description, slug, headings } = Astro.props;
+const index = FLAT_NAV.findIndex((i) => i.slug === slug);
+const prev = index > 0 ? FLAT_NAV[index - 1] : undefined;
+const next = index >= 0 && index < FLAT_NAV.length - 1 ? FLAT_NAV[index + 1] : undefined;
+const section = NAV.find((s) => s.items.some((i) => i.slug === slug));
+const editUrl = `${REPO_URL}/edit/main/site/src/content/docs/${slug}.mdx`;
+---
+<BaseLayout title={title} description={description}>
+  <Header docs />
+  <div class="mx-auto flex max-w-[90rem] px-4 sm:px-6">
+    <!-- Barra lateral: fixa no desktop, gaveta no mobile. -->
+    <div data-sidebar-backdrop class="fixed inset-0 top-14 z-30 hidden bg-background/80 backdrop-blur-sm lg:hidden"></div>
+    <aside
+      id="docs-sidebar"
+      data-sidebar
+      class="fixed inset-y-0 top-14 left-0 z-30 hidden w-72 overflow-y-auto border-r border-border/60 bg-background px-4 py-8 lg:sticky lg:block lg:h-[calc(100dvh-3.5rem)] lg:w-60 lg:shrink-0 lg:border-r-0 lg:bg-transparent lg:px-0 lg:pr-6"
+    >
+      <Sidebar current={slug} />
+    </aside>
+
+    <main class="min-w-0 flex-1 py-10 lg:px-10 xl:pr-4">
+      <article class="mx-auto max-w-3xl">
+        <header class="mb-10">
+          {section && <p class="mb-3 text-sm font-medium text-brand">{section.title}</p>}
+          <h1 class="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{title}</h1>
+          <p class="mt-3 text-lg text-balance text-muted-foreground">{description}</p>
+        </header>
+        <div class="prose-doc" data-doc>
+          <slot />
+        </div>
+
+        <div class="mt-14 flex items-center justify-between border-t pt-6 text-sm">
+          <a href={editUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            Editar esta página
+          </a>
+        </div>
+
+        <nav aria-label="Paginação" class="mt-6 grid gap-3 sm:grid-cols-2">
+          {prev ? (
+            <a href={href(`/docs/${prev.slug}/`)} class="group rounded-xl border p-4 transition-colors hover:border-foreground/20 hover:bg-card">
+              <span class="text-xs text-muted-foreground">← Anterior</span>
+              <span class="mt-1 block font-medium text-foreground">{prev.title}</span>
+            </a>
+          ) : <span />}
+          {next && (
+            <a href={href(`/docs/${next.slug}/`)} class="group rounded-xl border p-4 text-right transition-colors hover:border-foreground/20 hover:bg-card">
+              <span class="text-xs text-muted-foreground">Próxima →</span>
+              <span class="mt-1 block font-medium text-foreground">{next.title}</span>
+            </a>
+          )}
+        </nav>
+      </article>
+    </main>
+
+    <aside class="hidden w-56 shrink-0 xl:block">
+      <div class="sticky top-14 max-h-[calc(100dvh-3.5rem)] overflow-y-auto py-10">
+        <Toc headings={headings} />
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // Gaveta da barra lateral no mobile.
+    const toggle = document.querySelector<HTMLButtonElement>("[data-sidebar-toggle]");
+    const sidebar = document.querySelector<HTMLElement>("[data-sidebar]");
+    const backdrop = document.querySelector<HTMLElement>("[data-sidebar-backdrop]");
+    const setOpen = (open: boolean) => {
+      sidebar?.classList.toggle("hidden", !open);
+      backdrop?.classList.toggle("hidden", !open);
+      toggle?.setAttribute("aria-expanded", String(open));
+      document.body.classList.toggle("overflow-hidden", open);
+    };
+    toggle?.addEventListener("click", () => setOpen(sidebar?.classList.contains("hidden") ?? false));
+    backdrop?.addEventListener("click", () => setOpen(false));
+    document.addEventListener("keydown", (e) => e.key === "Escape" && setOpen(false));
+
+    // Botão "copiar" em todos os blocos de código.
+    for (const pre of document.querySelectorAll<HTMLPreElement>("[data-doc] pre")) {
+      const wrap = document.createElement("div");
+      wrap.className = "group/code relative";
+      pre.replaceWith(wrap);
+      wrap.append(pre);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "Copiar";
+      btn.setAttribute("aria-label", "Copiar código");
+      btn.className =
+        "absolute top-2.5 right-2.5 rounded-md border bg-background/80 px-2 py-0.5 text-xs text-muted-foreground opacity-0 backdrop-blur transition group-hover/code:opacity-100 hover:text-foreground focus-visible:opacity-100";
+      btn.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(pre.innerText.trimEnd());
+        btn.textContent = "Copiado";
+        setTimeout(() => (btn.textContent = "Copiar"), 1500);
+      });
+      wrap.append(btn);
+    }
+
+    // Destaca no sumário a seção visível.
+    const links = new Map(
+      [...document.querySelectorAll<HTMLAnchorElement>("[data-toc-link]")].map((a) => [a.dataset.tocLink!, a]),
+    );
+    if (links.size) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            links.forEach((a) => (a.dataset.active = "false"));
+            const link = links.get(entry.target.id);
+            if (link) link.dataset.active = "true";
+          }
+        },
+        { rootMargin: "-80px 0px -70% 0px" },
+      );
+      links.forEach((_, id) => {
+        const el = document.getElementById(id);
+        if (el) observer.observe(el);
+      });
+    }
+  </script>
+</BaseLayout>

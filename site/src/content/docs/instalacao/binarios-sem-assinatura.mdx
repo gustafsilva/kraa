@@ -1,0 +1,32 @@
+---
+title: Binários sem assinatura
+description: Como lidar com o Gatekeeper (macOS) e o SmartScreen (Windows).
+---
+import Callout from "@/components/mdx/Callout";
+import OsTabs from "@/components/mdx/OsTabs";
+
+Os binários do Prompt Improve **ainda não são assinados** (no macOS há apenas assinatura ad-hoc).
+
+Arquivos baixados pelo npm ou por `curl`/`Invoke-WebRequest` normalmente não recebem a marca de
+quarentena (macOS) nem o Mark-of-the-Web (Windows), então o Gatekeeper e o SmartScreen
+costumam não bloquear. O bloqueio aparece principalmente quando o asset é baixado pelo
+navegador.
+
+<OsTabs client:load>
+  <div slot="macos">
+    Remova a quarentena e abra o app de novo:
+
+    ```bash
+    xattr -dr com.apple.quarantine ~/Applications/"Prompt Improve.app"
+    ```
+  </div>
+  <div slot="windows">
+    Na tela do SmartScreen, clique em **Mais informações** e depois em **Executar assim mesmo**.
+  </div>
+</OsTabs>
+
+<Callout type="warning" title="Confira a origem">
+  Só faça isso com binários baixados dos
+  [releases oficiais](https://github.com/gustafsilva/prompt-improve-beta/releases) e com o
+  SHA-256 conferido contra o `checksums.txt`. O npm e os scripts já fazem essa conferência.
+</Callout>

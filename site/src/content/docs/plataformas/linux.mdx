@@ -1,0 +1,55 @@
+---
+title: Linux
+description: Dependências, X11 e Wayland no Ubuntu e derivados.
+---
+import Callout from "@/components/mdx/Callout";
+import Kbd from "@/components/mdx/Kbd";
+
+Suporte oficial: **Ubuntu 22.04+** (x64 e arm64). O binário usa GTK3 + WebKit2GTK 4.1.
+
+## Dependências
+
+```bash
+sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0   # obrigatórias
+sudo apt install xdotool                          # X11: captura e colagem automáticas
+```
+
+`prompt-improve doctor` confere o `xdotool` e o tipo de sessão.
+
+## X11
+
+Funciona como no macOS e no Windows: atalho global, captura da seleção e colagem automática,
+desde que o `xdotool` esteja instalado. Sem ele, um aviso aparece e só **Copiar** fica
+disponível.
+
+## Wayland
+
+O Wayland não permite simular teclas globalmente, então:
+
+- o app **não copia a seleção sozinho**: selecione o texto e aperte <Kbd keys={["Ctrl", "C"]} />
+  **antes** do atalho. O modal abre com o conteúdo da área de transferência (e você pode editá-lo);
+- **só "Copiar"** está disponível, sem colagem automática.
+
+Para o atalho global, crie um atalho personalizado do sistema que rode `prompt-improve --trigger`
+(ou `prompt-improve trigger`). No GNOME:
+
+**Configurações › Teclado › Atalhos de teclado › Atalhos personalizados › +**
+
+| Campo | Valor |
+|---|---|
+| Nome | Prompt Improve |
+| Comando | `prompt-improve --trigger` |
+| Atalho | <Kbd keys={["Ctrl", "Shift", "Y"]} /> |
+
+<Callout type="note">
+  Se o comando não for encontrado pelo atalho, use o caminho completo do binário:
+  `~/.local/share/prompt-improve/prompt-improve --trigger`.
+</Callout>
+
+## Onde ficam os arquivos
+
+| O quê | Caminho |
+|---|---|
+| App | `~/.local/share/prompt-improve/prompt-improve` |
+| Configuração | `~/.config/prompt-improve/config.yaml` |
+| Início automático | `~/.config/autostart/prompt-improve.desktop` |

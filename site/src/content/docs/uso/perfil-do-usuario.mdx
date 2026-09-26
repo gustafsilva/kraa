@@ -1,0 +1,44 @@
+---
+title: Perfil do usuário
+description: Conte ao LLM quem você é para os prompts melhorados saírem no seu contexto.
+---
+import Callout from "@/components/mdx/Callout";
+
+Em **Perfil do usuário…**, na bandeja, você descreve quem usa o app: cargo, stack, preferências.
+Por exemplo: "Sou desenvolvedor sênior fullstack (Go e React). Prefiro respostas técnicas e
+diretas."
+
+- Marque **Usar perfil** e clique em **Salvar**. O perfil vale a partir da **próxima** melhoria.
+- O texto é enviado ao LLM nas ações com `use_profile: true` (por padrão, as da categoria
+  **Prompt**) e na **instrução livre**. As ações de **Mensagem** (tom, gramática, tradução) não
+  recebem o perfil.
+- O perfil serve para calibrar contexto, vocabulário e nível técnico; o LLM inclui no texto final
+  só o que for relevante para a tarefa.
+- Limite de 2000 caracteres. Fechar a janela (X ou `Esc`) descarta o que não foi salvo.
+
+O perfil fica no bloco `profile` do [config.yaml](/docs/configuracao/arquivo/). Salvar pela janela
+reescreve **só esse bloco**; comentários, ações e o resto do arquivo continuam intactos.
+
+```yaml
+profile:
+  enabled: true
+  text: Sou desenvolvedor sênior fullstack (Go e React). Prefiro respostas técnicas e diretas.
+```
+
+<Callout type="note" title="Vem desativado">
+  O arquivo gerado na primeira execução traz um perfil genérico com `enabled: false`. Nada é
+  enviado ao LLM até você ativá-lo.
+</Callout>
+
+## Sem invenções
+
+As ações de **Prompt** reescrevem usando somente o que está no seu texto, na instrução e no
+perfil. Quando falta uma informação essencial, o resultado traz um placeholder entre colchetes,
+como `[público-alvo]` ou `[tamanho]`, para você preencher, em vez de o modelo supor um valor.
+Para reduzir ainda mais as invenções, o template usa `provider.temperature: 0.2` (veja
+[Providers](/docs/configuracao/providers/)).
+
+<Callout type="warning" title="Configurações antigas">
+  Um `config.yaml` criado antes desta versão mantém as instruções antigas das ações. Para receber
+  as novas, renomeie ou apague o arquivo: ele é recriado com o template atual no próximo início.
+</Callout>

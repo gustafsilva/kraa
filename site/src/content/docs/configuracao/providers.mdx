@@ -1,0 +1,61 @@
+---
+title: Providers
+description: Use o Ollama local, o Ollama Cloud, a OpenAI ou qualquer endpoint compatível.
+---
+import Callout from "@/components/mdx/Callout";
+
+O Prompt Improve fala com qualquer serviço que implemente a API **Chat Completions** da OpenAI
+(`POST {base_url}/chat/completions` com streaming SSE). Basta ajustar o bloco `provider` do
+[config.yaml](/docs/configuracao/arquivo/).
+
+## Ollama local (padrão)
+
+```yaml
+provider:
+  base_url: "http://localhost:11434/v1"
+  api_key: ""
+  model: "llama3.2"
+  timeout_seconds: 60
+  temperature: 0.2
+```
+
+`temperature` é opcional (de 0 a 2). Quanto menor, mais fiel ao texto original e menos
+invenção; o template usa `0.2`. Sem a chave, vale o padrão do servidor. Modelos de raciocínio da
+OpenAI (o-series, gpt-5) só aceitam o padrão: remova a linha ao usá-los.
+
+Veja [Ollama](/docs/instalacao/ollama/) para instalar e baixar modelos.
+
+## Ollama Cloud
+
+```yaml
+provider:
+  base_url: "https://ollama.com/v1"
+  api_key: "SUA_CHAVE_AQUI"
+  model: "llama3.2"
+  timeout_seconds: 60
+```
+
+## OpenAI
+
+```yaml
+provider:
+  base_url: "https://api.openai.com/v1"
+  api_key: "SUA_CHAVE_AQUI"
+  model: "gpt-4o-mini"
+  timeout_seconds: 60
+```
+
+## Outros endpoints compatíveis
+
+LM Studio, vLLM, llama.cpp server, OpenRouter e similares funcionam do mesmo jeito: aponte
+`base_url` para a raiz `/v1` do serviço e informe o `model`.
+
+<Callout type="tip" title="Não deixe a chave no arquivo">
+  Prefira a variável `PROMPT_IMPROVE_API_KEY`: ela sobrescreve `api_key` e nunca é gravada em
+  disco.
+</Callout>
+
+<Callout type="warning" title="Privacidade">
+  Com um provider remoto, o texto selecionado é enviado para esse serviço. Veja
+  [Privacidade](/docs/plataformas/privacidade/).
+</Callout>

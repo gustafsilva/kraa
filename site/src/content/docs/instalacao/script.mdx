@@ -1,0 +1,71 @@
+---
+title: Instalação via script
+description: Instale sem Node.js com um script de shell ou PowerShell.
+---
+import Callout from "@/components/mdx/Callout";
+import OsTabs from "@/components/mdx/OsTabs";
+
+Os scripts seguem as mesmas regras do instalador npm: mesmo nome de asset, conferência do
+SHA-256 contra o `checksums.txt` e os mesmos [diretórios de instalação](/docs/instalacao/npm/#onde-o-app-fica-instalado).
+
+<OsTabs client:load>
+  <div slot="macos">
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.sh | sh
+    ```
+  </div>
+  <div slot="windows">
+    No PowerShell:
+
+    ```powershell
+    irm https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.ps1 | iex
+    ```
+  </div>
+  <div slot="linux">
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.sh | sh
+    ```
+
+    Depois instale as dependências do sistema (o script não instala pacotes):
+
+    ```bash
+    sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0 xdotool
+    ```
+  </div>
+</OsTabs>
+
+## Variáveis
+
+| Variável | Padrão | Efeito |
+|---|---|---|
+| `PROMPT_IMPROVE_VERSION` | último release | Versão a instalar, por exemplo `0.1.0`. |
+| `PROMPT_IMPROVE_REPO` | `gustafsilva/prompt-improve-beta` | Repositório de onde baixar. |
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.sh | PROMPT_IMPROVE_VERSION=0.1.0 sh
+```
+
+<Callout type="tip" title="Prefere ler antes de executar?">
+  Baixe o script, leia e só então rode: `curl -fsSLO …/install.sh && less install.sh && sh install.sh`.
+</Callout>
+
+## Download manual
+
+Cada [release](https://github.com/gustafsilva/prompt-improve-beta/releases) publica quatro
+assets e um `checksums.txt`:
+
+| Asset | Plataforma |
+|---|---|
+| `prompt-improve-darwin-universal.app.zip` | macOS (arm64 + x64) |
+| `prompt-improve-windows-amd64.exe` | Windows x64 |
+| `prompt-improve-linux-amd64` | Linux x64 |
+| `prompt-improve-linux-arm64` | Linux arm64 |
+
+Confira o hash antes de executar:
+
+```bash
+sha256sum -c checksums.txt --ignore-missing
+```
+
+Arquivos baixados pelo navegador podem ser bloqueados pelo Gatekeeper ou pelo SmartScreen.
+Veja [Binários sem assinatura](/docs/instalacao/binarios-sem-assinatura/).

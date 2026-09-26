@@ -1,0 +1,68 @@
+name: Docs
+
+# Builda o site de documentação (site/, Astro + MDX) em todo PR que o toca e
+# publica no GitHub Pages a cada push na main.
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', '.github/workflows/docs.yml']
+  pull_request:
+    paths: ['site/**', '.github/workflows/docs.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build do site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: site/package-lock.json
+
+      - name: Instala dependências
+        run: npm ci
+        working-directory: site
+
+      - name: Checagem de tipos (astro check)
+        run: npm run check
+        working-directory: site
+
+      # SITE_URL/BASE_PATH seguem o dono e o nome do repositório, então forks
+      # publicam no próprio Pages sem editar o astro.config.mjs.
+      - name: Build
+        run: npm run build
+        working-directory: site
+        env:
+          SITE_URL: https://${{ github.repository_owner }}.github.io
+          BASE_PATH: /${{ github.event.repository.name }}
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: site/dist
+
+  deploy:
+    name: Publica no GitHub Pages
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

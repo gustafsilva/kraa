@@ -1,0 +1,217 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/* O site só tem tema escuro: os tokens do shadcn são definidos direto no :root. */
+@custom-variant dark (&:where(:root, :root *));
+
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, monospace;
+  --font-heading: var(--font-sans);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: dark;
+  --radius: 0.625rem;
+
+  --background: oklch(0.135 0.004 285);
+  --foreground: oklch(0.97 0.002 285);
+  --card: oklch(0.175 0.005 285);
+  --card-foreground: oklch(0.97 0.002 285);
+  --popover: oklch(0.185 0.005 285);
+  --popover-foreground: oklch(0.97 0.002 285);
+  --primary: oklch(0.95 0.004 285);
+  --primary-foreground: oklch(0.18 0.005 285);
+  --secondary: oklch(0.24 0.006 285);
+  --secondary-foreground: oklch(0.97 0.002 285);
+  --muted: oklch(0.225 0.006 285);
+  --muted-foreground: oklch(0.69 0.012 285);
+  --accent: oklch(0.24 0.006 285);
+  --accent-foreground: oklch(0.97 0.002 285);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.7 0.14 285);
+
+  /* Acento da marca: violeta suave, usado com parcimônia. */
+  --brand: oklch(0.76 0.14 290);
+  --brand-foreground: oklch(0.18 0.03 290);
+  --warning: oklch(0.83 0.14 80);
+  --success: oklch(0.8 0.15 160);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply scroll-smooth bg-background font-sans antialiased;
+    scroll-padding-top: 5rem;
+  }
+  body {
+    @apply min-h-dvh bg-background text-foreground;
+    font-feature-settings: "ss01", "cv11";
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--brand) 35%, transparent);
+  }
+}
+
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, oklch(1 0 0 / 4%) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(1 0 0 / 4%) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+@utility text-gradient {
+  background: linear-gradient(180deg, var(--foreground) 30%, oklch(0.72 0.02 285));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility text-brand-gradient {
+  background: linear-gradient(90deg, oklch(0.82 0.12 300), oklch(0.78 0.13 250));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Conteúdo das páginas de documentação (MDX) ---------- */
+@layer components {
+  .prose-doc {
+    @apply max-w-none text-[0.95rem] leading-7 text-foreground/85;
+  }
+  .prose-doc > :first-child {
+    @apply mt-0;
+  }
+  .prose-doc h2 {
+    @apply mt-12 mb-4 scroll-mt-24 border-b pb-2 text-2xl font-semibold tracking-tight text-foreground;
+  }
+  .prose-doc h3 {
+    @apply mt-8 mb-3 scroll-mt-24 text-lg font-semibold tracking-tight text-foreground;
+  }
+  .prose-doc h4 {
+    @apply mt-6 mb-2 text-base font-semibold text-foreground;
+  }
+  .prose-doc :is(h2, h3, h4) a.heading-anchor {
+    @apply ml-2 text-muted-foreground/0 no-underline transition-colors;
+  }
+  .prose-doc :is(h2, h3, h4):hover a.heading-anchor {
+    @apply text-muted-foreground;
+  }
+  .prose-doc p {
+    @apply my-4;
+  }
+  .prose-doc a:not(.heading-anchor):not([data-slot]) {
+    @apply font-medium text-foreground underline decoration-brand/50 underline-offset-4 transition-colors hover:decoration-brand;
+  }
+  .prose-doc strong {
+    @apply font-semibold text-foreground;
+  }
+  .prose-doc :is(ul, ol) {
+    @apply my-4 pl-6;
+  }
+  .prose-doc ul {
+    @apply list-disc marker:text-muted-foreground/60;
+  }
+  .prose-doc ol {
+    @apply list-decimal marker:text-muted-foreground;
+  }
+  .prose-doc li {
+    @apply my-1.5 pl-1;
+  }
+  .prose-doc li > :is(ul, ol) {
+    @apply my-1;
+  }
+  .prose-doc :not(pre) > code {
+    @apply rounded-md border bg-muted/60 px-1.5 py-0.5 font-mono text-[0.84em] font-normal text-foreground;
+  }
+  .prose-doc pre {
+    @apply my-5 overflow-x-auto rounded-xl border bg-card! px-4 py-3.5 font-mono text-[0.84rem] leading-6;
+  }
+  .prose-doc pre code {
+    @apply bg-transparent p-0;
+  }
+  .prose-doc blockquote {
+    @apply my-5 border-l-2 border-brand/60 pl-4 text-muted-foreground italic;
+  }
+  .prose-doc hr {
+    @apply my-10 border-border;
+  }
+  .prose-doc table {
+    @apply my-6 w-full border-separate border-spacing-0 overflow-hidden rounded-xl border text-sm;
+  }
+  .prose-doc thead th {
+    @apply border-b bg-muted/40 px-3 py-2 text-left font-medium text-foreground;
+  }
+  .prose-doc tbody td {
+    @apply border-b px-3 py-2 align-top;
+  }
+  .prose-doc tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .prose-doc img {
+    @apply my-6 rounded-xl border;
+  }
+  .prose-doc details {
+    @apply my-3 rounded-xl border bg-card/50 px-4 py-2 open:pb-3;
+  }
+  .prose-doc details summary {
+    @apply cursor-pointer py-1 font-medium text-foreground marker:text-muted-foreground;
+  }
+  .prose-doc details > :not(summary) {
+    @apply text-sm;
+  }
+
+  /* Passo a passo numerado: <Steps> envolve um <ol>. */
+  .steps > ol {
+    @apply list-none pl-0;
+    counter-reset: step;
+  }
+  .steps > ol > li {
+    @apply relative my-0 border-l pb-6 pl-8 last:border-transparent last:pb-0;
+    counter-increment: step;
+  }
+  .steps > ol > li::before {
+    content: counter(step);
+    @apply absolute top-0 -left-3.5 flex size-7 items-center justify-center rounded-full border bg-background font-mono text-xs font-medium text-foreground;
+  }
+  .steps > ol > li > :first-child {
+    @apply mt-0.5 font-medium text-foreground;
+  }
+}

@@ -1,0 +1,60 @@
+---
+title: Ações customizadas
+description: Crie ações próprias no modal com a sua instrução para o LLM.
+---
+import Callout from "@/components/mdx/Callout";
+
+Cada ação é um item da lista `actions` do [config.yaml](/docs/configuracao/arquivo/):
+
+| Campo | Obrigatório | Descrição |
+|---|---|---|
+| `id` | sim | Identificador único da ação. |
+| `label` | sim | Nome exibido no modal. |
+| `instruction` | sim | Instrução enviada ao LLM junto com o texto selecionado. |
+| `category` | não | Grupo em que a ação aparece (por exemplo, `Prompt` ou `Mensagem`). |
+| `use_profile` | não | `true` envia o [perfil do usuário](/docs/uso/perfil-do-usuario/) (se ativo) junto com a ação. Padrão: `false`. |
+
+## Exemplo
+
+```yaml
+actions:
+  # ...ações padrão...
+  - id: bullet-points
+    category: Mensagem
+    label: Transformar em tópicos
+    instruction: >-
+      Reescreva o texto a seguir como uma lista de tópicos curtos e
+      objetivos, preservando as informações essenciais. Responda apenas
+      com a lista.
+```
+
+Salve e use **Recarregar configuração** na bandeja.
+
+<Callout type="warning" title="Mantenha as ações padrão">
+  Se você definir `actions`, a lista substitui as ações padrão. Para manter as 8 originais,
+  deixe-as no arquivo (elas vêm no arquivo gerado na primeira execução) e acrescente as suas no
+  final.
+</Callout>
+
+## Ações padrão
+
+| id | Categoria | Rótulo | `use_profile` |
+|---|---|---|---|
+| `improve-prompt` | Prompt | Melhorar prompt | `true` |
+| `add-context` | Prompt | Adicionar contexto | `true` |
+| `more-specific` | Prompt | Mais específico | `true` |
+| `formal` | Mensagem | Mais formal | `false` |
+| `casual` | Mensagem | Mais casual | `false` |
+| `shorter` | Mensagem | Mais curto | `false` |
+| `fix-grammar` | Mensagem | Corrigir gramática | `false` |
+| `to-english` | Mensagem | Traduzir para inglês | `false` |
+
+As ações de Prompt usam só o que está no texto, na instrução e no perfil, e marcam informações
+que faltam com placeholders como `[público-alvo]`.
+
+## Dicas para boas instruções
+
+- Diga **o que fazer** e **o que preservar** (significado, tom, formatação).
+- Termine com "Responda apenas com o texto reescrito." para evitar comentários extras do modelo.
+- Peça para não supor: "quando faltar uma informação, use um placeholder entre colchetes".
+- Para uso pontual, prefira o campo de **instrução livre** do modal em vez de criar uma ação.

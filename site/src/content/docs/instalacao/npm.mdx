@@ -1,0 +1,79 @@
+---
+title: Instalação via npm
+description: O jeito recomendado de instalar, em macOS, Windows e Linux.
+---
+import Callout from "@/components/mdx/Callout";
+import OsTabs from "@/components/mdx/OsTabs";
+
+Com **Node.js 18+**:
+
+```bash
+npm i -g prompt-improve && prompt-improve start
+```
+
+O pacote npm é só um instalador. No `postinstall` ele baixa do
+[GitHub Release](https://github.com/gustafsilva/prompt-improve-beta/releases) o binário da **mesma
+versão** do pacote, confere o SHA-256 contra o `checksums.txt` do release e o instala no
+diretório do usuário (sem `sudo`).
+
+## Onde o app fica instalado
+
+| SO | Caminho | Arquitetura |
+|---|---|---|
+| macOS | `~/Applications/Prompt Improve.app` | universal (arm64 + x64) |
+| Windows | `%LOCALAPPDATA%\prompt-improve\prompt-improve.exe` | x64 |
+| Linux | `~/.local/share/prompt-improve/prompt-improve` | x64 e arm64 |
+
+## Dependências do sistema
+
+O npm não instala pacotes do sistema. Confira o que o seu SO precisa:
+
+<OsTabs client:load>
+  <div slot="macos">
+    Nenhum pacote extra. Na primeira execução, conceda a permissão de **Acessibilidade**
+    (veja [macOS](/docs/plataformas/macos/)).
+  </div>
+  <div slot="windows">
+    Nenhum requisito adicional.
+  </div>
+  <div slot="linux">
+    O binário usa GTK3 + WebKit2GTK 4.1. No X11, o `xdotool` faz a captura e a colagem automáticas:
+
+    ```bash
+    sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0   # obrigatórias
+    sudo apt install xdotool                          # X11
+    ```
+  </div>
+</OsTabs>
+
+## Se o download falhar
+
+Sem internet no momento do `npm i`, a instalação **não quebra**: o pacote é instalado sem o
+binário. Depois, rode:
+
+```bash
+prompt-improve install
+```
+
+`prompt-improve start` também baixa o binário automaticamente se ele ainda não existir.
+
+## Variáveis de ambiente
+
+| Variável | Efeito |
+|---|---|
+| `PROMPT_IMPROVE_SKIP_DOWNLOAD=1` | Pula o download no `postinstall` (útil em CI). |
+| `PROMPT_IMPROVE_REPO` | Repositório `dono/repo` de onde baixar o release (forks). |
+
+## Atualizar e desinstalar
+
+```bash
+npm i -g prompt-improve@latest   # atualiza (baixa o binário da nova versão)
+prompt-improve stop
+npm rm -g prompt-improve         # remove a CLI
+```
+
+<Callout type="note">
+  O `npm rm` remove só a CLI. Para apagar o app, remova também o diretório da tabela acima e,
+  se quiser, a [configuração](/docs/configuracao/arquivo/). Desligue antes o início automático
+  com `prompt-improve autostart off`.
+</Callout>

@@ -1,0 +1,33 @@
+---
+import "@/styles/global.css";
+import { href } from "@/lib/site";
+
+interface Props {
+  title: string;
+  description: string;
+}
+const { title, description } = Astro.props;
+const fullTitle = title === "Prompt Improve" ? title : `${title} · Prompt Improve`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+<!doctype html>
+<html lang="pt-BR" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#131217" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href={href("/favicon.svg")} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="pt_BR" />
+    <meta name="twitter:card" content="summary" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

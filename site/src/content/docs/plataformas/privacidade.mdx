@@ -1,0 +1,39 @@
+---
+title: Privacidade
+description: Que dados o Prompt Improve lê, para onde envia e o que fica no seu computador.
+---
+import Callout from "@/components/mdx/Callout";
+
+## O que é enviado
+
+Quando você escolhe uma ação, o app envia ao `provider.base_url` configurado:
+
+- uma mensagem de sistema fixa ("Você reescreve textos…");
+- a instrução da ação (ou a sua instrução livre);
+- o texto a melhorar.
+
+Nada mais: o app não tem telemetria, analytics nem servidor próprio.
+
+<Callout type="tip" title="100% local por padrão">
+  Com a configuração padrão (Ollama em `localhost`), o texto **não sai do seu computador**.
+  Com um provider remoto (OpenAI, Ollama Cloud…), ele vai para esse serviço e segue a política de
+  privacidade dele.
+</Callout>
+
+## Área de transferência
+
+A captura funciona via área de transferência: o app guarda o conteúdo atual, simula "Copiar",
+lê a seleção e **restaura o conteúdo anterior**. Limitações:
+
+- se o conteúdo anterior não for texto (imagem, arquivos…), ele **não é restaurado**;
+- sem seleção, um valor sentinela pode ficar na área de transferência.
+
+## Chave de API
+
+A `api_key` fica no `config.yaml`, criado com permissão `0600`. Para não gravá-la em disco, use
+a variável `PROMPT_IMPROVE_API_KEY`.
+
+## Rede
+
+O app só faz requisições ao provider configurado. O instalador npm e os scripts acessam o GitHub
+para baixar o binário e o `checksums.txt`.

@@ -29,6 +29,7 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
 | `internal/autostart` | "Iniciar com o sistema": LaunchAgent (macOS), chave `Run` do registro (Windows), `.desktop` (Linux); usado pela bandeja e com os mesmos artefatos da CLI npm. Não importa o Wails. |
 | `frontend/src` | Modal em React: `App.tsx`, `components/*` (ActionList, PreviewPane, Footer), `hooks/useImprove.ts`; `profile/ProfileWindow` (janela do perfil, `?view=profile`). |
 | `npm/` | Pacote npm (TypeScript): instalador do binário (`postinstall`/`install`) e CLI `prompt-improve` (start/stop/trigger/config/doctor/autostart). |
+| `site/` | Site de documentação (Astro + MDX + React + Tailwind + shadcn/ui, só tema escuro) publicado no GitHub Pages por `.github/workflows/docs.yml`. Páginas em `site/src/content/docs/**/*.mdx`; a ordem da barra lateral fica em `site/src/lib/site.ts` (`NAV`). |
 
 ## Comandos
 
@@ -38,6 +39,9 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
 - `go test ./...` — testes do backend.
 - `npm --prefix frontend test` — testes do frontend (Vitest).
 - `npm --prefix npm test` — testes do instalador/CLI npm (Vitest).
+- `npm --prefix site run dev` / `run build` / `run check` — site de documentação
+  (Astro). Mudanças visíveis ao usuário devem atualizar o `.mdx` correspondente
+  e o `CHANGELOG.md`.
 - **Linux**: `go build`/`go vet`/`go test` precisam de `-tags gtk3` (GTK3 +
   WebKit2GTK 4.1; o padrão do Wails beta.26 é GTK4/WebKitGTK 6.0, ausente
   no Ubuntu 22.04). Ex.: `go test -tags gtk3 ./...`. O `wails3 build` já

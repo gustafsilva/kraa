@@ -1,0 +1,17 @@
+---
+import { href as withBase } from "@/lib/site";
+interface Props { title: string; href: string; description: string }
+const { title, href, description } = Astro.props;
+const url = href.startsWith("/") ? withBase(href) : href;
+---
+<a
+  href={url}
+  data-slot="link-card"
+  class="group block rounded-xl border bg-card/40 p-4 no-underline transition-all hover:-translate-y-0.5 hover:border-foreground/20 hover:bg-card"
+>
+  <span class="flex items-center justify-between font-medium text-foreground">
+    {title}
+    <span class="text-muted-foreground transition-transform group-hover:translate-x-0.5">→</span>
+  </span>
+  <span class="mt-1 block text-sm leading-6 text-muted-foreground">{description}</span>
+</a>
