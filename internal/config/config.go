@@ -94,10 +94,7 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("config: YAML inválido em %s: %w", path, err)
 	}
 	cfg.applyDefaults()
-
-	if apiKey := os.Getenv(EnvAPIKey); apiKey != "" {
-		cfg.Provider.APIKey = apiKey
-	}
+	cfg.ApplyEnv()
 
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -117,6 +114,15 @@ func writeDefaultFile(path string) error {
 		return fmt.Errorf("config: não foi possível criar %s: %w", path, err)
 	}
 	return nil
+}
+
+// ApplyEnv applies environment overrides: PROMPT_IMPROVE_API_KEY, when set
+// and non-empty, replaces provider.api_key. Load calls it; callers that fall
+// back to Default() (e.g. when Load fails) must call it too.
+func (c *Config) ApplyEnv() {
+	if apiKey := os.Getenv(EnvAPIKey); apiKey != "" {
+		c.Provider.APIKey = apiKey
+	}
 }
 
 // applyDefaults fills zero-valued fields with their defaults.
@@ -155,6 +161,12 @@ func (c *Config) Validate() error {
 	}
 	if c.Provider.Model == "" {
 		return fmt.Errorf("config: model não pode ser vazio")
+	}
+	if c.Provider.TimeoutSeconds < 0 {
+		return fmt.Errorf("config: timeout_seconds não pode ser negativo (use 0 para o padrão de %d)", defaultTimeoutSeconds)
+	}
+	if c.MaxInputChars < 0 {
+		return fmt.Errorf("config: max_input_chars não pode ser negativo (use 0 para o padrão de %d)", defaultMaxInputChars)
 	}
 
 	seen := make(map[string]struct{}, len(c.Actions))

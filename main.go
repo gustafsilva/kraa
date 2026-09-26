@@ -129,6 +129,7 @@ func main() {
 	if cfgErr != nil {
 		log.Printf("config: %v", cfgErr)
 		cfg = config.Default()
+		cfg.ApplyEnv()
 	}
 
 	svc, host := app.New(app.Options{

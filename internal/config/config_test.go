@@ -417,3 +417,67 @@ func TestConfig_Action(t *testing.T) {
 		t.Error(`Action("does-not-exist") found, want not found`)
 	}
 }
+
+func TestValidate_NegativeTimeoutFails(t *testing.T) {
+	cfg := Default()
+	cfg.Provider.TimeoutSeconds = -1
+	err := cfg.Validate()
+	if err == nil || !strings.Contains(err.Error(), "timeout_seconds") {
+		t.Fatalf("Validate() = %v, want timeout_seconds error", err)
+	}
+}
+
+func TestValidate_NegativeMaxInputCharsFails(t *testing.T) {
+	cfg := Default()
+	cfg.MaxInputChars = -5
+	err := cfg.Validate()
+	if err == nil || !strings.Contains(err.Error(), "max_input_chars") {
+		t.Fatalf("Validate() = %v, want max_input_chars error", err)
+	}
+}
+
+func TestLoad_ZeroTimeoutAndMaxInputCharsKeepDefaults(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	yml := "provider:\n  base_url: http://x\n  model: m\n  timeout_seconds: 0\nmax_input_chars: 0\n"
+	if err := os.WriteFile(path, []byte(yml), 0o600); err != nil {
+		t.Fatalf("setup WriteFile: %v", err)
+	}
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Provider.TimeoutSeconds != defaultTimeoutSeconds || cfg.MaxInputChars != defaultMaxInputChars {
+		t.Fatalf("got timeout=%d max=%d, want defaults", cfg.Provider.TimeoutSeconds, cfg.MaxInputChars)
+	}
+}
+
+func TestLoad_NegativeTimeoutFails(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	yml := "provider:\n  base_url: http://x\n  model: m\n  timeout_seconds: -3\n"
+	if err := os.WriteFile(path, []byte(yml), 0o600); err != nil {
+		t.Fatalf("setup WriteFile: %v", err)
+	}
+	if _, err := Load(path); err == nil {
+		t.Fatal("Load() with negative timeout_seconds should fail")
+	}
+}
+
+func TestApplyEnv_OverridesAPIKeyWhenSet(t *testing.T) {
+	cfg := Default()
+	cfg.Provider.APIKey = "do-arquivo"
+	t.Setenv(EnvAPIKey, "from-env")
+	cfg.ApplyEnv()
+	if cfg.Provider.APIKey != "from-env" {
+		t.Fatalf("APIKey = %q, want from-env", cfg.Provider.APIKey)
+	}
+}
+
+func TestApplyEnv_KeepsAPIKeyWhenEnvEmpty(t *testing.T) {
+	cfg := Default()
+	cfg.Provider.APIKey = "do-arquivo"
+	t.Setenv(EnvAPIKey, "")
+	cfg.ApplyEnv()
+	if cfg.Provider.APIKey != "do-arquivo" {
+		t.Fatalf("APIKey = %q, want do-arquivo", cfg.Provider.APIKey)
+	}
+}
