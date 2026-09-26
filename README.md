@@ -51,10 +51,84 @@ sem precisar de `api_key`.
 
 ## Instalação rápida
 
-> Em breve: `npm i -g prompt-improve`
->
-> (pacote de instalação via npm ainda não publicado — ver Task 9 do plano em
-> `.superpowers/sdd/2026-09-25-prompt-improve/`.)
+Com Node.js 18+ (macOS, Windows e Linux):
+
+```bash
+npm i -g prompt-improve && prompt-improve start
+```
+
+O pacote npm é só um instalador: no `postinstall` ele baixa do GitHub Release
+o binário da mesma versão, confere o SHA-256 contra o `checksums.txt` e o
+instala em:
+
+| SO | Onde fica o app |
+|---|---|
+| macOS | `~/Applications/Prompt Improve.app` (binário universal arm64 + x64) |
+| Windows | `%LOCALAPPDATA%\prompt-improve\prompt-improve.exe` (x64) |
+| Linux | `~/.local/share/prompt-improve/prompt-improve` (x64 e arm64) |
+
+Se o download falhar (sem internet, por exemplo), o `npm i` não quebra: rode
+`prompt-improve install` depois. `PROMPT_IMPROVE_SKIP_DOWNLOAD=1` pula o
+download.
+
+Sem Node, use o script de instalação (mesmas regras e mesmos diretórios):
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/gustavofreitas/prompt-improve/main/scripts/install.sh | sh
+```
+
+```powershell
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/gustavofreitas/prompt-improve/main/scripts/install.ps1 | iex
+```
+
+Os scripts instalam o último release; para uma versão específica, defina
+`PROMPT_IMPROVE_VERSION` (ex.: `PROMPT_IMPROVE_VERSION=0.1.0`).
+
+### Comandos da CLI (`prompt-improve`)
+
+| Comando | O que faz |
+|---|---|
+| `prompt-improve start` | Inicia o app em segundo plano (ícone na bandeja) |
+| `prompt-improve stop` | Encerra o app |
+| `prompt-improve trigger` | Dispara a captura no app em execução (o mesmo que `--trigger`) |
+| `prompt-improve config` | Abre o `config.yaml` no editor |
+| `prompt-improve autostart on\|off` | Liga/desliga iniciar com o sistema |
+| `prompt-improve doctor` | Verifica o binário, a conexão com o LLM (`base_url`) e, no Linux, `xdotool`/Wayland |
+| `prompt-improve install` | Baixa de novo o binário desta versão |
+
+Se algo não funcionar, comece por:
+
+```bash
+prompt-improve doctor
+```
+
+Com o Ollama parado, o `doctor` mostra a dica `ollama serve`.
+
+### Permissão de Acessibilidade (macOS)
+
+Na primeira execução, o macOS pede a permissão de **Acessibilidade**
+(Ajustes do Sistema › Privacidade e Segurança › Acessibilidade) para o
+Prompt Improve simular Cmd+C/Cmd+V. Sem ela, só "Copiar" funciona. Quem
+verifica a permissão é o próprio app — o `doctor` apenas lembra disso.
+
+### Binários sem assinatura (Gatekeeper / SmartScreen)
+
+Os binários ainda **não são assinados**. Arquivos baixados pelo npm ou por
+`curl`/`Invoke-WebRequest` normalmente não recebem a marca de quarentena
+(macOS) nem o Mark-of-the-Web (Windows), então o Gatekeeper e o SmartScreen
+não costumam bloquear. Se bloquearem (por exemplo, se você baixou o asset
+pelo navegador):
+
+- **macOS**: remova a quarentena e abra de novo:
+
+  ```bash
+  xattr -dr com.apple.quarantine ~/Applications/"Prompt Improve.app"
+  ```
+
+- **Windows**: na tela do SmartScreen, clique em **"Mais informações" →
+  "Executar assim mesmo"**.
 
 ## Build a partir do código
 
@@ -217,7 +291,12 @@ wails3 build                        # build de produção
 wails3 generate bindings -ts        # regenera os bindings TS após mudar métodos Go
 go test ./...                       # testes do backend
 npm --prefix frontend test          # testes do frontend (Vitest)
+npm --prefix npm test               # testes do instalador/CLI npm (Vitest)
 ```
+
+Releases: empurrar uma tag `vX.Y.Z` igual à `version` de `npm/package.json`
+dispara `.github/workflows/release.yml`, que builda as 4 plataformas e publica
+o GitHub Release com os assets e o `checksums.txt`. O `npm publish` é manual.
 
 ### Mapa de pacotes
 

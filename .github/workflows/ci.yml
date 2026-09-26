@@ -129,3 +129,33 @@ jobs:
           name: prompt-improve-${{ matrix.os }}
           path: bin/
           if-no-files-found: error
+
+  npm:
+    name: Wrapper npm (testes + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: npm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: npm/package-lock.json
+
+      # --ignore-scripts: o `postinstall` do próprio pacote roda
+      # `node dist/install.js`, que ainda não existe antes do build (e nem
+      # deve baixar nada na CI).
+      - name: Instala dependências
+        run: npm ci --ignore-scripts
+
+      - name: Testes
+        run: npm test
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build

@@ -1,0 +1,33 @@
+{
+  "name": "prompt-improve",
+  "version": "0.0.1",
+  "description": "Instalador e CLI do Prompt Improve: app de bandeja que melhora o texto selecionado via LLM compatível com OpenAI.",
+  "repository": "github:gustavofreitas/prompt-improve",
+  "type": "commonjs",
+  "bin": {
+    "prompt-improve": "dist/cli.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "prepack": "npm run build",
+    "postinstall": "node dist/install.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  }
+}
