@@ -48,7 +48,8 @@ export function GetState(): $CancellablePromise<$models.State> {
 /**
  * Replace pastes text into the source app (hides the window, returns focus,
  * then pastes and restores the clipboard). Fails when automatic paste is not
- * available in this session.
+ * available in this session. When the paste itself fails, the window is
+ * shown again and text is left on the clipboard for a manual paste.
  */
 export function Replace(text: string): $CancellablePromise<void> {
     return $Call.ByID(1682521732, text);
