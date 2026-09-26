@@ -1,10 +1,10 @@
 # Instalador do Prompt Improve para Windows (sem Node).
 #
-#   irm https://raw.githubusercontent.com/gustavofreitas/prompt-improve/main/scripts/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.ps1 | iex
 #
 # Variáveis de ambiente:
 #   PROMPT_IMPROVE_VERSION  versão a instalar (ex.: 0.1.0); padrão: o último release
-#   PROMPT_IMPROVE_REPO     repositório "dono/repo" no GitHub; padrão: gustavofreitas/prompt-improve
+#   PROMPT_IMPROVE_REPO     repositório "dono/repo" no GitHub; padrão: gustafsilva/prompt-improve-beta
 #
 # Mesmas regras do instalador npm (npm/src/install.ts): nome do asset,
 # conferência do SHA-256 contra o checksums.txt e diretório de instalação.
@@ -17,7 +17,7 @@
     $ProgressPreference = 'SilentlyContinue' # o progresso deixa o Invoke-WebRequest muito lento no 5.1
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
-    $repo = if ($env:PROMPT_IMPROVE_REPO) { $env:PROMPT_IMPROVE_REPO } else { 'gustavofreitas/prompt-improve' }
+    $repo = if ($env:PROMPT_IMPROVE_REPO) { $env:PROMPT_IMPROVE_REPO } else { 'gustafsilva/prompt-improve-beta' }
     $version = if ($env:PROMPT_IMPROVE_VERSION) { $env:PROMPT_IMPROVE_VERSION.TrimStart('v') } else { '' }
 
     # PROCESSOR_ARCHITEW6432 aparece quando o PowerShell é 32 bits num Windows 64 bits.

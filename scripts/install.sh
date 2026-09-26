@@ -1,17 +1,17 @@
 #!/bin/sh
 # Instalador do Prompt Improve para macOS e Linux (sem Node).
 #
-#   curl -fsSL https://raw.githubusercontent.com/gustavofreitas/prompt-improve/main/scripts/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.sh | sh
 #
 # Variáveis de ambiente:
 #   PROMPT_IMPROVE_VERSION  versão a instalar (ex.: 0.1.0); padrão: o último release
-#   PROMPT_IMPROVE_REPO     repositório "dono/repo" no GitHub; padrão: gustavofreitas/prompt-improve
+#   PROMPT_IMPROVE_REPO     repositório "dono/repo" no GitHub; padrão: gustafsilva/prompt-improve-beta
 #
 # Mesmas regras do instalador npm (npm/src/install.ts): nome do asset,
 # conferência do SHA-256 contra o checksums.txt e diretório de instalação.
 set -eu
 
-REPO="${PROMPT_IMPROVE_REPO:-gustavofreitas/prompt-improve}"
+REPO="${PROMPT_IMPROVE_REPO:-gustafsilva/prompt-improve-beta}"
 VERSION="${PROMPT_IMPROVE_VERSION:-}"
 VERSION="${VERSION#v}"
 

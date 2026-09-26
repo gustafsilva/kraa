@@ -80,12 +80,12 @@ Sem Node, use o script de instalação (mesmas regras e mesmos diretórios):
 
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/gustavofreitas/prompt-improve/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.sh | sh
 ```
 
 ```powershell
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/gustavofreitas/prompt-improve/main/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.ps1 | iex
 ```
 
 Os scripts instalam o último release; para uma versão específica, defina

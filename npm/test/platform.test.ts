@@ -114,8 +114,8 @@ describe("configDir / configPath (mesmas regras do os.UserConfigDir do Go)", () 
 
 describe("repo e URLs", () => {
   it("usa o repository do package.json por padrão", () => {
-    expect(resolveRepo({}, "github:gustavofreitas/prompt-improve")).toBe(
-      "gustavofreitas/prompt-improve",
+    expect(resolveRepo({}, "github:gustafsilva/prompt-improve-beta")).toBe(
+      "gustafsilva/prompt-improve-beta",
     );
     expect(
       resolveRepo({}, { type: "git", url: "git+https://github.com/o/r.git" }),
@@ -124,7 +124,7 @@ describe("repo e URLs", () => {
 
   it("PROMPT_IMPROVE_REPO sobrescreve", () => {
     expect(
-      resolveRepo({ PROMPT_IMPROVE_REPO: "fork/pi" }, "github:gustavofreitas/prompt-improve"),
+      resolveRepo({ PROMPT_IMPROVE_REPO: "fork/pi" }, "github:gustafsilva/prompt-improve-beta"),
     ).toBe("fork/pi");
   });
 

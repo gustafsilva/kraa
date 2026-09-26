@@ -8,7 +8,7 @@ export type Env = Record<string, string | undefined>;
 export const APP_ID = "dev.matrixia.prompt-improve";
 export const APP_NAME = "Prompt Improve";
 export const BIN_NAME = "prompt-improve";
-export const DEFAULT_REPO = "gustavofreitas/prompt-improve";
+export const DEFAULT_REPO = "gustafsilva/prompt-improve-beta";
 
 /** path.win32 no Windows e path.posix nos demais, independente do SO do host. */
 export function pathFor(platform: NodeJS.Platform): path.PlatformPath {

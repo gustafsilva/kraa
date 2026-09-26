@@ -2,7 +2,7 @@
   "name": "prompt-improve",
   "version": "0.0.1",
   "description": "Instalador e CLI do Prompt Improve: app de bandeja que melhora o texto selecionado via LLM compatível com OpenAI.",
-  "repository": "github:gustavofreitas/prompt-improve",
+  "repository": "github:gustafsilva/prompt-improve-beta",
   "type": "commonjs",
   "bin": {
     "prompt-improve": "dist/cli.js"
