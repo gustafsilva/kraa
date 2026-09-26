@@ -303,7 +303,9 @@ func main() {
 
 	wailsApp.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(*application.ApplicationEvent) {
 		mu.Lock()
-		if !wailsApp.GlobalShortcut.IsRegistered(currentHotkey) {
+		// Covers both a parse error in Register above and an OS rejection.
+		hotkeyFailed := !wailsApp.GlobalShortcut.IsRegistered(currentHotkey)
+		if hotkeyFailed {
 			log.Printf("atalho: %s não registrado pelo SO", currentHotkey)
 			host.SetHotkeyWarning(hotkeyWarning(currentHotkey))
 		}
@@ -314,7 +316,9 @@ func main() {
 		case pending == 2 || slices.Contains(os.Args[1:], triggerArg):
 			// Launched (or re-launched early) via the --trigger shortcut.
 			go onHotkey()
-		case pending == 1 || cfgErr != nil:
+		case pending == 1 || cfgErr != nil || hotkeyFailed:
+			// Without a working hotkey the user would never see the
+			// warning, so surface the window with it.
 			host.ShowWindow()
 		}
 	})

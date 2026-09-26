@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -119,6 +120,7 @@ type fakeKeys struct {
 	rec       *recorder
 	cb        *fakeClipboard
 	selection string // what the "source app" copies on Copy(); "" = nothing selected
+	pasteErr  error  // returned by Paste() when set
 }
 
 func (k *fakeKeys) Copy() error {
@@ -132,7 +134,7 @@ func (k *fakeKeys) Copy() error {
 func (k *fakeKeys) Paste() error {
 	txt, _ := k.cb.Text()
 	k.rec.add("paste:" + txt)
-	return nil
+	return k.pasteErr
 }
 
 type fakeWindow struct {
@@ -416,6 +418,24 @@ func TestReplaceHidesWindowThenPastesAndRestoresClipboard(t *testing.T) {
 	}
 }
 
+func TestReplacePasteFailureReshowsWindowAndLeavesResultOnClipboard(t *testing.T) {
+	h := newHarness(t, fakeRunner{}, canSimulate)
+	h.cb.SetText("original")
+	h.keys.pasteErr = errors.New("xdotool falhou")
+
+	err := h.svc.Replace("resultado")
+	if err == nil || !strings.Contains(err.Error(), "Não foi possível colar") {
+		t.Fatalf("Replace error = %v, want PT-BR paste error", err)
+	}
+	log := h.rec.snapshot()
+	if len(log) == 0 || log[len(log)-1] != "show" {
+		t.Fatalf("side effects = %v, want window re-shown last", log)
+	}
+	if txt, _ := h.cb.Text(); txt != "resultado" {
+		t.Fatalf("clipboard = %q, want the result left for manual paste", txt)
+	}
+}
+
 func TestReplaceEmptyTextFails(t *testing.T) {
 	h := newHarness(t, fakeRunner{}, canSimulate)
 	if err := h.svc.Replace("   "); err == nil {
@@ -609,6 +629,28 @@ func TestSetSessionUpdatesCanReplace(t *testing.T) {
 	}
 	if st := h.svc.GetState(); st.CanReplace || st.Warning != "sem permissão" {
 		t.Fatalf("state = %+v", st)
+	}
+}
+
+func stateEventCount(em *fakeEmitter) int {
+	n := 0
+	for _, ev := range em.snapshot() {
+		if ev.name == EventState {
+			n++
+		}
+	}
+	return n
+}
+
+func TestSetSessionEmitsStateOnlyWhenSessionChanges(t *testing.T) {
+	h := newHarness(t, fakeRunner{}, canSimulate)
+	h.host.SetSession(canSimulate)
+	if n := stateEventCount(h.em); n != 0 {
+		t.Fatalf("state events = %d, want 0 for an unchanged session", n)
+	}
+	h.host.SetSession(platform.Session{CanSimulateKeys: false, Reason: "sem permissão"})
+	if n := stateEventCount(h.em); n != 1 {
+		t.Fatalf("state events = %d, want 1 after a change", n)
 	}
 }
 

@@ -234,7 +234,8 @@ func (s *ImproveService) Cancel(id string) {
 
 // Replace pastes text into the source app (hides the window, returns focus,
 // then pastes and restores the clipboard). Fails when automatic paste is not
-// available in this session.
+// available in this session. When the paste itself fails, the window is
+// shown again and text is left on the clipboard for a manual paste.
 func (s *ImproveService) Replace(text string) error {
 	s.mu.Lock()
 	can, reason := s.session.CanSimulateKeys, s.session.Reason
@@ -257,7 +258,12 @@ func (s *ImproveService) Replace(text string) error {
 	s.win.ReleaseFocus()
 	s.sleep(s.focusDelay)
 	if err := platform.Paste(s.cb, s.ks, text, s.pasteSettle); err != nil {
-		return fmt.Errorf("Não foi possível colar o texto: %w", err)
+		// The window is hidden at this point; bring it back so the error
+		// is visible, and leave the result on the clipboard so it isn't
+		// lost (Paste restored the previous clipboard on failure).
+		s.cb.SetText(text)
+		s.win.Show()
+		return fmt.Errorf("Não foi possível colar o texto: %w. O resultado foi copiado para a área de transferência; cole manualmente.", err)
 	}
 	return nil
 }
@@ -446,10 +452,15 @@ func (h *Host) Configure(cfg *config.Config, runner Runner) {
 }
 
 // SetSession updates key-simulation capability (canReplace + warning).
+// It runs on every hotkey press, so state:changed is only emitted when the
+// session actually changed.
 func (h *Host) SetSession(sess platform.Session) {
 	s := h.s
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.session == sess {
+		return
+	}
 	s.session = sess
 	s.emitStateLocked()
 }
