@@ -1,0 +1,77 @@
+---
+title: O arquivo config.yaml
+description: Onde fica a configuração, como editá-la e a referência de todas as chaves.
+---
+import Callout from "@/components/mdx/Callout";
+
+O arquivo é criado automaticamente, com comentários, na primeira execução, em
+`os.UserConfigDir()/prompt-improve/config.yaml`:
+
+| SO | Caminho |
+|---|---|
+| macOS | `~/Library/Application Support/prompt-improve/config.yaml` |
+| Windows | `%AppData%\prompt-improve\config.yaml` |
+| Linux | `~/.config/prompt-improve/config.yaml` (ou `$XDG_CONFIG_HOME`) |
+
+Para abrir: **Editar configuração** na bandeja ou `prompt-improve config`. Depois de salvar, use
+**Recarregar configuração** na bandeja: não é preciso reiniciar.
+
+<Callout type="note">
+  O arquivo é criado com permissão `0600`, porque pode conter uma chave de API.
+</Callout>
+
+## Referência
+
+| Chave | Tipo | Padrão | Descrição |
+|---|---|---|---|
+| `hotkey` | string | `"CmdOrCtrl+Shift+Y"` | Atalho global que abre o modal. |
+| `provider.base_url` | string | `"http://localhost:11434/v1"` | Endpoint compatível com a API OpenAI. **Obrigatório.** |
+| `provider.api_key` | string | `""` | Chave de API. A variável `PROMPT_IMPROVE_API_KEY` tem precedência. |
+| `provider.model` | string | `"llama3.2"` | Modelo usado. **Obrigatório.** Também muda pelo seletor do modal. |
+| `provider.timeout_seconds` | inteiro | `60` | Tempo máximo de uma requisição. `0` usa o padrão. |
+| `max_input_chars` | inteiro | `20000` | Tamanho máximo do texto aceito. `0` usa o padrão. |
+| `actions` | lista | 8 ações | Ações do modal. Veja [Ações customizadas](/docs/configuracao/acoes-customizadas/). |
+
+Chaves omitidas voltam ao valor padrão. Se `actions` for omitida ou vazia, as 8 ações padrão
+voltam.
+
+## Arquivo padrão
+
+```yaml
+hotkey: "CmdOrCtrl+Shift+Y"
+
+provider:
+  base_url: "http://localhost:11434/v1"
+  api_key: ""
+  model: "llama3.2"
+  timeout_seconds: 60
+
+max_input_chars: 20000
+
+actions:
+  - id: improve-prompt
+    category: Prompt
+    label: Melhorar prompt
+    instruction: >-
+      Reescreva o prompt a seguir para um LLM: deixe claro objetivo,
+      contexto, restrições e formato de saída. Responda apenas com o
+      prompt reescrito.
+  # ...mais 7 ações padrão
+```
+
+## Validação
+
+Ao carregar, o app recusa a configuração e mostra o erro no modal quando:
+
+- `base_url` ou `model` está vazio;
+- `timeout_seconds` ou `max_input_chars` é negativo;
+- uma ação não tem `id`, `label` ou `instruction`, ou repete um `id`.
+
+## Variável de ambiente `PROMPT_IMPROVE_API_KEY`
+
+Se definida e não vazia, substitui `provider.api_key` depois do carregamento. Ela **nunca** é
+gravada no arquivo, o que evita deixar a chave em texto plano.
+
+```bash
+export PROMPT_IMPROVE_API_KEY="sua-chave-aqui"
+```

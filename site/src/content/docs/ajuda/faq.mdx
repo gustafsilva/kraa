@@ -1,0 +1,58 @@
+---
+title: FAQ
+description: Perguntas frequentes sobre o Prompt Improve.
+---
+
+<details>
+<summary>Preciso pagar por algum serviço?</summary>
+
+Não. O padrão é o Ollama local, gratuito. Pagar só faz sentido se você escolher um provider
+remoto, como a OpenAI.
+</details>
+
+<details>
+<summary>Meu texto é enviado para a internet?</summary>
+
+Com a configuração padrão, não: tudo roda em `localhost`. Veja
+[Privacidade](/docs/plataformas/privacidade/).
+</details>
+
+<details>
+<summary>Funciona com o ChatGPT/Claude/Gemini?</summary>
+
+Funciona com qualquer endpoint compatível com a API Chat Completions da OpenAI. A API da OpenAI é
+compatível; para outros serviços, use o endpoint compatível com OpenAI que eles oferecem ou um
+gateway como o OpenRouter. Veja [Providers](/docs/configuracao/providers/).
+</details>
+
+<details>
+<summary>Em que idioma o resultado vem?</summary>
+
+No mesmo idioma do texto original, a não ser que a instrução peça outro (como a ação "Traduzir
+para inglês").
+</details>
+
+<details>
+<summary>Posso mudar o atalho?</summary>
+
+Sim, pela chave `hotkey` do [config.yaml](/docs/configuracao/arquivo/).
+</details>
+
+<details>
+<summary>Como inicio o app junto com o sistema?</summary>
+
+Marque **Iniciar com o sistema** na bandeja ou rode `prompt-improve autostart on`.
+</details>
+
+<details>
+<summary>Por que o app pede permissão de Acessibilidade no macOS?</summary>
+
+Para simular Copiar e Colar no app de origem. Sem ela, só "Copiar" funciona. Veja
+[macOS](/docs/plataformas/macos/).
+</details>
+
+<details>
+<summary>Os binários são assinados?</summary>
+
+Ainda não. Veja [Binários sem assinatura](/docs/instalacao/binarios-sem-assinatura/).
+</details>

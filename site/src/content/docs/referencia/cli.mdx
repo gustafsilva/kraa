@@ -1,0 +1,91 @@
+---
+title: CLI prompt-improve
+description: Referência dos comandos instalados pelo pacote npm.
+---
+import Callout from "@/components/mdx/Callout";
+
+```text
+Uso: prompt-improve <comando>
+```
+
+| Comando | O que faz |
+|---|---|
+| [`start`](#start) | Inicia o app em segundo plano (ícone na bandeja) |
+| [`stop`](#stop) | Encerra o app |
+| [`trigger`](#trigger) | Dispara a captura no app em execução |
+| [`config`](#config) | Abre o `config.yaml` no editor |
+| [`autostart on\|off`](#autostart) | Liga/desliga o início com o sistema |
+| [`doctor`](#doctor) | Diagnostica a instalação e a conexão com o LLM |
+| [`install`](#install) | Baixa de novo o binário desta versão |
+| `help`, `-h`, `--help` | Mostra a ajuda |
+| `version`, `-v`, `--version` | Mostra a versão |
+
+**Códigos de saída:** `0` sucesso · `1` falha · `2` uso incorreto (comando desconhecido ou
+argumento inválido).
+
+## start
+
+Inicia o app desanexado do terminal. Se o binário ainda não estiver instalado, baixa antes. No
+macOS usa `open -a`.
+
+## stop
+
+Encerra o app (`osascript` no macOS, `taskkill` no Windows, `pkill` no Linux). Sai com `1` se
+o app não estiver rodando.
+
+## trigger
+
+Faz a instância em execução capturar a seleção e abrir o modal, como o atalho global. É o mesmo
+que rodar o binário com `--trigger`, e é a forma de ter um atalho no **Wayland**
+(veja [Linux](/docs/plataformas/linux/#wayland)).
+
+## config
+
+Mostra o caminho do `config.yaml` e o abre no editor padrão (`open -t`, `notepad` ou
+`xdg-open`). O arquivo só existe depois da primeira execução do app.
+
+## autostart
+
+```bash
+prompt-improve autostart on
+prompt-improve autostart off
+```
+
+Cria ou remove os mesmos artefatos usados pelo item **Iniciar com o sistema** da bandeja:
+
+| SO | Artefato |
+|---|---|
+| macOS | `~/Library/LaunchAgents/dev.matrixia.prompt-improve.plist` |
+| Windows | valor `PromptImprove` em `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
+| Linux | `~/.config/autostart/prompt-improve.desktop` |
+
+## doctor
+
+Verifica, em ordem:
+
+1. se o binário está instalado;
+2. se o `config.yaml` existe (e lê o `base_url`);
+3. se o provider responde em `{base_url}/models`;
+4. no Linux, se o `xdotool` existe e se a sessão é X11 ou Wayland.
+
+```text
+Prompt Improve — diagnóstico
+
+[ok] Binário instalado: ~/.local/share/prompt-improve/prompt-improve
+[ok] Configuração: ~/.config/prompt-improve/config.yaml
+[erro] Não foi possível conectar em http://localhost:11434/v1/models (connect ECONNREFUSED).
+       Se estiver usando o Ollama local, inicie o servidor com: ollama serve
+[ok] xdotool encontrado.
+[ok] Sessão X11.
+```
+
+Sai com `1` se algum item crítico falhar.
+
+<Callout type="note">
+  A permissão de Acessibilidade do macOS é verificada pelo próprio app, não pelo `doctor`.
+</Callout>
+
+## install
+
+Baixa o binário da mesma versão do pacote npm, confere o SHA-256 e o instala. Use quando o
+download do `npm i` falhou ou para reinstalar.

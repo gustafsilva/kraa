@@ -1,0 +1,73 @@
+---
+title: Primeiros passos
+description: Do zero à primeira melhoria de texto em cerca de cinco minutos.
+---
+import Steps from "@/components/mdx/Steps.astro";
+import Callout from "@/components/mdx/Callout";
+import Kbd from "@/components/mdx/Kbd";
+
+<Steps>
+
+1. **Instale e inicie o Ollama**
+
+   Baixe em [ollama.com/download](https://ollama.com/download) e baixe o modelo padrão:
+
+   ```bash
+   ollama pull llama3.2
+   ollama serve
+   ```
+
+2. **Instale o Prompt Improve**
+
+   Com Node.js 18+:
+
+   ```bash
+   npm i -g prompt-improve && prompt-improve start
+   ```
+
+   Sem Node, use o [script de instalação](/docs/instalacao/script/). O ícone aparece na bandeja
+   do sistema.
+
+3. **Confira se está tudo certo**
+
+   ```bash
+   prompt-improve doctor
+   ```
+
+   O diagnóstico verifica o binário, a configuração, a conexão com o LLM e, no Linux, o
+   `xdotool` e a sessão (X11/Wayland).
+
+4. **Selecione um texto e aperte o atalho**
+
+   Em qualquer app, selecione um texto e aperte <Kbd keys={["⌘", "⇧", "Y"]} /> no macOS ou
+   <Kbd keys={["Ctrl", "Shift", "Y"]} /> no Windows e Linux. O modal abre com o texto capturado.
+
+5. **Escolha uma ação**
+
+   Navegue com as setas e aperte <Kbd keys={["Enter"]} />, ou digite uma instrução livre. O
+   resultado aparece em stream.
+
+6. **Substitua ou copie**
+
+   <Kbd keys={["⌘/Ctrl", "Enter"]} /> cola o resultado no lugar da seleção original.
+   <Kbd keys={["⌘/Ctrl", "Shift", "C"]} /> só copia. <Kbd keys={["Esc"]} /> fecha e cancela o
+   stream.
+
+</Steps>
+
+<Callout type="warning" title="macOS: permissão de Acessibilidade">
+  Na primeira execução o macOS pede a permissão de **Acessibilidade** para simular
+  <Kbd keys={["⌘", "C"]} /> e <Kbd keys={["⌘", "V"]} />. Sem ela, só "Copiar" funciona.
+  Veja [macOS](/docs/plataformas/macos/).
+</Callout>
+
+## Sem seleção
+
+Se nada estiver selecionado, o modal abre vazio e editável: cole ou digite no campo **Texto a
+melhorar** e escolha uma ação normalmente.
+
+## Próximos passos
+
+- Troque o modelo pelo [seletor de modelo](/docs/uso/seletor-de-modelo/).
+- Crie suas próprias [ações customizadas](/docs/configuracao/acoes-customizadas/).
+- Ligue o início automático com `prompt-improve autostart on` ou pela bandeja.

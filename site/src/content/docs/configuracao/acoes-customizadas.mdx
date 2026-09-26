@@ -1,0 +1,55 @@
+---
+title: Ações customizadas
+description: Crie ações próprias no modal com a sua instrução para o LLM.
+---
+import Callout from "@/components/mdx/Callout";
+
+Cada ação é um item da lista `actions` do [config.yaml](/docs/configuracao/arquivo/):
+
+| Campo | Obrigatório | Descrição |
+|---|---|---|
+| `id` | sim | Identificador único da ação. |
+| `label` | sim | Nome exibido no modal. |
+| `instruction` | sim | Instrução enviada ao LLM junto com o texto selecionado. |
+| `category` | não | Grupo em que a ação aparece (por exemplo, `Prompt` ou `Mensagem`). |
+
+## Exemplo
+
+```yaml
+actions:
+  # ...ações padrão...
+  - id: bullet-points
+    category: Mensagem
+    label: Transformar em tópicos
+    instruction: >-
+      Reescreva o texto a seguir como uma lista de tópicos curtos e
+      objetivos, preservando as informações essenciais. Responda apenas
+      com a lista.
+```
+
+Salve e use **Recarregar configuração** na bandeja.
+
+<Callout type="warning" title="Mantenha as ações padrão">
+  Se você definir `actions`, a lista substitui as ações padrão. Para manter as 8 originais,
+  deixe-as no arquivo (elas vêm no arquivo gerado na primeira execução) e acrescente as suas no
+  final.
+</Callout>
+
+## Ações padrão
+
+| id | Categoria | Rótulo |
+|---|---|---|
+| `improve-prompt` | Prompt | Melhorar prompt |
+| `add-context` | Prompt | Adicionar contexto |
+| `more-specific` | Prompt | Mais específico |
+| `formal` | Mensagem | Mais formal |
+| `casual` | Mensagem | Mais casual |
+| `shorter` | Mensagem | Mais curto |
+| `fix-grammar` | Mensagem | Corrigir gramática |
+| `to-english` | Mensagem | Traduzir para inglês |
+
+## Dicas para boas instruções
+
+- Diga **o que fazer** e **o que preservar** (significado, tom, formatação).
+- Termine com "Responda apenas com o texto reescrito." para evitar comentários extras do modelo.
+- Para uso pontual, prefira o campo de **instrução livre** do modal em vez de criar uma ação.

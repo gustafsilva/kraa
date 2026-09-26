@@ -1,0 +1,21 @@
+---
+title: Seletor de modelo
+description: Troque o modelo do LLM direto no topo do modal.
+---
+import Callout from "@/components/mdx/Callout";
+
+No topo do modal há um seletor com os modelos disponíveis no provider configurado (no Ollama,
+os modelos instalados com `ollama pull`).
+
+- A troca grava `provider.model` no [config.yaml](/docs/configuracao/arquivo/) **sem alterar o
+  resto do arquivo** (comentários e ações continuam intactos).
+- O novo modelo vale a partir da **próxima** melhoria.
+- Durante um stream, o seletor fica desabilitado.
+
+<Callout type="note" title="Provider fora do ar">
+  Se a lista não puder ser carregada (por exemplo, com o Ollama parado), o seletor mostra só o
+  modelo atual e o erro, com a dica `ollama serve`.
+</Callout>
+
+A lista vem do endpoint `GET {base_url}/models` do provider. Em providers que não expõem essa
+rota, defina o modelo manualmente em `provider.model`.

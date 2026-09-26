@@ -1,0 +1,56 @@
+---
+title: Ollama
+description: Instale o Ollama e baixe um modelo para usar o Prompt Improve 100% local.
+---
+import Callout from "@/components/mdx/Callout";
+
+O Prompt Improve vem configurado para o [Ollama](https://ollama.com) local em
+`http://localhost:11434/v1`, sem `api_key`. É a opção recomendada: rápida, gratuita e sem enviar
+o seu texto para a internet.
+
+## Instalar
+
+Baixe o instalador para o seu sistema em [ollama.com/download](https://ollama.com/download) e,
+depois, baixe o modelo padrão:
+
+```bash
+ollama pull llama3.2
+```
+
+## Manter o servidor rodando
+
+O app do Ollama no macOS e no Windows já sobe o servidor em segundo plano. No Linux, ou se ele
+estiver parado:
+
+```bash
+ollama serve
+```
+
+Confira com:
+
+```bash
+prompt-improve doctor
+# [ok] Provider respondeu em http://localhost:11434/v1/models
+```
+
+<Callout type="note" title="Ollama parado">
+  O modal mostra uma mensagem de erro legível com a dica `ollama serve`, e o seletor de modelo
+  exibe só o modelo configurado.
+</Callout>
+
+## Escolher outro modelo
+
+Qualquer modelo instalado no Ollama aparece no [seletor de modelo](/docs/uso/seletor-de-modelo/)
+no topo do modal. Para instalar mais modelos:
+
+```bash
+ollama pull qwen2.5:7b
+ollama list
+```
+
+Modelos maiores costumam reescrever melhor, mas respondem mais devagar. Para correções e
+mudanças de tom, modelos de 3B a 8B parâmetros costumam bastar.
+
+## Sem GPU ou sem espaço?
+
+Use o [Ollama Cloud ou a OpenAI](/docs/configuracao/providers/) no lugar do servidor local.

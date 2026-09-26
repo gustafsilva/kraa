@@ -1,0 +1,52 @@
+---
+import Logo from "./Logo.astro";
+import GithubIcon from "./GithubIcon.astro";
+import { href, REPO_URL } from "@/lib/site";
+import { buttonVariants } from "@/components/ui/button";
+
+interface Props { docs?: boolean }
+const { docs = false } = Astro.props;
+const path = Astro.url.pathname;
+const links = [
+  { label: "Documentação", to: "/docs/introducao/", active: path.includes("/docs/") && !path.includes("/docs/contribuir/") },
+  { label: "Instalação", to: "/docs/instalacao/npm/", active: false },
+  { label: "Contribuir", to: "/docs/contribuir/ambiente/", active: path.includes("/docs/contribuir/") },
+];
+---
+<header class="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/55">
+  <div class:list={["mx-auto flex h-14 items-center gap-6 px-4 sm:px-6", docs ? "max-w-[90rem]" : "max-w-6xl"]}>
+    {docs && (
+      <button
+        type="button"
+        data-sidebar-toggle
+        aria-label="Abrir navegação"
+        aria-controls="docs-sidebar"
+        aria-expanded="false"
+        class={buttonVariants({ variant: "ghost", size: "icon-sm", className: "-ml-1.5 lg:hidden" })}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="size-4"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+      </button>
+    )}
+    <Logo />
+    <nav class="hidden items-center gap-1 text-sm md:flex">
+      {links.map((l) => (
+        <a
+          href={href(l.to)}
+          class:list={[
+            "rounded-md px-2.5 py-1.5 transition-colors hover:text-foreground",
+            l.active ? "text-foreground" : "text-muted-foreground",
+          ]}
+        >{l.label}</a>
+      ))}
+    </nav>
+    <div class="ml-auto flex items-center gap-1.5">
+      <a href={REPO_URL} target="_blank" rel="noreferrer" class={buttonVariants({ variant: "ghost", size: "sm", className: "text-muted-foreground" })}>
+        <GithubIcon class="size-4" />
+        <span class="hidden sm:inline">GitHub</span>
+      </a>
+      <a href={href("/docs/instalacao/npm/")} class={buttonVariants({ size: "sm" })}>
+        Instalar
+      </a>
+    </div>
+  </div>
+</header>

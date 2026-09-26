@@ -1,0 +1,35 @@
+---
+title: macOS
+description: Permissão de Acessibilidade, instalação e limitações no macOS.
+---
+import Callout from "@/components/mdx/Callout";
+import Kbd from "@/components/mdx/Kbd";
+
+## Permissão de Acessibilidade
+
+Para capturar a seleção e colar o resultado, o app simula <Kbd keys={["⌘", "C"]} /> e
+<Kbd keys={["⌘", "V"]} /> no app de origem. Isso exige a permissão de **Acessibilidade**:
+
+**Ajustes do Sistema › Privacidade e Segurança › Acessibilidade** → ative **Prompt Improve**.
+
+Sem ela, o modal mostra um aviso, o botão **Substituir** some e só **Copiar** funciona. Você
+ainda pode colar o texto no campo "Texto a melhorar".
+
+<Callout type="tip" title="Atualizou e parou de colar?">
+  Uma nova versão do binário pode exigir conceder a permissão de novo: remova o item da lista,
+  adicione-o outra vez e reinicie o app.
+</Callout>
+
+## Onde ficam os arquivos
+
+| O quê | Caminho |
+|---|---|
+| App | `~/Applications/Prompt Improve.app` (universal) |
+| Configuração | `~/Library/Application Support/prompt-improve/config.yaml` |
+| Início automático | `~/Library/LaunchAgents/dev.matrixia.prompt-improve.plist` |
+
+## Limitações
+
+- As teclas simuladas usam os keycodes ANSI (`kVK_ANSI_C`/`kVK_ANSI_V`). Em layouts que não são
+  ANSI, a tecla física pode não corresponder a <Kbd keys={["⌘", "C"]} />/<Kbd keys={["⌘", "V"]} />.
+- O binário não é notarizado: veja [Binários sem assinatura](/docs/instalacao/binarios-sem-assinatura/).

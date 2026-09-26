@@ -1,0 +1,24 @@
+---
+title: Windows
+description: Instalação e comportamento no Windows.
+---
+import Callout from "@/components/mdx/Callout";
+
+Nenhuma permissão especial é necessária: a simulação de teclas usa `SendInput`, que funciona sem
+elevação. A janela do modal não aparece na barra de tarefas.
+
+## Onde ficam os arquivos
+
+| O quê | Caminho |
+|---|---|
+| App | `%LOCALAPPDATA%\prompt-improve\prompt-improve.exe` |
+| Configuração | `%AppData%\prompt-improve\config.yaml` |
+| Início automático | valor `PromptImprove` em `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
+
+<Callout type="warning" title="Apps executados como administrador">
+  Por causa do UIPI, um processo sem elevação não envia teclas para janelas elevadas. Colar em um
+  app aberto "como administrador" falha com um erro: use **Copiar** nesse caso.
+</Callout>
+
+Se o SmartScreen bloquear o executável, veja
+[Binários sem assinatura](/docs/instalacao/binarios-sem-assinatura/).

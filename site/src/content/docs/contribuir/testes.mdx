@@ -1,0 +1,62 @@
+---
+title: Testes
+description: Testes automatizados, CI e o checklist manual por sistema operacional.
+---
+import Callout from "@/components/mdx/Callout";
+
+## Automatizados
+
+```bash
+go test ./...                  # backend (Linux: go test -tags gtk3 ./...)
+npm --prefix frontend test     # modal (Vitest + Testing Library)
+npm --prefix npm test          # instalador e CLI (Vitest)
+npm --prefix npm run typecheck
+```
+
+O projeto segue **TDD**: escreva o teste, veja falhar, implemente e veja passar. Código
+específico de SO fica atrás de interfaces (`Clipboard`, `KeySender`) para ser testado com fakes.
+
+## CI
+
+O workflow `.github/workflows/ci.yml` roda em todo push e PR:
+
+| Job | O que verifica |
+|---|---|
+| Lint | `gofmt` e `go vet -tags gtk3` |
+| Build e testes | `go test` (com `-race` no macOS e Linux), testes do frontend e `wails3 build` em macOS, Windows e Ubuntu |
+| Wrapper npm | testes, typecheck e build do pacote npm |
+
+O workflow `docs.yml` builda e publica este site no GitHub Pages.
+
+## Checklist manual
+
+Antes de um PR que toque captura, colagem, atalho ou janela, confira nos SOs afetados:
+
+**macOS** (com Ollama rodando)
+
+- [ ] Selecionar texto em outro app e apertar o atalho: o modal abre com o texto capturado.
+- [ ] Escolher uma ação: o preview aparece em stream.
+- [ ] `⌘Enter` substitui o texto no app de origem e a área de transferência volta ao valor anterior.
+- [ ] Sem permissão de Acessibilidade: aviso no modal, "Substituir" some, só "Copiar" funciona.
+- [ ] Sem seleção: o modal abre vazio e editável.
+- [ ] `Esc` durante o stream fecha sem erro no log.
+
+**Windows**
+
+- [ ] Mesmo checklist do macOS com `Ctrl`.
+- [ ] A janela não aparece na barra de tarefas.
+
+**Ubuntu**
+
+- [ ] X11 com `xdotool`: mesmo checklist do macOS.
+- [ ] X11 sem `xdotool`: aviso claro, só "Copiar".
+- [ ] Wayland: `prompt-improve --trigger` como atalho do GNOME; só "Copiar".
+
+**Todos**
+
+- [ ] Seletor de modelo lista os modelos, grava `provider.model` sem alterar o resto do arquivo.
+- [ ] Ollama parado: mensagem legível com `ollama serve` (nunca um stack trace).
+
+<Callout type="tip">
+  Descreva no PR em quais SOs o checklist foi feito.
+</Callout>

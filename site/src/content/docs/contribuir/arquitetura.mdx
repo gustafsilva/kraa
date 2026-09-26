@@ -1,0 +1,61 @@
+---
+title: Arquitetura
+description: Como o código está organizado e as regras que mantêm os pacotes independentes.
+---
+import Callout from "@/components/mdx/Callout";
+
+O app é um binário Go com [Wails v3](https://v3alpha.wails.io/): o backend cuida da bandeja, do
+atalho global, da captura/colagem e do cliente LLM; o modal é um frontend React embutido no
+binário.
+
+```text
+ atalho global ──► main.go ──► internal/app (ImproveService) ──► internal/improver ──► internal/llm ──► LLM
+                     │                 │  ▲                                                   (SSE)
+                     │                 │  └─ eventos de stream ──► frontend (React, modal)
+                     │                 └─► internal/platform (Capture/Paste, teclas por SO)
+                     └─► bandeja, janela, single-instance, internal/autostart
+```
+
+## Mapa de pacotes
+
+| Pacote | Responsabilidade |
+|---|---|
+| `main.go` | Bootstrap do Wails: app, bandeja, janela, atalho global, single-instance. |
+| `internal/config` | Tipos, `Load`/`Default`/`ApplyEnv`, validação e ações padrão. |
+| `internal/llm` | Cliente OpenAI-compatível com streaming SSE e `ListModels`. |
+| `internal/improver` | Monta as mensagens (system + user) e roda o stream. |
+| `internal/platform` | `Clipboard`/`KeySender`, `Capture`/`Paste`, detecção de sessão e teclas por SO. |
+| `internal/app` | `ImproveService` exposto ao frontend (bindings) e adapters do Wails. |
+| `internal/autostart` | "Iniciar com o sistema": LaunchAgent, chave `Run`, `.desktop`. |
+| `frontend/src` | Modal em React: `App.tsx`, `components/*`, `hooks/useImprove.ts`. |
+| `npm/` | Pacote npm: instalador (`postinstall`) e CLI `prompt-improve`. |
+| `site/` | Este site (Astro + MDX + shadcn/ui). |
+
+## Regras do projeto
+
+- `internal/config`, `internal/llm`, `internal/improver` e `internal/platform/capture.go`
+  **não importam o Wails**. Só `main.go` e `internal/app` dependem de
+  `github.com/wailsapp/wails/v3`, o que mantém o núcleo testável sem interface gráfica.
+- Código específico de SO usa **build tags** (`keys_darwin.go`, `keys_windows.go`,
+  `keys_linux.go`, `session_linux.go`), nunca `if runtime.GOOS` espalhado.
+- Textos da UI em **PT-BR**; identificadores e código em inglês.
+- `internal/autostart` gera artefatos idênticos aos da CLI npm (`npm/src/autostart.ts`): mudar
+  um exige mudar o outro.
+
+<Callout type="note" title="Contrato de release">
+  Os nomes dos assets do release são um contrato entre `.github/workflows/release.yml`,
+  `npm/src/platform.ts` e `scripts/install.{sh,ps1}`. Veja [Release](/docs/contribuir/release/).
+</Callout>
+
+## Como a captura funciona
+
+1. Guarda o conteúdo atual da área de transferência e grava um valor sentinela.
+2. Simula "Copiar" no app de origem (Cmd+C via CoreGraphics, `SendInput`, `xdotool`).
+3. Espera até 400 ms a área de transferência mudar; o novo valor é a seleção.
+4. Restaura o conteúdo original (se era texto).
+
+"Substituir" faz o caminho inverso: grava o resultado, devolve o foco ao app de origem, simula
+"Colar" e restaura a área de transferência.
+
+O design completo está em
+[`docs/superpowers/specs`](https://github.com/gustafsilva/prompt-improve-beta/tree/main/docs/superpowers/specs).

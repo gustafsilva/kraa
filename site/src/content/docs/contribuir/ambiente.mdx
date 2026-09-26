@@ -1,0 +1,95 @@
+---
+title: Ambiente de desenvolvimento
+description: Prepare a máquina para compilar, rodar e testar o Prompt Improve.
+---
+import Callout from "@/components/mdx/Callout";
+import OsTabs from "@/components/mdx/OsTabs";
+import Steps from "@/components/mdx/Steps.astro";
+
+Contribuições são bem-vindas: correções, documentação, novas ações padrão e suporte a
+plataformas. Leia também o [CONTRIBUTING.md](https://github.com/gustafsilva/prompt-improve-beta/blob/main/CONTRIBUTING.md)
+e o [Código de conduta](https://github.com/gustafsilva/prompt-improve-beta/blob/main/CODE_OF_CONDUCT.md).
+
+## Requisitos
+
+- **Go 1.25+** (a versão exata está no `go.mod`)
+- **Node.js 22+**
+- **CLI do Wails v3**, na versão fixada no `go.mod` (`v3.0.0-beta.26`)
+- Um LLM para testar manualmente (Ollama local)
+
+<OsTabs client:load>
+  <div slot="macos">
+    Xcode Command Line Tools: `xcode-select --install`.
+  </div>
+  <div slot="windows">
+    WebView2 (já incluído no Windows 11). Nenhuma outra dependência.
+  </div>
+  <div slot="linux">
+    ```bash
+    sudo apt install build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev xdotool
+    ```
+  </div>
+</OsTabs>
+
+## Primeira execução
+
+<Steps>
+
+1. **Clone o repositório**
+
+   ```bash
+   git clone https://github.com/gustafsilva/prompt-improve-beta.git
+   cd prompt-improve-beta
+   ```
+
+2. **Instale a CLI do Wails**
+
+   ```bash
+   go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.26
+   ```
+
+   No Linux, adicione `-tags gtk3` ao `go install`.
+
+3. **Instale as dependências do frontend**
+
+   ```bash
+   npm --prefix frontend ci
+   ```
+
+4. **Rode em modo desenvolvimento**
+
+   ```bash
+   wails3 dev
+   ```
+
+   Sobe a app com o ícone na bandeja e hot reload do frontend.
+
+</Steps>
+
+## Comandos úteis
+
+| Comando | O que faz |
+|---|---|
+| `wails3 dev` | App em modo desenvolvimento |
+| `wails3 build` | Build de produção (binário em `bin/`) |
+| `wails3 generate bindings -ts` | Regenera os bindings TS depois de mudar métodos Go expostos |
+| `go test ./...` | Testes do backend |
+| `npm --prefix frontend test` | Testes do frontend (Vitest) |
+| `npm --prefix npm test` | Testes do instalador e da CLI npm |
+| `npm --prefix site run dev` | Este site de documentação |
+
+<Callout type="warning" title="Linux: tag gtk3">
+  O Wails beta.26 usa GTK4/WebKitGTK 6.0 por padrão, que não existe no Ubuntu 22.04. O projeto
+  compila com a tag `gtk3`. O `wails3 dev`/`build` já aplicam a tag, mas comandos `go` diretos
+  precisam dela: `go test -tags gtk3 ./...`, `go vet -tags gtk3 ./...`.
+</Callout>
+
+## Fluxo de contribuição
+
+1. Abra uma issue descrevendo o bug ou a proposta (para mudanças grandes, antes de codar).
+2. Crie um branch a partir de `main`.
+3. Escreva o teste primeiro, veja falhar, implemente e veja passar (TDD).
+4. Use mensagens no formato [Conventional Commits](https://www.conventionalcommits.org/pt-br/),
+   por exemplo `feat(frontend): …` ou `fix(ci): …`.
+5. Abra o pull request preenchendo o template: descrição, testes rodados e o checklist manual
+   dos SOs afetados.
