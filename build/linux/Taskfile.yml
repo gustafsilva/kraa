@@ -26,7 +26,7 @@ tasks:
           ARCH: '{{.ARCH}}'
           DEV: '{{.DEV}}'
           OUTPUT: '{{.OUTPUT}}'
-          EXTRA_TAGS: '{{.EXTRA_TAGS}}'
+          EXTRA_TAGS: '{{.LINUX_EXTRA_TAGS}}'
           OBFUSCATED: '{{.OBFUSCATED}}'
           GARBLE_ARGS: '{{.GARBLE_ARGS}}'
     vars:
@@ -37,6 +37,14 @@ tasks:
       # Check if a C compiler is available (gcc or clang) — cross-platform via wails3 tool
       HAS_CC:
         sh: 'wails3 tool has "gcc|clang"'
+      # R15: always build Linux with `-tags gtk3`. wails3 v3.0.0-beta.26
+      # defaults (no tag) to GTK4 + WebKitGTK 6.0
+      # (pkg/application/linux_cgo.go, `!gtk3`), which Ubuntu 22.04 doesn't
+      # package; `-tags gtk3` switches to GTK3 + WebKit2GTK 4.1
+      # (linux_cgo_gtk3.go), which both 22.04 and 24.04 have. Forced here
+      # (not just defaulted) so both `wails3 build` and `wails3 dev` on
+      # Linux always get it, merged with any caller-supplied EXTRA_TAGS.
+      LINUX_EXTRA_TAGS: '{{if .EXTRA_TAGS}}gtk3,{{.EXTRA_TAGS}}{{else}}gtk3{{end}}'
 
   build:native:
     summary: Builds the application natively on Linux

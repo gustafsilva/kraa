@@ -24,24 +24,29 @@ contents:
   - src: "./build/linux/prompt-improve.desktop"
     dst: "/usr/share/applications/prompt-improve.desktop"
 
-# Default dependencies for the GTK4 + WebKitGTK 6.0 stack (Ubuntu 24.04+ / Debian 13+)
+# Dependencies for the GTK3 + WebKit2GTK 4.1 stack. The app is built with
+# `-tags gtk3` on Linux (see build/linux/Taskfile.yml, ruling R15): the
+# default (non-gtk3) wails3 v3.0.0-beta.26 build needs GTK4 + WebKitGTK 6.0,
+# which isn't packaged on Ubuntu 22.04, so this project targets GTK3
+# everywhere on Linux instead. Keep this in sync with the apt/dnf/pacman
+# packages installed in .github/workflows/ci.yml.
 depends:
-  - libgtk-4-1
-  - libwebkitgtk-6.0-4
+  - libgtk-3-0
+  - libwebkit2gtk-4.1-0
 
 # Distribution-specific overrides for different package formats
 overrides:
   # RPM packages for Fedora / RHEL / AlmaLinux / Rocky Linux
   rpm:
     depends:
-      - gtk4
-      - webkitgtk6.0
+      - gtk3
+      - webkit2gtk4.1
 
   # Arch Linux packages
   archlinux:
     depends:
-      - gtk4
-      - webkitgtk-6.0
+      - gtk3
+      - webkit2gtk-4.1
 
 # scripts section to ensure desktop database is updated after install
 scripts:
@@ -50,21 +55,23 @@ scripts:
   # preremove: "./build/linux/nfpm/scripts/preremove.sh"
   # postremove: "./build/linux/nfpm/scripts/postremove.sh"
 
-# If you build your app with -tags gtk3 (legacy WebKit2GTK 4.1 stack — supported through v3.0.x, removed in v3.1),
-# replace the depends/overrides above with these:
+# If you migrate the build off `-tags gtk3` to the default GTK4 + WebKitGTK
+# 6.0 stack (Ubuntu 24.04+ / Debian 13+; this is the stack `-tags gtk3` is
+# removed in favor of starting with wails3 v3.1), replace the depends/
+# overrides above with these:
 #
 # depends:
-#   - libgtk-3-0
-#   - libwebkit2gtk-4.1-0
+#   - libgtk-4-1
+#   - libwebkitgtk-6.0-4
 # overrides:
 #   rpm:
 #     depends:
-#       - gtk3
-#       - webkit2gtk4.1
+#       - gtk4
+#       - webkitgtk6.0
 #   archlinux:
 #     depends:
-#       - gtk3
-#       - webkit2gtk-4.1
+#       - gtk4
+#       - webkitgtk-6.0
 #
 # replaces:
 #   - foobar

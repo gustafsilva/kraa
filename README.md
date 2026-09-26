@@ -75,6 +75,19 @@ No Linux, instale antes as dependências de build (Ubuntu/Debian):
 sudo apt install build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
 ```
 
+No Linux o app é buildado com a tag de build `gtk3` (GTK3 + WebKit2GTK 4.1,
+compatível com Ubuntu 22.04+), em vez do padrão do wails3 v3.0.0-beta.26
+(GTK4 + WebKitGTK 6.0, que não existe no 22.04). O `Taskfile` já aplica essa
+tag automaticamente — `wails3 dev` e `wails3 build` funcionam sem flags
+extras. Só é preciso passar `-tags gtk3` manualmente se você rodar `go
+build`/`go vet`/`go test` diretamente (sem passar pelo `wails3`/`task`) no
+Linux, por exemplo:
+
+```bash
+go build -tags gtk3 ./...
+go vet -tags gtk3 ./...
+```
+
 ## Configuração
 
 O arquivo de configuração é criado automaticamente no primeiro uso, em:
