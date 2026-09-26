@@ -24,10 +24,15 @@ export interface InstallDeps {
   home: string;
   version: string;
   repo: string;
-  fetch: (url: string) => Promise<Response>;
+  fetch: (url: string, init?: RequestInit) => Promise<Response>;
   exec: Exec;
   log: (msg: string) => void;
+  /** Timeout de cada download (padrão: DOWNLOAD_TIMEOUT_MS). */
+  downloadTimeoutMs?: number;
 }
+
+/** Tempo máximo de cada download (checksums.txt e asset), incluindo o corpo. */
+export const DOWNLOAD_TIMEOUT_MS = 120_000;
 
 export function defaultInstallDeps(): InstallDeps {
   const pkg = readPackageJson();
@@ -38,7 +43,7 @@ export function defaultInstallDeps(): InstallDeps {
     home: os.homedir(),
     version: pkg.version,
     repo: resolveRepo(process.env, pkg.repository),
-    fetch: (url) => fetch(url),
+    fetch: (url, init) => fetch(url, init),
     exec: realExec,
     log: (msg) => console.log(msg),
   };
@@ -55,9 +60,19 @@ export function parseChecksums(text: string): Map<string, string> {
 }
 
 async function download(d: InstallDeps, url: string): Promise<Buffer> {
-  const res = await d.fetch(url);
-  if (!res.ok) throw new Error(`download falhou (HTTP ${res.status}): ${url}`);
-  return Buffer.from(await res.arrayBuffer());
+  const ms = d.downloadTimeoutMs ?? DOWNLOAD_TIMEOUT_MS;
+  // O mesmo sinal cobre a resposta e a leitura do corpo (arrayBuffer).
+  const signal = AbortSignal.timeout(ms);
+  try {
+    const res = await d.fetch(url, { signal });
+    if (!res.ok) throw new Error(`download falhou (HTTP ${res.status}): ${url}`);
+    return Buffer.from(await res.arrayBuffer());
+  } catch (err) {
+    if (signal.aborted) {
+      throw new Error(`Tempo esgotado (${ms / 1000}s) ao baixar ${url}`);
+    }
+    throw err;
+  }
 }
 
 function skipDownload(env: Env): boolean {
@@ -118,21 +133,44 @@ export async function install(d: InstallDeps): Promise<"skipped" | "installed"> 
   return "installed";
 }
 
+function warnDownloadFailed(log: (msg: string) => void, err: unknown): void {
+  log(
+    `\n[prompt-improve] Aviso: Não foi possível baixar o binário do Prompt Improve ` +
+      `(${err instanceof Error ? err.message : String(err)}).\n` +
+      "O pacote npm foi instalado mesmo assim. Quando tiver conexão, rode:\n\n" +
+      "    prompt-improve install\n",
+  );
+}
+
 /** Nunca falha o `npm i`: em erro, só avisa e sai com 0. */
 export async function postinstall(d: InstallDeps): Promise<number> {
   try {
     await install(d);
   } catch (err) {
-    d.log(
-      `\n[prompt-improve] Aviso: Não foi possível baixar o binário do Prompt Improve ` +
-        `(${(err as Error).message}).\n` +
-        "O pacote npm foi instalado mesmo assim. Quando tiver conexão, rode:\n\n" +
-        "    prompt-improve install\n",
-    );
+    warnDownloadFailed(d.log, err);
   }
   return 0;
 }
 
+/**
+ * Entrada do `postinstall`: também captura erros ao montar as dependências
+ * (ex.: package.json ilegível), para o `npm i` nunca falhar.
+ */
+export async function runPostinstall(
+  makeDeps: () => InstallDeps = defaultInstallDeps,
+  log: (msg: string) => void = (msg) => console.log(msg),
+): Promise<number> {
+  try {
+    return await postinstall(makeDeps());
+  } catch (err) {
+    warnDownloadFailed(log, err);
+    return 0;
+  }
+}
+
 if (require.main === module) {
-  postinstall(defaultInstallDeps()).then((code) => process.exit(code));
+  runPostinstall().then(
+    () => process.exit(0),
+    () => process.exit(0),
+  );
 }

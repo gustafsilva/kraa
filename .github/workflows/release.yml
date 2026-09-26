@@ -124,14 +124,16 @@ jobs:
     name: Build Linux (${{ matrix.arch }})
     needs: check-version
     runs-on: ${{ matrix.runner }}
+    # R18: runners 22.04 (glibc mais antiga) para os binários rodarem no
+    # Ubuntu 22.04 e 24.04.
     strategy:
       fail-fast: true
       matrix:
         include:
           - arch: amd64
-            runner: ubuntu-latest
+            runner: ubuntu-22.04
           - arch: arm64
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-22.04-arm
     steps:
       - uses: actions/checkout@v4
 

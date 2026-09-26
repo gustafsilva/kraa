@@ -5,7 +5,16 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { realExec } from "../src/exec";
-import { install, parseChecksums, postinstall, type InstallDeps } from "../src/install";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
+import {
+  DOWNLOAD_TIMEOUT_MS,
+  install,
+  parseChecksums,
+  postinstall,
+  runPostinstall,
+  type InstallDeps,
+} from "../src/install";
 
 const sha = (b: Buffer | string) => createHash("sha256").update(b).digest("hex");
 
@@ -71,6 +80,7 @@ describe("install", () => {
 
     expect(fetch).toHaveBeenCalledWith(
       `https://github.com/o/r/releases/download/v1.2.3/${asset}`,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     const target = path.join(home, ".local/share/prompt-improve/prompt-improve");
     expect(fs.readFileSync(target)).toEqual(bin);
@@ -102,6 +112,37 @@ describe("install", () => {
 
   it("HTTP 404 vira erro com a URL", async () => {
     await expect(install(deps({}))).rejects.toThrow(/404.*checksums\.txt|checksums\.txt.*404/);
+  });
+
+  it("timeout padrão do download é uma constante nomeada de 120s", () => {
+    expect(DOWNLOAD_TIMEOUT_MS).toBe(120_000);
+  });
+
+  it("download travado estoura o timeout com mensagem PT-BR e não deixa arquivo parcial", async () => {
+    const asset = "prompt-improve-linux-amd64";
+    // Servidor real: o checksums.txt responde, o asset manda um pedaço e trava.
+    const server = http.createServer((req, res) => {
+      if (req.url?.endsWith("checksums.txt")) {
+        res.end(`${sha("x")}  ${asset}\n`);
+        return;
+      }
+      res.writeHead(200, { "content-length": "1000000" });
+      res.write("pedaço parcial");
+    });
+    await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
+    const port = (server.address() as AddressInfo).port;
+    try {
+      const d = deps({
+        downloadTimeoutMs: 200,
+        fetch: (url, init) =>
+          fetch(`http://127.0.0.1:${port}/${String(url).split("/").pop()}`, init),
+      });
+      await expect(install(d)).rejects.toThrow(/Tempo esgotado.*0\.2s.*prompt-improve-linux-amd64/);
+      expect(lsRecursive(path.join(home, ".local/share/prompt-improve"))).toEqual([]);
+    } finally {
+      server.closeAllConnections();
+      await new Promise((r) => server.close(r));
+    }
   });
 
   it("plataforma não suportada falha antes de baixar", async () => {
@@ -162,6 +203,18 @@ describe("postinstall", () => {
     const out = log.mock.calls.map((c) => c[0]).join("\n");
     expect(out).toMatch(/prompt-improve install/);
     expect(out).toMatch(/Não foi possível/);
+  });
+
+  it("erro síncrono ao montar as dependências também sai com 0 e avisa", async () => {
+    const log = vi.fn();
+    const code = await runPostinstall(() => {
+      throw new Error("package.json ilegível");
+    }, log);
+    expect(code).toBe(0);
+    const out = log.mock.calls.map((c) => c[0]).join("\n");
+    expect(out).toMatch(/Não foi possível/);
+    expect(out).toMatch(/package\.json ilegível/);
+    expect(out).toMatch(/prompt-improve install/);
   });
 
   it("SKIP_DOWNLOAD sai com 0 sem baixar", async () => {
