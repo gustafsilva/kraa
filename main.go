@@ -16,6 +16,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/icons"
 
 	"github.com/gustavofreitas/prompt-improve/internal/app"
+	"github.com/gustavofreitas/prompt-improve/internal/autostart"
 	"github.com/gustavofreitas/prompt-improve/internal/config"
 	"github.com/gustavofreitas/prompt-improve/internal/improver"
 	"github.com/gustavofreitas/prompt-improve/internal/llm"
@@ -249,6 +250,43 @@ func main() {
 	trayMenu.Add("Recarregar configuração").OnClick(func(ctx *application.Context) {
 		reload()
 	})
+
+	// "Iniciar com o sistema": reuses internal/autostart, which produces the
+	// exact same LaunchAgent/registry key/.desktop artifacts as the npm CLI
+	// (`prompt-improve autostart on|off`). If New fails (e.g. `wails3 dev`
+	// running from a temp path outside a .app bundle on macOS), the item is
+	// hidden since there's nothing autostart-able to toggle.
+	autostartItem := trayMenu.AddCheckbox("Iniciar com o sistema", false)
+	if autostartMgr, err := autostart.New(); err != nil {
+		log.Printf("autostart: %v", err)
+		autostartItem.SetHidden(true)
+	} else {
+		enabled, err := autostartMgr.Enabled()
+		if err != nil {
+			log.Printf("autostart: %v", err)
+		}
+		autostartItem.SetChecked(enabled)
+		autostartItem.OnClick(func(ctx *application.Context) {
+			want := ctx.IsChecked()
+			var err error
+			if want {
+				err = autostartMgr.Enable()
+			} else {
+				err = autostartMgr.Disable()
+			}
+			if err != nil {
+				log.Printf("autostart: %v", err)
+				autostartItem.SetChecked(!want)
+				verb := "ativar"
+				if !want {
+					verb = "desativar"
+				}
+				host.SetWarning(fmt.Sprintf("Não foi possível %s \"Iniciar com o sistema\": %v", verb, err))
+				return
+			}
+			host.SetWarning("")
+		})
+	}
 
 	trayMenu.AddSeparator()
 

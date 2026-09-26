@@ -136,6 +136,7 @@ type ImproveService struct {
 	text          string
 	loadErr       string
 	hotkeyWarning string
+	warning       string
 	cur           *request
 
 	em  Emitter
@@ -338,7 +339,7 @@ func (s *ImproveService) stateLocked() State {
 
 func (s *ImproveService) warningLocked() string {
 	var parts []string
-	for _, p := range []string{s.session.Reason, s.hotkeyWarning} {
+	for _, p := range []string{s.session.Reason, s.hotkeyWarning, s.warning} {
 		if p != "" {
 			parts = append(parts, p)
 		}
@@ -468,5 +469,15 @@ func (h *Host) SetHotkeyWarning(msg string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.hotkeyWarning = msg
+	s.emitStateLocked()
+}
+
+// SetWarning sets a general-purpose PT-BR warning shown in the modal ("" to
+// clear it), for conditions other than session/hotkey (e.g. autostart).
+func (h *Host) SetWarning(msg string) {
+	s := h.s
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.warning = msg
 	s.emitStateLocked()
 }

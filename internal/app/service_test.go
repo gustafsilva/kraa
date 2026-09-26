@@ -474,6 +474,19 @@ func TestHostErrorAndHotkeyWarningAreReflectedInState(t *testing.T) {
 	}
 }
 
+func TestSetWarningIsReflectedInStateAndCombinesWithOtherWarnings(t *testing.T) {
+	h := newHarness(t, fakeRunner{}, platform.Session{CanSimulateKeys: false, Reason: "motivo"})
+	h.host.SetWarning("autostart falhou")
+	st := h.svc.GetState()
+	if st.Warning != "motivo autostart falhou" {
+		t.Fatalf("warning = %q", st.Warning)
+	}
+	h.host.SetWarning("")
+	if st := h.svc.GetState(); st.Warning != "motivo" {
+		t.Fatalf("warning after clear = %q", st.Warning)
+	}
+}
+
 func TestConfigureSwapsRunnerAndActionsAndClearsError(t *testing.T) {
 	h := newHarness(t, fakeRunner{}, canSimulate)
 	h.host.SetError("velho")
