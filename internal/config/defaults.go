@@ -15,7 +15,7 @@ hotkey: "CmdOrCtrl+Shift+Y"
 provider:
   base_url: "http://localhost:11434/v1"
   api_key: "" # a env PROMPT_IMPROVE_API_KEY tem precedência se definida
-  model: "llama3.2"
+  model: "llama3.2" # também pode ser trocado pelo seletor no topo do modal
   timeout_seconds: 60
 
 # max_input_chars: tamanho máximo (em caracteres) do texto selecionado
