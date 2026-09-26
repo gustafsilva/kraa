@@ -3,6 +3,7 @@ import { RotateCcw, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ActionList } from "@/components/ActionList";
 import { PreviewPane } from "@/components/PreviewPane";
 import { Footer } from "@/components/Footer";
@@ -23,6 +24,7 @@ function App() {
     start,
     retry,
     setOutput,
+    setText,
     replace,
     copy,
     close,
@@ -30,7 +32,9 @@ function App() {
 
   const [freeInstruction, setFreeInstruction] = useState("");
 
-  const hasOutput = output.trim().length > 0;
+  // Substituir/Copiar (buttons and shortcuts) only act on the cleaned result:
+  // never on partial stream output, and not after an error (retry instead).
+  const resultReady = status === "done" && output.trim().length > 0;
 
   function isReplaceShortcut(event: { metaKey: boolean; ctrlKey: boolean; key: string }) {
     return (event.metaKey || event.ctrlKey) && event.key === "Enter";
@@ -50,7 +54,7 @@ function App() {
     if (!isReplaceShortcut(event)) return;
     event.preventDefault();
     event.stopPropagation();
-    if (canReplace && hasOutput) void replace();
+    if (canReplace && resultReady) void replace();
   }
 
   // ⌘/Ctrl+Enter → Substituir · ⌘/Ctrl+Shift+C → Copiar, as a global
@@ -63,14 +67,14 @@ function App() {
       const mod = event.metaKey || event.ctrlKey;
       if (!mod) return;
       if (event.key === "Enter") {
-        if (canReplace && hasOutput) {
+        if (canReplace && resultReady) {
           event.preventDefault();
           void replace();
         }
         return;
       }
       if (event.shiftKey && event.key.toLowerCase() === "c") {
-        if (hasOutput) {
+        if (resultReady) {
           event.preventDefault();
           void copy();
         }
@@ -78,7 +82,7 @@ function App() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [canReplace, hasOutput, replace, copy]);
+  }, [canReplace, resultReady, replace, copy]);
 
   function handleFreeInstructionKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (isReplaceShortcut(event)) return;
@@ -112,19 +116,23 @@ function App() {
           </Alert>
         )}
 
-        {!canReplace && warning && (
+        {warning && (
           <Alert>
             <AlertDescription>{warning}</AlertDescription>
           </Alert>
         )}
 
-        <div className="shrink-0 rounded-lg border bg-muted/40 p-2 text-xs">
-          <p className="mb-1 font-medium text-foreground/80">Texto selecionado</p>
-          <div className="max-h-16 overflow-y-auto">
-            <p className="whitespace-pre-wrap pr-2 text-muted-foreground">
-              {text || "Nenhum texto capturado."}
-            </p>
-          </div>
+        <div className="flex shrink-0 flex-col gap-1">
+          <label htmlFor="source-text" className="text-xs font-medium text-foreground/80">
+            Texto a melhorar
+          </label>
+          <Textarea
+            id="source-text"
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            placeholder="Cole ou digite o texto aqui"
+            className="max-h-24 min-h-12 resize-none text-xs md:text-xs [--wails-draggable:no-drag]"
+          />
         </div>
 
         <ActionList
@@ -179,7 +187,7 @@ function App() {
 
       <Footer
         canReplace={canReplace}
-        hasOutput={hasOutput}
+        resultReady={resultReady}
         onReplace={() => void replace()}
         onCopy={() => void copy()}
       />

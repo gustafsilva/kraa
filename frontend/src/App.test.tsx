@@ -144,6 +144,119 @@ describe("<App />", () => {
     expect(screen.getByRole("button", { name: /copiar/i })).toBeInTheDocument();
   });
 
+  it("o texto é editável: digitar num modal vazio e escolher uma ação envia o texto digitado", async () => {
+    const user = userEvent.setup();
+    await renderAppHydrated(mockState({ text: "" }));
+
+    const textBox = screen.getByRole("textbox", { name: /texto a melhorar/i });
+    expect(textBox).toHaveAttribute("placeholder", "Cole ou digite o texto aqui");
+    await user.type(textBox, "meu texto novo");
+
+    const search = screen.getByRole("combobox", { name: /buscar ação/i });
+    await user.type(search, "Corrigir{Enter}");
+
+    await waitFor(() =>
+      expect(ImproveService.Start).toHaveBeenCalledWith({
+        text: "meu texto novo",
+        actionId: "b1",
+        freeInstruction: "",
+      })
+    );
+  });
+
+  it("state:changed depois de uma edição mantém o texto editado", async () => {
+    const user = userEvent.setup();
+    await renderAppHydrated();
+
+    const textBox = screen.getByRole("textbox", { name: /texto a melhorar/i }) as HTMLTextAreaElement;
+    await user.clear(textBox);
+    await user.type(textBox, "editado");
+
+    act(() => {
+      emit("state:changed", mockState({ text: "Texto capturado de teste" }));
+    });
+
+    expect(textBox.value).toBe("editado");
+  });
+
+  it("selection:new substitui o texto editado", async () => {
+    const user = userEvent.setup();
+    await renderAppHydrated();
+
+    const textBox = screen.getByRole("textbox", { name: /texto a melhorar/i }) as HTMLTextAreaElement;
+    await user.clear(textBox);
+    await user.type(textBox, "editado");
+
+    act(() => {
+      emit("selection:new", { text: "nova seleção", canReplace: true, warning: "" });
+    });
+
+    expect(textBox.value).toBe("nova seleção");
+  });
+
+  it("mostra o aviso mesmo quando canReplace=true (ex.: atalho ou autostart)", async () => {
+    await renderAppHydrated(
+      mockState({ canReplace: true, warning: "Não foi possível registrar o atalho." })
+    );
+
+    expect(screen.getByText("Não foi possível registrar o atalho.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /substituir/i })).toBeInTheDocument();
+  });
+
+  it("durante o stream Substituir/Copiar ficam desabilitados e os atalhos não disparam", async () => {
+    ImproveService.Start.mockResolvedValueOnce("req-1");
+    await renderAppHydrated();
+
+    const search = screen.getByRole("combobox", { name: /buscar ação/i });
+    await userEvent.setup().type(search, "Corrigir{Enter}");
+    await waitFor(() => expect(ImproveService.Start).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      emit("improve:chunk", { id: "req-1", delta: "parcial" });
+    });
+    await screen.findByDisplayValue("parcial");
+
+    expect(screen.getByRole("button", { name: /substituir/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /copiar/i })).toBeDisabled();
+
+    fireEvent.keyDown(window, { key: "Enter", metaKey: true });
+    fireEvent.keyDown(search, { key: "Enter", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "C", ctrlKey: true, shiftKey: true });
+    expect(ImproveService.Replace).not.toHaveBeenCalled();
+    expect(ImproveService.Copy).not.toHaveBeenCalled();
+
+    act(() => {
+      emit("improve:done", { id: "req-1", text: "Final limpo." });
+    });
+    await screen.findByDisplayValue("Final limpo.");
+
+    expect(screen.getByRole("button", { name: /substituir/i })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /copiar/i })).toBeEnabled();
+
+    fireEvent.keyDown(window, { key: "Enter", metaKey: true });
+    await waitFor(() => expect(ImproveService.Replace).toHaveBeenCalledWith("Final limpo."));
+  });
+
+  it("após um erro Substituir/Copiar continuam desabilitados", async () => {
+    ImproveService.Start.mockResolvedValueOnce("req-1");
+    await renderAppHydrated();
+
+    const search = screen.getByRole("combobox", { name: /buscar ação/i });
+    await userEvent.setup().type(search, "Corrigir{Enter}");
+    await waitFor(() => expect(ImproveService.Start).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      emit("improve:chunk", { id: "req-1", delta: "parcial" });
+      emit("improve:error", { id: "req-1", message: "Caiu a conexão." });
+    });
+    await screen.findByText("Caiu a conexão.");
+
+    expect(screen.getByRole("button", { name: /substituir/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /copiar/i })).toBeDisabled();
+    fireEvent.keyDown(window, { key: "Enter", ctrlKey: true });
+    expect(ImproveService.Replace).not.toHaveBeenCalled();
+  });
+
   it("um erro de improve:error mostra Alert com Tentar novamente, que reenvia o pedido", async () => {
     ImproveService.Start.mockResolvedValueOnce("req-err");
     await renderAppHydrated();

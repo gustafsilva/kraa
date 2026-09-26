@@ -14,7 +14,7 @@ import type {
 export type ImproveStatus = "idle" | "streaming" | "done" | "error";
 
 export interface ImproveState {
-  /** Captured selection text, as sent to Start(). */
+  /** Text sent to Start(): the captured selection, possibly edited by the user. */
   text: string;
   actions: ActionDTO[];
   canReplace: boolean;
@@ -43,6 +43,8 @@ export interface UseImproveResult extends ImproveState {
   retry: () => void;
   /** Lets the preview be edited once status is "done". */
   setOutput: (value: string) => void;
+  /** Edits the text to improve (captured text or typed/pasted by the user). */
+  setText: (value: string) => void;
   replace: () => Promise<void>;
   copy: () => Promise<void>;
   close: () => Promise<void>;
@@ -95,6 +97,9 @@ export function useImprove(): UseImproveResult {
   const bufferRef = useRef<BufferedEvent[]>([]);
   const lastRequestRef = useRef<StartRequest | null>(null);
   const generationRef = useRef(0);
+  // True once the user edits the text; reset by selection:new (a new
+  // capture). While true, GetState must not overwrite the edit.
+  const textEditedRef = useRef(false);
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -143,6 +148,7 @@ export function useImprove(): UseImproveResult {
       pendingRef.current = false;
       bufferRef.current = [];
       lastRequestRef.current = null;
+      textEditedRef.current = false;
       setState((s) => ({
         ...s,
         text: payload.text,
@@ -155,11 +161,14 @@ export function useImprove(): UseImproveResult {
       }));
       setSelectionSeq((n) => n + 1);
     });
+    // state:changed never touches `text`: the backend only changes its text
+    // on a capture (Trigger), which is announced by selection:new, so the
+    // `text` carried here is at best a stale copy and would clobber what the
+    // user typed (e.g. state:changed from a config reload or tray toggle).
     const offStateChanged = Events.On("state:changed", (ev) => {
       const payload = ev.data as State;
       setState((s) => ({
         ...s,
-        text: payload.text,
         actions: payload.actions ?? [],
         canReplace: payload.canReplace,
         warning: payload.warning,
@@ -171,7 +180,9 @@ export function useImprove(): UseImproveResult {
       .then((s: State) => {
         setState((prev) => ({
           ...prev,
-          text: s.text,
+          // Hydrates a capture that happened before this listener existed,
+          // unless the user already started typing.
+          text: textEditedRef.current ? prev.text : s.text,
           actions: s.actions ?? [],
           canReplace: s.canReplace,
           warning: s.warning,
@@ -248,6 +259,11 @@ export function useImprove(): UseImproveResult {
     setState((s) => ({ ...s, output: value }));
   }, []);
 
+  const setText = useCallback((value: string) => {
+    textEditedRef.current = true;
+    setState((s) => ({ ...s, text: value }));
+  }, []);
+
   const replace = useCallback(async () => {
     setState((s) => ({ ...s, actionError: "" }));
     try {
@@ -283,6 +299,7 @@ export function useImprove(): UseImproveResult {
     start,
     retry,
     setOutput,
+    setText,
     replace,
     copy,
     close,

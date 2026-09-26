@@ -75,6 +75,100 @@ describe("useImprove", () => {
     expect(result.current.configError).toBe("falha ao carregar configuração");
   });
 
+  it("setText lets the user type into an empty modal and Start sends the typed text", async () => {
+    const { result } = renderHook(() => useImprove());
+    await waitFor(() => expect(ImproveService.GetState).toHaveBeenCalled());
+
+    act(() => {
+      emit("selection:new", { text: "", canReplace: true, warning: "" });
+    });
+    act(() => {
+      result.current.setText("texto digitado");
+    });
+    expect(result.current.text).toBe("texto digitado");
+
+    act(() => {
+      result.current.start({ actionId: "fix" });
+    });
+    await waitFor(() =>
+      expect(ImproveService.Start).toHaveBeenCalledWith({
+        text: "texto digitado",
+        actionId: "fix",
+        freeInstruction: "",
+      })
+    );
+  });
+
+  it("state:changed does not overwrite a text the user edited", async () => {
+    const { result } = renderHook(() => useImprove());
+    await waitFor(() => expect(ImproveService.GetState).toHaveBeenCalled());
+
+    act(() => {
+      emit("selection:new", { text: "capturado", canReplace: true, warning: "" });
+    });
+    act(() => {
+      result.current.setText("capturado e editado");
+    });
+    act(() => {
+      emit("state:changed", {
+        text: "capturado",
+        actions: [],
+        canReplace: false,
+        warning: "novo aviso",
+        error: "",
+      });
+    });
+
+    expect(result.current.text).toBe("capturado e editado");
+    expect(result.current.warning).toBe("novo aviso");
+    expect(result.current.canReplace).toBe(false);
+  });
+
+  it("a late GetState does not overwrite a text the user already edited", async () => {
+    let resolveState: (s: unknown) => void = () => {};
+    ImproveService.GetState.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveState = resolve;
+      })
+    );
+    const { result } = renderHook(() => useImprove());
+
+    act(() => {
+      result.current.setText("digitado antes");
+    });
+    await act(async () => {
+      resolveState({ text: "do backend", actions: [], canReplace: true, warning: "", error: "" });
+    });
+
+    expect(result.current.text).toBe("digitado antes");
+  });
+
+  it("selection:new replaces an edited text (it is a new capture)", async () => {
+    const { result } = renderHook(() => useImprove());
+    await waitFor(() => expect(ImproveService.GetState).toHaveBeenCalled());
+
+    act(() => {
+      result.current.setText("editado");
+    });
+    act(() => {
+      emit("selection:new", { text: "nova captura", canReplace: true, warning: "" });
+    });
+    expect(result.current.text).toBe("nova captura");
+
+    // After a new capture, the edit guard is reset: GetState/state:changed
+    // semantics start over from the captured text.
+    act(() => {
+      result.current.start({ actionId: "fix" });
+    });
+    await waitFor(() =>
+      expect(ImproveService.Start).toHaveBeenCalledWith({
+        text: "nova captura",
+        actionId: "fix",
+        freeInstruction: "",
+      })
+    );
+  });
+
   it("calls Start with the captured text and the given actionId", async () => {
     const { result } = renderHook(() => useImprove());
     act(() => {
