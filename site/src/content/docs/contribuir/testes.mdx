@@ -7,14 +7,46 @@ import Callout from "@/components/mdx/Callout";
 ## Automatizados
 
 ```bash
-go test ./...                  # backend (Linux: go test -tags gtk3 ./...)
-npm --prefix frontend test     # modal (Vitest + Testing Library)
-npm --prefix npm test          # instalador e CLI (Vitest)
-npm --prefix npm run typecheck
+go test ./...                      # backend (Linux: go test -tags gtk3 ./...)
+npm --prefix frontend test         # modal (Vitest + Testing Library)
+npm --prefix frontend run coverage # idem, com gate de cobertura
+npm --prefix frontend run typecheck && npm --prefix frontend run lint
+npm --prefix npm run coverage      # instalador e CLI (Vitest)
+npm --prefix e2e run build:server  # binário server mode + frontend
+npm --prefix e2e test              # E2E (Playwright, Chromium e WebKit)
 ```
 
 O projeto segue **TDD**: escreva o teste, veja falhar, implemente e veja passar. Código
 específico de SO fica atrás de interfaces (`Clipboard`, `KeySender`) para ser testado com fakes.
+
+### Camadas
+
+| Camada | Onde | O que cobre |
+|---|---|---|
+| Unitários Go | `internal/**/*_test.go` | Config, cliente SSE, improver, captura/colagem com fakes, reload e troca de atalho (`internal/app/reloader.go`), fila de segunda instância (`launch.go`). |
+| Integração Go | `internal/app/integration_test.go` | `ImproveService` → improver → cliente HTTP real → `internal/llmfake`. |
+| Unitários frontend | `frontend/src/**/*.test.tsx` | Componentes e `useImprove`, com o runtime do Wails e os bindings trocados por mocks tipados (`src/test/`). |
+| CLI npm | `npm/test` | Instalador, `doctor`, `autostart`, subcomandos. |
+| E2E | `e2e/` | Frontend real no navegador falando com o backend Go real em *server mode* do Wails (`main_server.go`, `-tags server`) e com um LLM fake (`cmd/llmfake`). |
+
+### Como o E2E funciona
+
+`main_server.go` sobe o mesmo `ImproveService` servindo o frontend por HTTP. Tudo que depende do
+desktop é trocado por fakes em memória (`internal/e2e`) controlados por endpoints `/__e2e/*`:
+
+- `trigger`: simula a seleção capturada (captura com fakes em memória, sem app externo nem SO).
+- `hotkey`: dispara o callback do atalho atualmente registrado, como se o SO tivesse aceitado
+  o atalho — verifica a fiação do `OnHotkey` (o mesmo callback que o Reloader religa após uma
+  troca de atalho via `reset`/`Reload`, não um reload em si).
+- `state`: mostra o que foi colado, o clipboard e a visibilidade das janelas.
+- `session`: liga/desliga a colagem automática (simula com/sem permissão de Acessibilidade).
+- `clipboard`: define o conteúdo do clipboard fake.
+- `reset`: cancela primeiro qualquer stream em andamento do teste anterior, depois limpa os
+  fakes e relê o `config.yaml`.
+
+O LLM fake é scriptado por `/__control/*`. Esse binário **nunca** é distribuído: o build
+`-tags server` existe só para este seam de teste (veja a nota de segurança na seção de CI
+abaixo sobre `build:server`/`build:docker`).
 
 ## CI
 
@@ -22,11 +54,40 @@ O workflow `.github/workflows/ci.yml` roda em todo push e PR:
 
 | Job | O que verifica |
 |---|---|
-| Lint | `gofmt` e `go vet -tags gtk3` |
-| Build e testes | `go test` (com `-race` no macOS e Linux), testes do frontend e `wails3 build` em macOS, Windows e Ubuntu |
-| Wrapper npm | testes, typecheck e build do pacote npm |
+| Lint | `gofmt`, `go vet -tags gtk3` e `go vet -tags server` |
+| Build e testes | `go test -race` (macOS e Linux) com cobertura mínima de **87%** (macOS); no Windows, `go test` sem `-race` (CGO exige um compilador C funcional, ausente nesses runners); typecheck, ESLint e Vitest com thresholds do frontend; `wails3 build` em macOS, Windows e Ubuntu |
+| Wrapper npm | testes com thresholds de cobertura, typecheck e build |
+| E2E | Playwright (Chromium e WebKit) contra o binário server mode no Ubuntu |
+
+Os thresholds do frontend e do npm ficam nos `vitest.config.ts` de cada pacote. Só suba esses
+números; nunca baixe para fazer a CI passar.
 
 O workflow `docs.yml` builda e publica este site no GitHub Pages.
+
+<Callout type="warning">
+  As tasks `build:server`, `run:server` e `build:docker` (`Taskfile.yml`, `build/Taskfile.yml`)
+  e o `build/docker/Dockerfile.server` usam a mesma tag `-tags server` do E2E. Esse build expõe
+  os endpoints `/__e2e/*` **sem autenticação** — é o seam de teste, não um artefato para
+  produção. Nunca implante um binário ou imagem Docker construídos com essas tasks.
+</Callout>
+
+## O que não tem teste automatizado
+
+Estes comportamentos dependem do sistema operacional real e **não são alcançados** nem pelos
+unitários nem pelo E2E. Eles ficam no checklist manual abaixo:
+
+| Comportamento | Por que não é automatizado |
+|---|---|
+| Captura real da seleção (`⌘C`/`Ctrl+C` simulado noutro app) e colagem real no app de origem | Exige outro app com foco e teclas do SO. `keys_darwin.go` usa CGEvent (cgo) e Acessibilidade; `keys_windows.go` usa `SendInput`; no Linux, `xdotool` num X11 real. O E2E simula a captura com `/__e2e/trigger` (fakes em memória, sem app nem SO reais), e os unitários cobrem `Capture`/`Paste` com fakes. |
+| Sentinela da captura deixado num clipboard vazio ou não textual | Limitação documentada (ruling R9, `internal/platform/capture.go`; veja [privacidade](/docs/plataformas/privacidade/)): sem conteúdo textual para restaurar, o sentinela da captura permanece na área de transferência. Pinada pelo teste `TestTriggerWithoutSelectionOnEmptyClipboardLeavesSentinel` (`internal/e2e`); mudar o comportamento é decisão de produto. |
+| Atalho global (`⌘⇧Y`) e registro pelo SO | No server mode o Wails não tem atalhos globais. A lógica de troca e rollback é coberta em `reloader_test.go` com um fake, mas a rejeição real pelo SO não é. |
+| Bandeja (menu, "Iniciar com o sistema", "Editar configuração") | Não existe bandeja no server mode nem no CI. Os artefatos de autostart são testados em `internal/autostart`. |
+| Single-instance e `kraa --trigger` numa segunda instância | Precisa de dois processos desktop. A fila é testada em `launch_test.go`. |
+| Janela nativa: `Esc`, `⌘W`, foco devolvido ao app de origem (`ReleaseFocus`), `AlwaysOnTop`, `HiddenOnTaskbar` | São key bindings e hooks da janela nativa, que não existem no navegador. O E2E só vê a contagem de show/hide nos fakes. |
+| `ApplicationStarted` (aviso de atalho e janela no boot) | O Wails não emite esse evento em server mode. A decisão (`Drain`) é testada em `launch_test.go`. |
+| Renderização no WebView de produção (WKWebView, WebView2, WebKitGTK) | O E2E usa Chromium e o WebKit do Playwright, que é o mais próximo, mas não idêntico. |
+| Permissão de Acessibilidade do macOS e Wayland | Dependem do SO. O E2E cobre o *efeito* (sem "Substituir", com aviso) via `/__e2e/session`. |
+| "Ollama parado" no fluxo do E2E | O fake não simula conexão recusada. Coberto em `integration_test.go` (servidor fechado) e no checklist. |
 
 ## Checklist manual
 
@@ -37,6 +98,8 @@ Antes de um PR que toque captura, colagem, atalho ou janela, confira nos SOs afe
 - [ ] Selecionar texto em outro app e apertar o atalho: o modal abre com o texto capturado.
 - [ ] Escolher uma ação: o preview aparece em stream.
 - [ ] `⌘Enter` substitui o texto no app de origem e a área de transferência volta ao valor anterior.
+- [ ] Só teclado: digitar, `↑`/`↓`, `Enter`; quando o resultado termina o foco vai para "Substituir";
+      `←`/`→` alterna com "Copiar"; `Enter` aplica; `↑` volta às ações.
 - [ ] Sem permissão de Acessibilidade: aviso no modal, "Substituir" some, só "Copiar" funciona.
 - [ ] Sem seleção: o modal abre vazio e editável.
 - [ ] `Esc` durante o stream fecha sem erro no log.
@@ -56,6 +119,15 @@ Antes de um PR que toque captura, colagem, atalho ou janela, confira nos SOs afe
 
 - [ ] Seletor de modelo lista os modelos, grava `provider.model` sem alterar o resto do arquivo.
 - [ ] Ollama parado: mensagem legível com `ollama serve` (nunca um stack trace).
+- [ ] Bandeja → "Recarregar configuração" com um `hotkey` inválido: aviso "Mantido …" e o
+      atalho anterior continua funcionando.
+- [ ] Segunda instância com `kraa --trigger` logo após abrir o app: o modal abre com a seleção.
+- [ ] Bandeja → "Perfil do usuário…": abre a janela com o perfil atual; salvar com "Usar perfil"
+      marcado grava `profile` no `config.yaml` (resto intacto) e a próxima melhoria de prompt
+      reflete o perfil; "Mais formal" não recebe o perfil.
+- [ ] Ativar o perfil com o texto vazio: mensagem "Escreva o perfil antes de ativá-lo." e a
+      janela continua aberta.
+- [ ] Fechar a janela do perfil (X ou `Esc`) só a oculta; reabrir descarta edições não salvas.
 
 <Callout type="tip">
   Descreva no PR em quais SOs o checklist foi feito.

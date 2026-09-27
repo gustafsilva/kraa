@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_BASE_URL, doctor, readBaseUrl, type DoctorDeps } from "../src/doctor";
+import { DEFAULT_BASE_URL, doctor, readBaseUrl, realCommandExists, type DoctorDeps } from "../src/doctor";
 
 describe("readBaseUrl", () => {
   it.each([
@@ -137,5 +137,21 @@ describe("doctor", () => {
     await doctor(d);
     expect(out()).toMatch(/Acessibilidade/);
     expect(d.commandExists).not.toHaveBeenCalled();
+  });
+});
+
+describe("realCommandExists", () => {
+  it("acha executável no PATH e ignora entradas vazias", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kraa-path-"));
+    const name = process.platform === "win32" ? "ferramenta.EXE" : "ferramenta";
+    fs.writeFileSync(path.join(dir, name), "", { mode: 0o755 });
+    const env = { PATH: ["", dir].join(path.delimiter), PATHEXT: ".EXE" };
+    await expect(realCommandExists("ferramenta", env)).resolves.toBe(true);
+    await expect(realCommandExists("inexistente", env)).resolves.toBe(false);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("PATH ausente → false", async () => {
+    await expect(realCommandExists("qualquer", {})).resolves.toBe(false);
   });
 });

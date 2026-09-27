@@ -404,3 +404,78 @@ func TestStream_OmitsTemperatureByDefault(t *testing.T) {
 		t.Errorf("temperature present = %v, want omitted", body["temperature"])
 	}
 }
+
+func TestStream_IgnoresCommentsNonDataInvalidJSONAndEmptyChoices(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeSSE(w, r, []string{
+			`: keep-alive`,
+			`event: ping`,
+			`data: {não é json`,
+			`data: {"choices":[]}`,
+			`data: {"choices":[{"delta":{"content":""}}]}`,
+			`data: {"choices":[{"delta":{"content":"ok"}}]}`,
+			`data: [DONE]`,
+		})
+	}))
+	defer server.Close()
+
+	var got strings.Builder
+	c := NewOpenAIClient(server.URL, "", "m", 5*time.Second)
+	if err := c.Stream(context.Background(), []Message{{Role: "user", Content: "x"}}, func(s string) { got.WriteString(s) }); err != nil {
+		t.Fatal(err)
+	}
+	if got.String() != "ok" {
+		t.Fatalf("got %q", got.String())
+	}
+}
+
+func TestStream_LineAboveLimitReturnsReadError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeSSE(w, r, []string{"data: " + strings.Repeat("a", maxSSELineBytes+1)})
+	}))
+	defer server.Close()
+
+	c := NewOpenAIClient(server.URL, "", "m", 5*time.Second)
+	err := c.Stream(context.Background(), []Message{{Role: "user", Content: "x"}}, func(string) {})
+	if err == nil || !strings.Contains(err.Error(), "ler stream") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestStream_InvalidBaseURLFailsBeforeRequest(t *testing.T) {
+	c := NewOpenAIClient("://sem-esquema", "", "m", time.Second)
+	if err := c.Stream(context.Background(), nil, func(string) {}); err == nil {
+		t.Fatal("esperava erro de URL inválida")
+	}
+}
+
+func TestAPIErrorFromResponse(t *testing.T) {
+	cases := []struct {
+		name   string
+		status int
+		body   string
+		want   string
+	}{
+		{"corpo vazio usa StatusText", 502, "", "Bad Gateway"},
+		{"status desconhecido usa o número", 599, "", "599"},
+		{"corpo longo é cortado", 500, strings.Repeat("x", maxErrorBodySnippet+50), strings.Repeat("x", maxErrorBodySnippet)},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			resp := &http.Response{StatusCode: c.status, Body: io.NopCloser(strings.NewReader(c.body))}
+			got := newAPIErrorFromResponse(resp)
+			if got.Message != c.want || got.Status != c.status {
+				t.Fatalf("got %+v", got)
+			}
+			if got.Error() == "" {
+				t.Fatal("APIError.Error() vazio")
+			}
+		})
+	}
+}
+
+func TestIsUnreachableErr_DNSError(t *testing.T) {
+	if !isUnreachableErr(&net.DNSError{Err: "no such host", Name: "x.invalid"}) {
+		t.Fatal("DNSError deveria ser unreachable")
+	}
+}

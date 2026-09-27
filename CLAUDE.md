@@ -20,15 +20,18 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
 
 | Pacote | Responsabilidade |
 |---|---|
-| `main.go` | Bootstrap Wails: app, tray, janela, atalho global, single-instance. |
+| `main.go` | Bootstrap Wails: app, tray, janela, atalho global, single-instance. `main_server.go` (`-tags server`, só E2E) sobe o mesmo `ImproveService` como servidor HTTP puro; a lógica de ambos fica em `internal/app` (`reloader.go`, `launch.go`, `bootstrap.go`). |
 | `internal/config` | Tipos de config, `Load`/`Default`/`ApplyEnv`, validação, ações padrão. |
 | `internal/llm` | Cliente OpenAI-compatível com streaming SSE (`/v1/chat/completions`). |
+| `internal/llmfake` | LLM OpenAI-compatível fake para testes; `cmd/llmfake` o expõe ao E2E. Não importa o Wails. |
 | `internal/improver` | Monta mensagens (system + user) a partir de ação/instrução e roda o stream. |
 | `internal/platform` | Interfaces `Clipboard`/`KeySender`, `Capture`/`Paste`, detecção de sessão e teclas por SO (`keys_darwin.go`, `keys_windows.go`, `keys_linux.go`, `session_linux.go`). |
 | `internal/app` | `ImproveService` exposto ao frontend (bindings) e adapters do Wails (clipboard, emitter). |
+| `internal/e2e` | Fakes em memória e endpoints `/__e2e/*` do build server mode. Não importa o Wails. |
 | `internal/autostart` | "Iniciar com o sistema": LaunchAgent (macOS), chave `Run` do registro (Windows), `.desktop` (Linux); usado pela bandeja e com os mesmos artefatos da CLI npm. Não importa o Wails. |
 | `frontend/src` | Modal em React: `App.tsx`, `components/*` (ActionList, PreviewPane, Footer), `hooks/useImprove.ts`; `profile/ProfileWindow` (janela do perfil, `?view=profile`). |
 | `npm/` | Pacote npm (TypeScript): instalador do binário (`postinstall`/`install`) e CLI `kraa` (start/stop/trigger/config/doctor/autostart). |
+| `e2e/` | Suíte Playwright contra `main_server.go`. |
 | `site/` | Site de documentação (Astro + MDX + React + Tailwind + shadcn/ui, só tema escuro) publicado no GitHub Pages por `.github/workflows/docs.yml`. Páginas em `site/src/content/docs/**/*.mdx`; a ordem da barra lateral fica em `site/src/lib/site.ts` (`NAV`). |
 
 ## Comandos
@@ -38,7 +41,13 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
 - `wails3 generate bindings -ts` — regenera os bindings TS a partir dos métodos Go expostos.
 - `go test ./...` — testes do backend.
 - `npm --prefix frontend test` — testes do frontend (Vitest).
+- `npm --prefix frontend run coverage` / `run typecheck` / `run lint` — cobertura,
+  typecheck e ESLint do frontend.
 - `npm --prefix npm test` — testes do instalador/CLI npm (Vitest).
+- `npm --prefix npm run coverage` — idem, com gate de cobertura.
+- `npm --prefix e2e run build:server` — builda o frontend e o binário E2E (`bin/kraa-e2e`,
+  `-tags server`).
+- `npm --prefix e2e test` — suíte E2E (Playwright, Chromium e WebKit).
 - `npm --prefix site run dev` / `run build` / `run check` — site de documentação
   (Astro). Mudanças visíveis ao usuário devem atualizar o `.mdx` correspondente
   e o `CHANGELOG.md`.
@@ -53,8 +62,11 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
 ## Regras
 
 - Os pacotes `internal/config`, `internal/llm`, `internal/improver` e
-  `internal/platform/capture.go` **não importam o Wails**. Só `main.go` e
-  `internal/app` podem depender de `github.com/wailsapp/wails/v3`.
+  `internal/platform/capture.go` **não importam o Wails**. Só `main.go`,
+  `main_server.go` e `internal/app` podem depender de
+  `github.com/wailsapp/wails/v3`.
+- O build `-tags server` e os endpoints `/__e2e/*` são um seam de teste e
+  **nunca** entram em release.
 - TDD: escrever o teste, ver falhar, implementar, ver passar (skill
   `superpowers:test-driven-development`).
 - Textos e mensagens da UI ficam em **PT-BR**; identificadores e código ficam
@@ -71,6 +83,9 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
 - **shadcn MCP** (`.mcp.json`, deste projeto): consultar e adicionar
   componentes shadcn/ui.
 - `superpowers:test-driven-development`: fluxo de TDD em cada pacote.
+- `/testes` (`.claude/skills/testes/`): skill do projeto para criar, revisar
+  ou manter testes (Go, frontend, CLI npm, E2E) — camada certa, fakes
+  compartilhados, o que registrar como não testável.
 - `superpowers:subagent-driven-development`: execução das tasks do plano,
   um implementador por task.
 - `superpowers:verification-before-completion`: rodar e conferir os

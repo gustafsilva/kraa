@@ -247,6 +247,11 @@ tasks:
         DEV=true        development server (-tags server, no strip, inlining kept)
         OBFUSCATED=true obfuscated build via garble (requires garble installed)
         EXTRA_TAGS      additional comma-separated build tags
+
+      WARNING: `-tags server` is the same build tag used for the E2E test
+      binary (bin/kraa-e2e, .github/workflows/ci.yml job `e2e`), which wires
+      unauthenticated /__e2e/* endpoints (internal/e2e). This task builds
+      that same test seam — never deploy its output.
     deps:
       - task: build:frontend
         vars:
@@ -264,6 +269,8 @@ tasks:
     vars:
       BUILD_FLAGS: '-tags server{{if eq .DEV "true"}}{{if eq .OBFUSCATED "true"}},wails_obfuscated{{end}}{{if .EXTRA_TAGS}},{{.EXTRA_TAGS}}{{end}} -buildvcs=false -gcflags=all="-l"{{else}},production{{if eq .OBFUSCATED "true"}},wails_obfuscated{{end}}{{if .EXTRA_TAGS}},{{.EXTRA_TAGS}}{{end}} -trimpath -buildvcs=false -ldflags="-w -s"{{end}}'
 
+  # WARNING: builds and runs the E2E test seam (see build:server above).
+  # Never expose this on a network reachable by anyone but you.
   run:server:
     summary: Builds and runs a development server (DEV=true)
     deps:
@@ -283,6 +290,10 @@ tasks:
       Usage: task build:docker [TAG=myapp:latest] [CGO_ENABLED=1] [GO_IMAGE=...] [RUNTIME_IMAGE=...]
       For CGO apps, set CGO_ENABLED=1 with libc-compatible builder/runtime images, e.g.:
         task build:docker CGO_ENABLED=1 GO_IMAGE=golang:bookworm RUNTIME_IMAGE=gcr.io/distroless/base-debian12
+
+      WARNING: same -tags server E2E test seam as build:server above
+      (unauthenticated /__e2e/* endpoints) — see build/docker/Dockerfile.server
+      for the same warning. Never deploy this image.
     deps:
       # Build the production frontend so frontend/dist (embedded by the Go build
       # inside the image) is present and current in the Docker build context.

@@ -4,7 +4,7 @@ Próximos passos do projeto, organizados por categoria.
 
 ## Desenvolvimento
 
-- [ ] Ajustar camada de testes (unitários e e2e)
+- [x] Ajustar camada de testes (unitários e e2e)
 - [ ] Adicionar configurações para outros providers
   - [ ] Gemini
   - [ ] Anthropic

@@ -1,27 +1,11 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@wailsio/runtime", async () => {
-  const mod = await import("../test/wailsRuntimeMock");
-  return { Events: mod.Events };
-});
-
-vi.mock("@bindings/github.com/gustavofreitas/kraa/internal/app", async () => {
-  const mod = await import("../test/improveServiceMock");
-  return { ImproveService: mod.ImproveService };
-});
-
-import { emit, resetWailsMock } from "../test/wailsRuntimeMock";
+import { emit, listenerCount } from "../test/wailsRuntimeMock";
 import { ImproveService } from "../test/improveServiceMock";
-import { resetImproveServiceMock } from "../test/improveServiceMock";
 import { useImprove } from "./useImprove";
 
 describe("useImprove", () => {
-  beforeEach(() => {
-    resetWailsMock();
-    resetImproveServiceMock();
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -46,8 +30,9 @@ describe("useImprove", () => {
     const { result } = renderHook(() => useImprove());
     await waitFor(() => expect(ImproveService.GetState).toHaveBeenCalled());
 
-    act(() => {
+    await act(async () => {
       emit("selection:new", { text: "novo texto", canReplace: false, warning: "sem apps suportadas" });
+      await Promise.resolve();
     });
 
     expect(result.current.text).toBe("novo texto");
@@ -103,8 +88,9 @@ describe("useImprove", () => {
     const { result } = renderHook(() => useImprove());
     await waitFor(() => expect(ImproveService.GetState).toHaveBeenCalled());
 
-    act(() => {
+    await act(async () => {
       emit("selection:new", { text: "capturado", canReplace: true, warning: "" });
+      await Promise.resolve();
     });
     act(() => {
       result.current.setText("capturado e editado");
@@ -171,12 +157,16 @@ describe("useImprove", () => {
 
   it("calls Start with the captured text and the given actionId", async () => {
     const { result } = renderHook(() => useImprove());
-    act(() => {
+    await waitFor(() => expect(ImproveService.ListModels).toHaveBeenCalled());
+
+    await act(async () => {
       emit("selection:new", { text: "texto capturado", canReplace: true, warning: "" });
+      await Promise.resolve();
     });
 
-    act(() => {
+    await act(async () => {
       result.current.start({ actionId: "fix-grammar" });
+      await Promise.resolve();
     });
 
     expect(ImproveService.Start).toHaveBeenCalledWith({
@@ -189,12 +179,16 @@ describe("useImprove", () => {
 
   it("calls Start with freeInstruction when no action is used", async () => {
     const { result } = renderHook(() => useImprove());
-    act(() => {
+    await waitFor(() => expect(ImproveService.ListModels).toHaveBeenCalled());
+
+    await act(async () => {
       emit("selection:new", { text: "texto", canReplace: true, warning: "" });
+      await Promise.resolve();
     });
 
-    act(() => {
+    await act(async () => {
       result.current.start({ freeInstruction: "deixe mais formal" });
+      await Promise.resolve();
     });
 
     expect(ImproveService.Start).toHaveBeenCalledWith({
@@ -291,186 +285,8 @@ describe("useImprove", () => {
     });
   });
 
-  describe("R12 — event ordering/race with the Start id", () => {
-    it("buffers events that arrive before Start resolves, then replays them for the resolved id", async () => {
-      let resolveStart!: (id: string) => void;
-      ImproveService.Start.mockImplementationOnce(
-        () =>
-          new Promise<string>((resolve) => {
-            resolveStart = resolve;
-          })
-      );
-
-      const { result } = renderHook(() => useImprove());
-      act(() => {
-        result.current.start({ actionId: "a1" });
-      });
-
-      // Events for the not-yet-known id arrive first (server race).
-      act(() => {
-        emit("improve:chunk", { id: "req-42", delta: "primeiro" });
-        emit("improve:chunk", { id: "req-42", delta: " segundo" });
-      });
-      // Nothing applied yet — the id is still unknown.
-      expect(result.current.output).toBe("");
-
-      await act(async () => {
-        resolveStart("req-42");
-        await Promise.resolve();
-      });
-
-      expect(result.current.output).toBe("primeiro segundo");
-    });
-
-    it("drops buffered events for an id other than the one Start resolved with", async () => {
-      let resolveStart!: (id: string) => void;
-      ImproveService.Start.mockImplementationOnce(
-        () =>
-          new Promise<string>((resolve) => {
-            resolveStart = resolve;
-          })
-      );
-
-      const { result } = renderHook(() => useImprove());
-      act(() => {
-        result.current.start({ actionId: "a1" });
-      });
-
-      // A straggler from a previous, already-superseded request.
-      act(() => {
-        emit("improve:chunk", { id: "req-old", delta: "não deveria aparecer" });
-      });
-
-      await act(async () => {
-        resolveStart("req-new");
-        await Promise.resolve();
-      });
-
-      expect(result.current.output).toBe("");
-      expect(result.current.status).toBe("streaming");
-    });
-
-    it("ignores live events whose id no longer matches the current request", async () => {
-      ImproveService.Start.mockResolvedValueOnce("req-current");
-      const { result } = renderHook(() => useImprove());
-
-      act(() => {
-        result.current.start({ actionId: "a1" });
-      });
-      await act(async () => {
-        await Promise.resolve();
-      });
-
-      act(() => {
-        emit("improve:chunk", { id: "req-stale", delta: "ignorado" });
-      });
-
-      expect(result.current.output).toBe("");
-    });
-
-    it("keeps the latest overlapping start()'s state when the OLDER Start resolves first", async () => {
-      let resolveReq1!: (id: string) => void;
-      let resolveReq2!: (id: string) => void;
-      ImproveService.Start.mockImplementationOnce(
-        () => new Promise<string>((resolve) => { resolveReq1 = resolve; })
-      ).mockImplementationOnce(
-        () => new Promise<string>((resolve) => { resolveReq2 = resolve; })
-      );
-
-      const { result } = renderHook(() => useImprove());
-
-      // Two overlapping start() calls before either Start() promise settles.
-      act(() => {
-        result.current.start({ actionId: "a1" });
-      });
-      act(() => {
-        result.current.start({ actionId: "a2" });
-      });
-
-      // Events for both ids arrive while both requests are still pending.
-      act(() => {
-        emit("improve:chunk", { id: "req-old", delta: "velho" });
-        emit("improve:chunk", { id: "req-new", delta: "novo" });
-      });
-
-      // req1 (the OLDER start() call) resolves first — this must be a no-op
-      // for local state (it's stale) beyond defensively cancelling itself.
-      await act(async () => {
-        resolveReq1("req-old");
-        await Promise.resolve();
-      });
-      expect(result.current.output).toBe("");
-      expect(ImproveService.Cancel).toHaveBeenCalledWith("req-old");
-      expect(ImproveService.Cancel).not.toHaveBeenCalledWith("req-new");
-
-      // req2 (the LATEST start() call) resolves next — its buffered chunk
-      // must be applied, and req1's buffered chunk must stay dropped.
-      await act(async () => {
-        resolveReq2("req-new");
-        await Promise.resolve();
-      });
-      expect(result.current.output).toBe("novo");
-
-      // A further live event for the superseded id is still ignored.
-      act(() => {
-        emit("improve:chunk", { id: "req-old", delta: " mais velho" });
-      });
-      expect(result.current.output).toBe("novo");
-
-      act(() => {
-        emit("improve:done", { id: "req-new", text: "novo final" });
-      });
-      expect(result.current.output).toBe("novo final");
-      expect(result.current.status).toBe("done");
-    });
-
-    it("keeps the latest overlapping start()'s state when the NEWER Start resolves first", async () => {
-      let resolveReq1!: (id: string) => void;
-      let resolveReq2!: (id: string) => void;
-      ImproveService.Start.mockImplementationOnce(
-        () => new Promise<string>((resolve) => { resolveReq1 = resolve; })
-      ).mockImplementationOnce(
-        () => new Promise<string>((resolve) => { resolveReq2 = resolve; })
-      );
-
-      const { result } = renderHook(() => useImprove());
-
-      act(() => {
-        result.current.start({ actionId: "a1" });
-      });
-      act(() => {
-        result.current.start({ actionId: "a2" });
-      });
-
-      act(() => {
-        emit("improve:chunk", { id: "req-new", delta: "novo" });
-      });
-
-      // req2 (the LATEST start() call) resolves FIRST this time.
-      await act(async () => {
-        resolveReq2("req-new");
-        await Promise.resolve();
-      });
-      expect(result.current.output).toBe("novo");
-
-      // req1 (the OLDER call) resolves afterwards — must not clobber the
-      // current id/output, and must defensively cancel its own id.
-      await act(async () => {
-        resolveReq1("req-old");
-        await Promise.resolve();
-      });
-      expect(result.current.output).toBe("novo");
-      expect(ImproveService.Cancel).toHaveBeenCalledWith("req-old");
-
-      // Live events for req-old (now doubly stale) are ignored; req-new's
-      // still apply normally.
-      act(() => {
-        emit("improve:chunk", { id: "req-old", delta: "ignorar" });
-        emit("improve:chunk", { id: "req-new", delta: " mundo" });
-      });
-      expect(result.current.output).toBe("novo mundo");
-    });
-  });
+  // R12 event-ordering/race tests moved to useImprove.race.test.ts (Task 5,
+  // Step 7): this describe had grown large on its own.
 
   describe("Replace()/Copy() failures", () => {
     it("replace() surfaces a rejection as actionError without touching status/output", async () => {
@@ -557,4 +373,132 @@ describe("useImprove", () => {
     });
     expect(ImproveService.Close).toHaveBeenCalledTimes(1);
   });
+
+  describe("modelos", () => {
+    it("setModel com sucesso atualiza o modelo e limpa modelSaving", async () => {
+      const { result } = renderHook(() => useImprove());
+      await waitFor(() => expect(ImproveService.ListModels).toHaveBeenCalled());
+      await act(async () => {
+        await result.current.setModel("fake-b");
+      });
+      expect(ImproveService.SetModel).toHaveBeenCalledWith("fake-b");
+      expect(result.current.model).toBe("fake-b");
+      expect(result.current.modelSaving).toBe(false);
+      expect(result.current.modelsError).toBe("");
+    });
+
+    it("setModel com erro mostra modelsError e mantém o modelo", async () => {
+      ImproveService.SetModel.mockRejectedValueOnce(new Error("Não foi possível salvar o modelo: disco cheio"));
+      const { result } = renderHook(() => useImprove());
+      await waitFor(() => expect(ImproveService.ListModels).toHaveBeenCalled());
+      await act(async () => {
+        await result.current.setModel("fake-b");
+      });
+      expect(result.current.modelsError).toBe("Não foi possível salvar o modelo: disco cheio");
+      expect(result.current.modelSaving).toBe(false);
+      // GetState wasn't overridden in this test, so the original model is
+      // the mock's default ("") — assert that exact value, not just "isn't
+      // the rejected one" (which "" would trivially satisfy anyway).
+      expect(result.current.model).toBe("");
+    });
+
+    it("ListModels rejeitado deixa a lista vazia com o erro", async () => {
+      ImproveService.ListModels.mockRejectedValueOnce(new Error("Não foi possível conectar"));
+      const { result } = renderHook(() => useImprove());
+      await waitFor(() => expect(result.current.modelsError).toBe("Não foi possível conectar"));
+      expect(result.current.models).toEqual([]);
+    });
+
+    it("ListModels null vira lista vazia", async () => {
+      // Seed a non-empty list first so the assertion below actually proves
+      // the null→[] handling, instead of trivially matching the initial []
+      // the hook starts with regardless of ListModels' response.
+      ImproveService.ListModels.mockResolvedValueOnce(["a", "b"]);
+      const { result } = renderHook(() => useImprove());
+      await waitFor(() => expect(result.current.models).toEqual(["a", "b"]));
+
+      ImproveService.ListModels.mockResolvedValueOnce(null);
+      await act(async () => {
+        emit("selection:new", { text: "", canReplace: true, warning: "" });
+        await Promise.resolve();
+      });
+
+      expect(result.current.models).toEqual([]);
+    });
+  });
+
+  it("Start rejeitado vira status error com a mensagem", async () => {
+    ImproveService.Start.mockRejectedValueOnce(new Error("O texto está vazio."));
+    const { result } = renderHook(() => useImprove());
+    await waitFor(() => expect(ImproveService.ListModels).toHaveBeenCalled());
+    await act(async () => {
+      result.current.start({ actionId: "a1" });
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.requestError).toBe("O texto está vazio.");
+  });
+
+  it("retry sem pedido anterior não chama Start", async () => {
+    const { result } = renderHook(() => useImprove());
+    await waitFor(() => expect(ImproveService.ListModels).toHaveBeenCalled());
+    act(() => result.current.retry());
+    expect(ImproveService.Start).not.toHaveBeenCalled();
+  });
+
+  it("setOutput edita o resultado", async () => {
+    const { result } = renderHook(() => useImprove());
+    await waitFor(() => expect(ImproveService.ListModels).toHaveBeenCalled());
+    act(() => result.current.setOutput("editado"));
+    expect(result.current.output).toBe("editado");
+  });
+
+  it("GetState rejeitado não quebra o hook (nem recarrega os modelos)", async () => {
+    // useImprove.ts's GetState().catch() is a documented no-op ("GetState
+    // failures surface later via state:changed; nothing to do here"), so
+    // asserting status === "idle" alone doesn't prove the rejection was
+    // processed — idle is also the untouched initial value. loadModels()
+    // (hence ListModels()) is only called from the *success* branch, so
+    // asserting it was never invoked distinguishes "rejection handled" from
+    // "nothing happened yet".
+    ImproveService.GetState.mockRejectedValueOnce(new Error("boom"));
+    const { result } = renderHook(() => useImprove());
+    await waitFor(() => expect(ImproveService.GetState).toHaveBeenCalled());
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current.status).toBe("idle");
+    expect(ImproveService.ListModels).not.toHaveBeenCalled();
+  });
+
+  it("GetState com actions null vira lista vazia", async () => {
+    ImproveService.GetState.mockResolvedValueOnce({
+      text: "",
+      actions: null,
+      canReplace: true,
+      warning: "",
+      error: "",
+      model: "",
+    });
+    const { result } = renderHook(() => useImprove());
+    await waitFor(() => expect(ImproveService.ListModels).toHaveBeenCalled());
+    expect(result.current.actions).toEqual([]);
+  });
+
+  it("desmontar remove os listeners de eventos", async () => {
+    const events = ["improve:chunk", "improve:done", "improve:error", "selection:new", "state:changed"];
+    const { unmount } = renderHook(() => useImprove());
+    await waitFor(() => expect(ImproveService.ListModels).toHaveBeenCalled());
+
+    for (const name of events) expect(listenerCount(name)).toBeGreaterThan(0);
+
+    unmount();
+
+    for (const name of events) expect(listenerCount(name)).toBe(0);
+  });
+
+  // "selection:new com Start pendente ignora a resolução tardia (generation)"
+  // moved to useImprove.race.test.ts (Fix round 1): it's a generation-race
+  // scenario like the rest of that file, not a plain hook test.
 });

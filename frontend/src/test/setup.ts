@@ -27,3 +27,13 @@ if (typeof window !== "undefined") {
     Element.prototype.setPointerCapture = () => {};
   }
 }
+
+import { afterEach } from "vitest";
+import { resetWailsMock } from "./wailsRuntimeMock";
+import { resetImproveServiceMock } from "./improveServiceMock";
+
+// Global reset so no test inherits listeners or mock implementations.
+afterEach(() => {
+  resetWailsMock();
+  resetImproveServiceMock();
+});

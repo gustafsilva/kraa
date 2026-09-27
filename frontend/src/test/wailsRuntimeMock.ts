@@ -28,6 +28,13 @@ export function emit(name: string, data: unknown) {
   listeners.get(name)?.forEach((callback) => callback({ name, data }));
 }
 
+/** Number of live `Events.On` listeners for `name` — lets a test prove a
+ * cleanup function actually unsubscribed, instead of just poking `emit`
+ * and hoping nothing throws. */
+export function listenerCount(name: string): number {
+  return listeners.get(name)?.size ?? 0;
+}
+
 export function resetWailsMock() {
   listeners.clear();
   Events.On.mockClear();

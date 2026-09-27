@@ -10,6 +10,23 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+func TestLoad_InvalidYAMLReturnsPTBRError(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	os.WriteFile(path, []byte("hotkey: [\n"), 0o600)
+	_, err := Load(path)
+	if err == nil || !strings.Contains(err.Error(), "YAML inválido em "+path) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestLoad_ReadErrorOtherThanNotExist(t *testing.T) {
+	dir := t.TempDir() // um diretório no lugar do arquivo: ReadFile falha com EISDIR
+	_, err := Load(dir)
+	if err == nil || !strings.Contains(err.Error(), "não foi possível ler") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
 func TestDefaultPath(t *testing.T) {
 	got, err := DefaultPath()
 	if err != nil {

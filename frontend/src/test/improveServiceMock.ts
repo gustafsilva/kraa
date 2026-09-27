@@ -1,51 +1,50 @@
 import { vi } from "vitest";
+import type * as RealService from "../../bindings/github.com/gustavofreitas/kraa/internal/app/improveservice";
 
-// Stand-in for the generated ImproveService binding module. Every method
-// returns a real (non-cancellable) Promise, which is enough for the hook —
-// it never calls `.cancel()` on the results.
+// Stand-in for the generated ImproveService binding (aliased in
+// vitest.config.ts). `satisfies` makes `npm run typecheck` fail when a Go
+// method is added/renamed and the mock isn't. Every method returns a plain
+// Promise; the app never calls `.cancel()` on the results.
+const defaultState = () => ({
+  text: "",
+  actions: [],
+  canReplace: true,
+  warning: "",
+  error: "",
+  model: "",
+});
+
 export const ImproveService = {
-  Cancel: vi.fn().mockResolvedValue(undefined),
-  Close: vi.fn().mockResolvedValue(undefined),
-  CloseProfile: vi.fn().mockResolvedValue(undefined),
-  Copy: vi.fn().mockResolvedValue(undefined),
-  GetState: vi.fn().mockResolvedValue({
-    text: "",
-    actions: [],
-    canReplace: true,
-    warning: "",
-    error: "",
-    model: "",
-  }),
-  GetProfile: vi.fn().mockResolvedValue({ enabled: false, text: "" }),
-  ListModels: vi.fn().mockResolvedValue([]),
-  Replace: vi.fn().mockResolvedValue(undefined),
-  SaveProfile: vi.fn().mockResolvedValue(undefined),
-  SetModel: vi.fn().mockResolvedValue(undefined),
-  Start: vi.fn().mockResolvedValue("req-1"),
-};
+  Cancel: vi.fn(),
+  Close: vi.fn(),
+  CloseProfile: vi.fn(),
+  Copy: vi.fn(),
+  GetState: vi.fn(),
+  GetProfile: vi.fn(),
+  ListModels: vi.fn(),
+  Replace: vi.fn(),
+  SaveProfile: vi.fn(),
+  SetModel: vi.fn(),
+  Start: vi.fn(),
+} satisfies Record<keyof typeof RealService, unknown>;
 
-export function resetImproveServiceMock() {
-  ImproveService.Cancel.mockClear();
-  ImproveService.Close.mockClear();
-  ImproveService.Copy.mockClear();
-  ImproveService.Replace.mockClear();
-  ImproveService.Start.mockClear();
-  ImproveService.GetState.mockClear();
-  ImproveService.ListModels.mockReset();
-  ImproveService.ListModels.mockResolvedValue([]);
-  ImproveService.SetModel.mockReset();
-  ImproveService.SetModel.mockResolvedValue(undefined);
-  ImproveService.CloseProfile.mockClear();
-  ImproveService.GetProfile.mockReset();
+function applyDefaults() {
+  ImproveService.Cancel.mockResolvedValue(undefined);
+  ImproveService.Close.mockResolvedValue(undefined);
+  ImproveService.CloseProfile.mockResolvedValue(undefined);
+  ImproveService.Copy.mockResolvedValue(undefined);
+  ImproveService.GetState.mockResolvedValue(defaultState());
   ImproveService.GetProfile.mockResolvedValue({ enabled: false, text: "" });
-  ImproveService.SaveProfile.mockReset();
+  ImproveService.ListModels.mockResolvedValue([]);
+  ImproveService.Replace.mockResolvedValue(undefined);
   ImproveService.SaveProfile.mockResolvedValue(undefined);
-  ImproveService.GetState.mockResolvedValue({
-    text: "",
-    actions: [],
-    canReplace: true,
-    warning: "",
-    error: "",
-    model: "",
-  });
+  ImproveService.SetModel.mockResolvedValue(undefined);
+  ImproveService.Start.mockResolvedValue("req-1");
+}
+applyDefaults();
+
+/** mockReset on every method (drops Once *and* persistent implementations), then defaults. */
+export function resetImproveServiceMock() {
+  for (const fn of Object.values(ImproveService)) fn.mockReset();
+  applyDefaults();
 }

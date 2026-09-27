@@ -49,6 +49,9 @@ jobs:
       - name: go vet
         run: go vet -tags gtk3 ./...
 
+      - name: go vet (server mode, E2E)
+        run: CGO_ENABLED=0 go vet -tags server ./...
+
   build:
     name: Build e testes (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -98,9 +101,18 @@ jobs:
         run: npm ci
         working-directory: frontend
 
-      - name: Testes Go (com -race, macOS)
+      # Gate de cobertura do backend (só no macOS: arquivos por SO mudam o
+      # total entre plataformas). Mínimo em sincronia com a doc de testes.
+      # `./...` inclui `main.go`/adapters Wails a 0%; medido localmente em
+      # 90.3% com esse comando (acima do mínimo), por isso não é preciso
+      # trocar para a variante `./internal/...` + `.` separada.
+      - name: Testes Go (com -race e cobertura, macOS)
         if: runner.os == 'macOS'
-        run: go test ./... -race
+        run: |
+          go test ./... -race -coverprofile=coverage.out
+          total=$(go tool cover -func=coverage.out | awk '/^total:/ {sub("%","",$3); print $3}')
+          echo "Cobertura Go: ${total}%"
+          awk -v t="$total" -v min=87 'BEGIN { if (t+0 < min) { print "Cobertura abaixo de " min "%"; exit 1 } }'
 
       # Linux precisa de `-tags gtk3` pelo mesmo motivo do build (ver
       # comentário acima sobre R15): o pacote `application` do wails3 exige
@@ -119,8 +131,17 @@ jobs:
         if: runner.os == 'Windows'
         run: go test ./...
 
-      - name: Testes do frontend
-        run: npm test
+      - name: Typecheck do frontend
+        run: npm run typecheck
+        working-directory: frontend
+
+      - name: Lint do frontend
+        if: runner.os == 'Linux'
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Testes do frontend (com cobertura)
+        run: npm run coverage
         working-directory: frontend
 
       - name: Build (wails3 build)
@@ -154,11 +175,69 @@ jobs:
       - name: Instala dependências
         run: npm ci --ignore-scripts
 
-      - name: Testes
-        run: npm test
+      - name: Testes (com cobertura)
+        run: npm run coverage
 
       - name: Typecheck
         run: npm run typecheck
 
       - name: Build
         run: npm run build
+
+  e2e:
+    name: E2E (Playwright, server mode)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
+
+      - name: Instala dependências do frontend
+        run: npm ci
+        working-directory: frontend
+
+      # O //go:embed all:frontend/dist precisa do bundle real antes do build.
+      - name: Build do frontend
+        run: npm run build
+        working-directory: frontend
+
+      # -tags server exclui todos os arquivos GTK/WebKit do Wails: não precisa
+      # de cgo nem de Xvfb (verificado com GOOS=linux CGO_ENABLED=0).
+      - name: Build do binário E2E (server mode)
+        run: CGO_ENABLED=0 go build -tags server -o bin/kraa-e2e .
+
+      - name: Instala dependências do E2E
+        run: npm ci
+        working-directory: e2e
+
+      # `npx tsc` a partir da raiz do repo não acha o TypeScript do e2e; o
+      # binário local do próprio pacote sim.
+      - name: Typecheck do E2E
+        run: e2e/node_modules/.bin/tsc -p e2e --noEmit
+
+      - name: Instala navegadores do Playwright
+        run: npx playwright install --with-deps chromium webkit
+        working-directory: e2e
+
+      - name: Playwright
+        run: npx playwright test
+        working-directory: e2e
+
+      - name: Publica relatório do Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7

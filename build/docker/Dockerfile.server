@@ -1,6 +1,12 @@
 # Wails Server Mode Dockerfile
 # Multi-stage build for a minimal image.
 #
+# WARNING: -tags server is also the build tag used by the project's E2E test
+# binary (bin/kraa-e2e, .github/workflows/ci.yml job `e2e`), which wires
+# unauthenticated /__e2e/* endpoints (internal/e2e) into the same server mode.
+# This Dockerfile builds that same test seam. NEVER deploy the resulting image
+# to a reachable environment.
+#
 # Defaults produce a pure-Go, fully static binary on a distroless/static base:
 # the smallest, most secure image, and correct for the default (CGO-free) app.
 #
