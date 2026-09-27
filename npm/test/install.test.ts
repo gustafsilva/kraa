@@ -16,6 +16,7 @@ import {
   runPostinstall,
   type InstallDeps,
 } from "../src/install";
+import { readPackageJson } from "../src/pkg";
 
 const sha = (b: Buffer | string) => createHash("sha256").update(b).digest("hex");
 
@@ -318,7 +319,7 @@ describe("postinstall", () => {
 describe("defaultInstallDeps", () => {
   it("monta as dependências reais (version/repo/log/fetch)", async () => {
     const d = defaultInstallDeps();
-    expect(typeof d.version).toBe("string");
+    expect(d.version).toBe(readPackageJson().version);
     expect(typeof d.repo).toBe("string");
 
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -326,12 +327,16 @@ describe("defaultInstallDeps", () => {
     expect(logSpy).toHaveBeenCalledWith("teste");
     logSpy.mockRestore();
 
-    // Porta local fechada: erro imediato (ECONNREFUSED), sem download real.
-    const closed = http.createServer();
-    const port = await new Promise<number>((r) =>
-      closed.listen(0, "127.0.0.1", () => r((closed.address() as AddressInfo).port)),
-    );
-    await new Promise((r) => closed.close(r));
-    await expect(d.fetch(`http://127.0.0.1:${port}/`)).rejects.toThrow();
+    // d.fetch só repassa para o `fetch` global (sem nenhuma lógica própria);
+    // troca-se o global por um stub para exercitar essa delegação sem abrir
+    // socket algum.
+    const fetchStub = vi.fn().mockRejectedValue(new Error("ECONNREFUSED"));
+    vi.stubGlobal("fetch", fetchStub);
+    try {
+      await expect(d.fetch("http://127.0.0.1:1/")).rejects.toThrow("ECONNREFUSED");
+      expect(fetchStub).toHaveBeenCalledWith("http://127.0.0.1:1/", undefined);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

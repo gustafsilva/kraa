@@ -1,10 +1,10 @@
 import fs from "node:fs";
-import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultCliDeps, run, type CliDeps } from "../src/cli";
-import { binaryPath } from "../src/platform";
+import { readPackageJson } from "../src/pkg";
+import { binaryPath, configPath } from "../src/platform";
 
 let home: string;
 beforeEach(() => {
@@ -183,10 +183,15 @@ describe("cli", () => {
     // arquivo em vez de escrevê-lo de verdade.
     const existsSync = vi.spyOn(fs, "existsSync").mockReturnValue(true);
     try {
-      for (const platform of ["darwin", "win32"] as const) {
-        const { d } = deps({ platform, env: { APPDATA: "C:\\Users\\Ana\\AppData\\Roaming" } });
+      for (const [platform, cmd, argsFor] of [
+        ["darwin", "open", (file: string) => ["-t", file]],
+        ["win32", "notepad", (file: string) => [file]],
+      ] as const) {
+        const env = { APPDATA: "C:\\Users\\Ana\\AppData\\Roaming" };
+        const { d } = deps({ platform, env });
+        const file = configPath(platform, env, home);
         await run(["config"], d);
-        expect(d.spawnDetached).toHaveBeenCalled();
+        expect(d.spawnDetached).toHaveBeenCalledWith(cmd, argsFor(file));
       }
     } finally {
       existsSync.mockRestore();
@@ -245,9 +250,9 @@ describe("cli", () => {
 });
 
 describe("defaultCliDeps", () => {
-  it("monta as dependências reais (version/repo/log/commandExists)", async () => {
+  it("monta as dependências reais (version/repo/log/commandExists/fetch)", async () => {
     const d = defaultCliDeps();
-    expect(typeof d.version).toBe("string");
+    expect(d.version).toBe(readPackageJson().version);
     expect(typeof d.repo).toBe("string");
 
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -257,12 +262,16 @@ describe("defaultCliDeps", () => {
 
     await expect(d.commandExists("kraa-comando-que-nao-existe-xyz")).resolves.toBe(false);
 
-    // Porta local fechada: erro imediato (ECONNREFUSED), sem chamada de rede real.
-    const closed = net.createServer();
-    const port = await new Promise<number>((r) =>
-      closed.listen(0, "127.0.0.1", () => r((closed.address() as net.AddressInfo).port)),
-    );
-    await new Promise((r) => closed.close(r));
-    await expect(d.fetch(`http://127.0.0.1:${port}/`)).rejects.toThrow();
+    // d.fetch só repassa para o `fetch` global (sem nenhuma lógica própria);
+    // troca-se o global por um stub para exercitar essa delegação sem abrir
+    // socket algum.
+    const fetchStub = vi.fn().mockRejectedValue(new Error("ECONNREFUSED"));
+    vi.stubGlobal("fetch", fetchStub);
+    try {
+      await expect(d.fetch("http://127.0.0.1:1/")).rejects.toThrow("ECONNREFUSED");
+      expect(fetchStub).toHaveBeenCalledWith("http://127.0.0.1:1/", undefined);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
