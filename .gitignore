@@ -22,7 +22,6 @@ build/android/gen/
 
 # Frontend
 frontend/node_modules
-frontend/coverage
 # Build output is ignored, but frontend/dist/.gitkeep is tracked so
 # `//go:embed all:frontend/dist` (main.go) compiles on a clean checkout
 # (go vet / go test run before any frontend build in CI).
