@@ -1,16 +1,9 @@
 package main
 
 import (
-	"embed"
-	"errors"
-	"fmt"
 	"log"
 	"os"
 	"runtime"
-	"slices"
-	"sync"
-	"sync/atomic"
-	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
@@ -19,43 +12,8 @@ import (
 	"github.com/gustavofreitas/kraa/internal/app"
 	"github.com/gustavofreitas/kraa/internal/autostart"
 	"github.com/gustavofreitas/kraa/internal/config"
-	"github.com/gustavofreitas/kraa/internal/improver"
-	"github.com/gustavofreitas/kraa/internal/llm"
 	"github.com/gustavofreitas/kraa/internal/platform"
 )
-
-// Wails uses Go's `embed` package to embed the frontend files into the binary.
-// Any files in the frontend/dist folder will be embedded into the binary and
-// made available to the frontend.
-// See https://pkg.go.dev/embed for more information.
-
-//go:embed all:frontend/dist
-var assets embed.FS
-
-// triggerArg makes a second launch run the hotkey flow (manual fallback for
-// Wayland/GNOME, where a custom system shortcut runs `kraa --trigger`).
-const triggerArg = "--trigger"
-
-// loadConfig loads the user config from the default path.
-func loadConfig() (*config.Config, string, error) {
-	path, err := config.DefaultPath()
-	if err != nil {
-		return nil, "", err
-	}
-	cfg, err := config.Load(path)
-	return cfg, path, err
-}
-
-// newRunner builds the LLM client + improver for cfg.
-func newRunner(cfg *config.Config) app.Runner {
-	p := cfg.Provider
-	var opts []llm.Option
-	if p.Temperature != nil {
-		opts = append(opts, llm.WithTemperature(*p.Temperature))
-	}
-	client := llm.NewOpenAIClient(p.BaseURL, p.APIKey, p.Model, time.Duration(p.TimeoutSeconds)*time.Second, opts...)
-	return improver.New(cfg, client)
-}
 
 // menuCheckbox adapts *application.MenuItem to autostart.Checkbox: it only
 // discards MenuItem.SetChecked's chained return value, which
@@ -67,13 +25,13 @@ func (c menuCheckbox) SetChecked(checked bool) { c.item.SetChecked(checked) }
 // main is the application entry point. It creates the Wails app, a hidden
 // frameless window, the ImproveService bound to the frontend, the global
 // hotkey and a system tray. The window is never destroyed when
-// closed/hidden: the app keeps running in the tray.
+// closed/hidden: the app keeps running in the tray. The testable logic
+// (reload/hotkey rollback, savers, second-instance queue, config fallback)
+// lives in internal/app; this file is wiring only.
 func main() {
-	// Set before app.Run; the SingleInstance callback reads it from another
-	// goroutine, hence atomic. A launch arriving before it is set is queued
-	// in pendingLaunch and replayed on ApplicationStarted.
-	var trigger atomic.Pointer[func(capture bool)]
-	var pendingLaunch atomic.Int32 // 0 none, 1 show window, 2 run trigger flow
+	// A launch arriving before the handler is set is queued and replayed
+	// on ApplicationStarted.
+	var launches app.LaunchQueue
 
 	wailsApp := application.New(application.Options{
 		Name:        "kraa",
@@ -95,16 +53,7 @@ func main() {
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: "dev.matrixia.kraa",
 			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
-				capture := slices.Contains(data.Args, triggerArg)
-				if fn := trigger.Load(); fn != nil {
-					(*fn)(capture)
-					return
-				}
-				want := int32(1)
-				if capture {
-					want = 2
-				}
-				pendingLaunch.CompareAndSwap(0, want)
+				launches.OnSecondInstance(data.Args)
 			},
 		},
 	})
@@ -141,16 +90,11 @@ func main() {
 		platform.AccessibilityTrusted(true)
 	}
 
-	cfg, cfgPath, cfgErr := loadConfig()
-	if cfgErr != nil {
-		log.Printf("config: %v", cfgErr)
-		cfg = config.Default()
-		cfg.ApplyEnv()
-	}
+	cfg, cfgPath, cfgErrMsg := app.LoadStartupConfig(app.LoadConfig)
 
 	svc, host := app.New(app.Options{
 		Config:    cfg,
-		Runner:    newRunner(cfg),
+		Runner:    app.NewRunner(cfg),
 		Emitter:   app.WailsEmitter{App: wailsApp},
 		Clipboard: app.WailsClipboard{App: wailsApp},
 		Keys:      platform.NewKeySender(),
@@ -180,8 +124,8 @@ func main() {
 		svc.CloseProfile()
 	})
 
-	if cfgErr != nil {
-		host.SetError(fmt.Sprintf("Erro ao carregar a configuração: %v. Usando a configuração padrão.", cfgErr))
+	if cfgErrMsg != "" {
+		host.SetError(cfgErrMsg)
 	}
 
 	onHotkey := func() {
@@ -190,98 +134,28 @@ func main() {
 		host.SetSession(platform.DetectSession())
 		host.Trigger()
 	}
-	triggerFn := func(capture bool) {
+	launches.SetHandler(func(capture bool) {
 		if capture {
 			onHotkey()
 		} else {
 			host.ShowWindow()
 		}
-	}
-	trigger.Store(&triggerFn)
-
-	hotkeyWarning := func(hotkey string) string {
-		return fmt.Sprintf("Não foi possível registrar o atalho %s; ele pode estar em uso por outro app. Altere 'hotkey' na configuração ou use \"Abrir\" na bandeja.", hotkey)
-	}
-
-	// mu guards currentHotkey and cfgPath (tray callbacks run on goroutines).
-	var mu sync.Mutex
-	currentHotkey := cfg.Hotkey
-	// Before Run this only fails on a parse error; an OS rejection happens
-	// in flushPending (before ApplicationStarted) and is checked there.
-	if err := wailsApp.GlobalShortcut.Register(currentHotkey, onHotkey); err != nil {
-		log.Printf("atalho: %v", err)
-		host.SetHotkeyWarning(hotkeyWarning(currentHotkey))
-	}
-
-	// reloadMu serializes whole reloads so configs apply in click order.
-	var reloadMu sync.Mutex
-	reload := func() {
-		reloadMu.Lock()
-		defer reloadMu.Unlock()
-
-		newCfg, path, err := loadConfig()
-		if err != nil {
-			log.Printf("config: %v", err)
-			host.SetError(fmt.Sprintf("Erro ao recarregar a configuração: %v. A configuração anterior foi mantida.", err))
-			host.ShowWindow()
-			return
-		}
-		host.Configure(newCfg, newRunner(newCfg))
-		host.SetSession(platform.DetectSession())
-
-		mu.Lock()
-		defer mu.Unlock()
-		cfgPath = path
-		if newCfg.Hotkey == currentHotkey && wailsApp.GlobalShortcut.IsRegistered(currentHotkey) {
-			host.SetHotkeyWarning("")
-			return
-		}
-		_ = wailsApp.GlobalShortcut.Unregister(currentHotkey)
-		if err := wailsApp.GlobalShortcut.Register(newCfg.Hotkey, onHotkey); err != nil {
-			log.Printf("atalho: %v", err)
-			if err := wailsApp.GlobalShortcut.Register(currentHotkey, onHotkey); err != nil {
-				log.Printf("atalho: %v", err)
-				host.SetHotkeyWarning(fmt.Sprintf("Não foi possível registrar o atalho %s. Nenhum atalho ativo; use \"Abrir\" na bandeja.", newCfg.Hotkey))
-				return
-			}
-			host.SetHotkeyWarning(fmt.Sprintf("Não foi possível registrar o atalho %s. Mantido %s.", newCfg.Hotkey, currentHotkey))
-			return
-		}
-		currentHotkey = newCfg.Hotkey
-		host.SetHotkeyWarning("")
-	}
-
-	// Model picker: persist provider.model in config.yaml, then reload so
-	// the new runner and state:changed (with the model) take effect.
-	host.SetModelSaver(func(model string) error {
-		mu.Lock()
-		path := cfgPath
-		mu.Unlock()
-		if path == "" {
-			return errors.New("o caminho do config.yaml é desconhecido")
-		}
-		if err := config.SaveModel(path, model); err != nil {
-			return err
-		}
-		reload()
-		return nil
 	})
 
-	// Profile window: persist the profile block in config.yaml, then reload
-	// so the next improvement uses it.
-	host.SetProfileSaver(func(p config.Profile) error {
-		mu.Lock()
-		path := cfgPath
-		mu.Unlock()
-		if path == "" {
-			return errors.New("o caminho do config.yaml é desconhecido")
-		}
-		if err := config.SaveProfile(path, p); err != nil {
-			return err
-		}
-		reload()
-		return nil
+	reloader := app.NewReloader(app.ReloaderOptions{
+		Host:          host,
+		Shortcuts:     wailsApp.GlobalShortcut,
+		Load:          app.LoadConfig,
+		NewRunner:     app.NewRunner,
+		DetectSession: platform.DetectSession,
+		OnHotkey:      onHotkey,
+		Hotkey:        cfg.Hotkey,
+		ConfigPath:    cfgPath,
 	})
+	reloader.RegisterHotkey()
+	// Model picker / profile window: persist in config.yaml, then reload.
+	host.SetModelSaver(reloader.SaveModel)
+	host.SetProfileSaver(reloader.SaveProfile)
 
 	tray := wailsApp.SystemTray.New()
 	tray.SetTooltip("Kraa")
@@ -302,9 +176,7 @@ func main() {
 		host.ShowProfile()
 	})
 	trayMenu.Add("Editar configuração").OnClick(func(ctx *application.Context) {
-		mu.Lock()
-		path := cfgPath
-		mu.Unlock()
+		path := reloader.ConfigPath()
 		if path == "" {
 			p, err := config.DefaultPath()
 			if err != nil {
@@ -318,7 +190,7 @@ func main() {
 		}
 	})
 	trayMenu.Add("Recarregar configuração").OnClick(func(ctx *application.Context) {
-		reload()
+		reloader.Reload()
 	})
 
 	// "Iniciar com o sistema": reuses internal/autostart, which produces the
@@ -364,23 +236,14 @@ func main() {
 	tray.SetMenu(trayMenu)
 
 	wailsApp.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(*application.ApplicationEvent) {
-		mu.Lock()
-		// Covers both a parse error in Register above and an OS rejection.
-		hotkeyFailed := !wailsApp.GlobalShortcut.IsRegistered(currentHotkey)
-		if hotkeyFailed {
-			log.Printf("atalho: %s não registrado pelo SO", currentHotkey)
-			host.SetHotkeyWarning(hotkeyWarning(currentHotkey))
-		}
-		mu.Unlock()
-
-		pending := pendingLaunch.Swap(0)
-		switch {
-		case pending == 2 || slices.Contains(os.Args[1:], triggerArg):
+		hotkeyFailed := reloader.HotkeyFailed()
+		// Without a working hotkey (or with a config error) the user would
+		// never see the warning, so surface the window with it.
+		switch launches.Drain(os.Args[1:], cfgErrMsg != "" || hotkeyFailed) {
+		case app.StartupTrigger:
 			// Launched (or re-launched early) via the --trigger shortcut.
 			go onHotkey()
-		case pending == 1 || cfgErr != nil || hotkeyFailed:
-			// Without a working hotkey the user would never see the
-			// warning, so surface the window with it.
+		case app.StartupShow:
 			host.ShowWindow()
 		}
 	})
