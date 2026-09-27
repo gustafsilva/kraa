@@ -75,10 +75,10 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
   um implementador por task.
 - `superpowers:verification-before-completion`: rodar e conferir os
   comandos de verificação antes de marcar uma task como concluída.
-- `frontend-design`: direção visual do modal (Task 7).
+- `frontend-design`: direção visual do modal.
 - `code-review` / `simplify`: revisão final de cada task.
 - `.claude/agents/cross-platform-reviewer.md`: revisor focado em código
-  específico de SO — usar nas Tasks 5 e 6.
+  específico de SO — usar em mudanças em `internal/platform`, `internal/app` ou `main.go`.
 
 ## Checklist de verificação manual por SO
 
