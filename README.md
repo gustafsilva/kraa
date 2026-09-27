@@ -7,29 +7,51 @@
 [![CI](https://github.com/gustafsilva/kraa/actions/workflows/ci.yml/badge.svg)](https://github.com/gustafsilva/kraa/actions/workflows/ci.yml)
 [![Docs](https://github.com/gustafsilva/kraa/actions/workflows/docs.yml/badge.svg)](https://gustafsilva.github.io/kraa/)
 [![npm](https://img.shields.io/npm/v/kraa)](https://www.npmjs.com/package/kraa)
+[![Licença MIT](https://img.shields.io/github/license/gustafsilva/kraa)](LICENSE)
+[![PRs bem-vindos](https://img.shields.io/badge/PRs-bem--vindos-brightgreen)](CONTRIBUTING.md)
 
-App de bandeja (macOS, Windows, Linux) que melhora o texto selecionado em qualquer aplicativo
-usando um LLM compatível com a API OpenAI (padrão: [Ollama](https://ollama.com) local). Um atalho
-global captura a seleção e abre um modal com ações prontas e instrução livre; o resultado chega em
-stream e pode ser **Substituído** no app de origem ou **Copiado**.
+**Selecione um texto em qualquer app, aperte um atalho e melhore com IA — rodando local e de
+graça com o [Ollama](https://ollama.com).**
 
-**📖 Documentação: <https://gustafsilva.github.io/kraa/>**
+<p align="center">
+  <img src="docs/brand/demo.gif" alt="Demonstração: um prompt digitado no navegador é selecionado, o atalho abre o Kraa, a ação Melhorar prompt reescreve o texto e Substituir cola o resultado de volta" width="800">
+</p>
 
-```
- seleciona texto   ──►   ⌘/Ctrl+Shift+Y   ──►   escolhe ação   ──►   resposta em stream
- em qualquer app         (captura a seleção)    ou instrução           │
-                                                                       ├─► ⌘/Ctrl+Enter → Substituir
-                                                                       └─► ⌘/Ctrl+Shift+C → Copiar
-```
+## Por que usar
 
-## Instalação rápida
+- **Funciona em qualquer app:** navegador, editor, chat, e-mail. Se dá para selecionar, dá para
+  melhorar.
+- **Local por padrão:** com o Ollama, o seu texto não sai da sua máquina.
+- **Qualquer LLM compatível com a API da OpenAI:** Ollama, OpenAI, OpenRouter, LM Studio e
+  outros.
+- **macOS, Windows e Linux**, com fluxo 100% pelo teclado.
 
-```bash
-ollama pull llama3.2 && ollama serve          # LLM local (https://ollama.com/download)
-npm i -g kraa && kraa start
-```
+## Instalação
 
-Sem Node:
+1. **Instale o [Ollama](https://ollama.com/download)** e baixe o modelo padrão:
+
+   ```bash
+   ollama pull llama3.2
+   ```
+
+2. **Instale e inicie o Kraa** (requer Node.js 18+):
+
+   ```bash
+   npm i -g kraa && kraa start
+   ```
+
+   O ícone do Kraa aparece na bandeja do sistema.
+
+3. **Confira se está tudo certo:**
+
+   ```bash
+   kraa doctor
+   ```
+
+<details>
+<summary>Sem Node.js, e observações por sistema</summary>
+
+**Script de instalação**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/gustafsilva/kraa/main/scripts/install.sh | sh   # macOS / Linux
@@ -39,12 +61,34 @@ curl -fsSL https://raw.githubusercontent.com/gustafsilva/kraa/main/scripts/insta
 irm https://raw.githubusercontent.com/gustafsilva/kraa/main/scripts/install.ps1 | iex        # Windows
 ```
 
-- **macOS:** conceda a permissão de Acessibilidade na primeira execução.
-- **Linux:** `sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0 xdotool`. No Wayland só "Copiar"
-  está disponível.
+**macOS:** conceda a permissão de **Acessibilidade** na primeira execução. Sem ela, só
+"Copiar" funciona.
 
-Algo não funcionou? Rode `kraa doctor` e veja a
+**Linux:** instale as dependências com
+`sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0 xdotool`. No Wayland só "Copiar" está
+disponível; use `kraa trigger` como atalho do sistema.
+
+</details>
+
+Algo não funcionou? Veja a
 [solução de problemas](https://gustafsilva.github.io/kraa/docs/ajuda/solucao-de-problemas/).
+
+## Como usar
+
+```
+ seleciona texto   ──►   ⌘/Ctrl+Shift+Y   ──►   escolhe ação   ──►   resposta em stream
+ em qualquer app         (captura a seleção)    ou instrução           │
+                                                                       ├─► ⌘/Ctrl+Enter → Substituir
+                                                                       └─► ⌘/Ctrl+Shift+C → Copiar
+```
+
+| Atalho | O que faz |
+|---|---|
+| `⌘⇧Y` (macOS) / `Ctrl+Shift+Y` | Abre o Kraa com o texto selecionado |
+| `↑` `↓` `Enter` | Escolhe e executa uma ação (ou digite uma instrução livre) |
+| `⌘/Ctrl+Enter` | Substitui a seleção original pelo resultado |
+| `⌘/Ctrl+Shift+C` | Copia o resultado |
+| `Esc` | Fecha e cancela |
 
 ## Documentação
 
@@ -56,24 +100,13 @@ Algo não funcionou? Rode `kraa doctor` e veja a
 | [CLI](https://gustafsilva.github.io/kraa/docs/referencia/cli/) | `start`, `stop`, `trigger`, `doctor`… |
 | [Plataformas](https://gustafsilva.github.io/kraa/docs/plataformas/macos/) | macOS, Windows, Linux (X11/Wayland) e privacidade |
 
-A fonte da documentação fica em [`site/src/content/docs`](site/src/content/docs) (MDX).
+## Contribua
 
-## Desenvolvimento
-
-```bash
-go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.26
-npm --prefix frontend ci
-wails3 dev                     # app em modo desenvolvimento
-go test ./...                  # Linux: go test -tags gtk3 ./...
-npm --prefix frontend test
-npm --prefix npm test
-npm --prefix site run dev      # site de documentação
-```
-
-Veja o [guia de contribuição](CONTRIBUTING.md), a
-[arquitetura](https://gustafsilva.github.io/kraa/docs/contribuir/arquitetura/) e o
-[`CLAUDE.md`](CLAUDE.md). Mudanças ficam no [CHANGELOG](CHANGELOG.md); vulnerabilidades, pelo
-[SECURITY.md](SECURITY.md).
+Contribuições são bem-vindas, inclusive de quem está começando: documentação, testes em outros
+sistemas, novas ações e providers. Comece pelas
+[issues para iniciantes](https://github.com/gustafsilva/kraa/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22),
+leia o [guia de contribuição](CONTRIBUTING.md) e tire dúvidas nas
+[Discussions](https://github.com/gustafsilva/kraa/discussions).
 
 ## Licença
 
