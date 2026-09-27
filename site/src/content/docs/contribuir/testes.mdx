@@ -35,8 +35,9 @@ específico de SO fica atrás de interfaces (`Clipboard`, `KeySender`) para ser 
 desktop é trocado por fakes em memória (`internal/e2e`) controlados por endpoints `/__e2e/*`:
 
 - `trigger`: simula a seleção capturada (captura com fakes em memória, sem app externo nem SO).
-- `hotkey`: dispara o callback de todo atalho registrado, como se o SO tivesse aceitado o
-  atalho — verifica a fiação do `OnHotkey` (reload de config incluso).
+- `hotkey`: dispara o callback do atalho atualmente registrado, como se o SO tivesse aceitado
+  o atalho — verifica a fiação do `OnHotkey` (o mesmo callback que o Reloader religa após uma
+  troca de atalho via `reset`/`Reload`, não um reload em si).
 - `state`: mostra o que foi colado, o clipboard e a visibilidade das janelas.
 - `session`: liga/desliga a colagem automática (simula com/sem permissão de Acessibilidade).
 - `clipboard`: define o conteúdo do clipboard fake.

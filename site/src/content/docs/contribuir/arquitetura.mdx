@@ -34,8 +34,9 @@ binário.
 ## Regras do projeto
 
 - `internal/config`, `internal/llm`, `internal/improver` e `internal/platform/capture.go`
-  **não importam o Wails**. Só `main.go` e `internal/app` dependem de
-  `github.com/wailsapp/wails/v3`, o que mantém o núcleo testável sem interface gráfica.
+  **não importam o Wails**. Só `main.go`, `main_server.go` (só E2E, `-tags server`) e
+  `internal/app` dependem de `github.com/wailsapp/wails/v3`, o que mantém o núcleo testável
+  sem interface gráfica.
 - Código específico de SO usa **build tags** (`keys_darwin.go`, `keys_windows.go`,
   `keys_linux.go`, `session_linux.go`), nunca `if runtime.GOOS` espalhado.
 - Textos da UI em **PT-BR**; identificadores e código em inglês.

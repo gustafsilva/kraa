@@ -92,8 +92,9 @@ npm --prefix site run build         # se mudou a documentação
 
 ## Regras do projeto
 
-- **Wails isolado:** só `main.go` e `internal/app` importam o Wails. `internal/config`,
-  `internal/llm`, `internal/improver` e `internal/platform/capture.go` não.
+- **Wails isolado:** só `main.go`, `main_server.go` (só E2E, `-tags server`) e `internal/app`
+  importam o Wails. `internal/config`, `internal/llm`, `internal/improver` e
+  `internal/platform/capture.go` não.
 - **Código por sistema operacional** usa build tags (`keys_darwin.go`, `keys_windows.go`,
   `keys_linux.go`), nunca `if runtime.GOOS` espalhado.
 - **Idioma:** textos da interface em PT-BR; identificadores e código em inglês.
