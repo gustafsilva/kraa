@@ -65,4 +65,24 @@ describe("<Footer />", () => {
     expect(screen.getByText(/aplicar/i)).toBeInTheDocument();
     expect(screen.getByText(/voltar/i)).toBeInTheDocument();
   });
+
+  it("teclas com modificador não trocam o botão focado", async () => {
+    const { rerender, user, onCopy, onReplace } = renderFooter();
+    rerender({ focusToken: 1 });
+    expect(screen.getByRole("button", { name: /substituir/i })).toHaveFocus();
+    await user.keyboard("{Meta>}{ArrowRight}{/Meta}");
+    expect(screen.getByRole("button", { name: /substituir/i })).toHaveFocus();
+    expect(onCopy).not.toHaveBeenCalled();
+    expect(onReplace).not.toHaveBeenCalled();
+  });
+
+  it("sair da barra (onBlur) devolve a dica de fora da barra", async () => {
+    const { rerender, user } = renderFooter();
+    rerender({ focusToken: 1 });
+    expect(screen.getByText(/aplicar/i)).toBeInTheDocument();
+
+    await user.tab();
+    expect(screen.getByText(/executar/i)).toBeInTheDocument();
+    expect(screen.queryByText(/aplicar/i)).not.toBeInTheDocument();
+  });
 });

@@ -63,6 +63,49 @@ describe("<ProfileWindow />", () => {
     expect(screen.getByLabelText("Sobre você")).toHaveValue("Editado no YAML");
     expect(screen.getByLabelText("Usar perfil")).not.toBeChecked();
   });
+
+  it("GetProfile rejeitado mostra o erro e mantém a janela utilizável", async () => {
+    ImproveService.GetProfile.mockRejectedValueOnce(new Error("config ilegível"));
+    render(<ProfileWindow />);
+    expect(await screen.findByText(/config ilegível/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Sobre você")).toBeEnabled();
+  });
+
+  it("Salvar fica desabilitado enquanto salva", async () => {
+    const user = userEvent.setup();
+    let resolve!: () => void;
+    ImproveService.SaveProfile.mockReturnValueOnce(new Promise<void>((r) => (resolve = r)));
+    await renderLoaded();
+
+    const save = screen.getByRole("button", { name: "Salvar" });
+    await user.click(save);
+    expect(save).toBeDisabled();
+
+    await act(async () => resolve());
+    expect(save).toBeEnabled();
+  });
+
+  it("contador mostra n/2000 e limita o texto", async () => {
+    const user = userEvent.setup();
+    await renderLoaded();
+
+    const box = screen.getByRole("textbox", { name: "Sobre você" });
+    await user.clear(box);
+    await user.type(box, "abc");
+
+    expect(screen.getByText("3/2000")).toBeInTheDocument();
+    expect(box).toHaveAttribute("maxLength", "2000");
+  });
+
+  it("envia enabled marcado ao salvar", async () => {
+    const user = userEvent.setup();
+    await renderLoaded({ enabled: false, text: "Sou dev" });
+
+    await user.click(screen.getByRole("checkbox", { name: "Usar perfil" }));
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+
+    expect(ImproveService.SaveProfile).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
+  });
 });
 
 describe("<ProfileWindow /> — mascote Kraa", () => {

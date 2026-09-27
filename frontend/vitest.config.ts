@@ -35,8 +35,8 @@ export default defineConfig({
       include: ["src/**/*.{ts,tsx}"],
       exclude: ["src/components/ui/**", "src/test/**", "src/**/*.test.{ts,tsx}", "src/vite-env.d.ts", "src/main.tsx"],
       reporter: ["text-summary", "html"],
-      // Floors measured on 2026-09-27 (92.38/87.15/90.09/92.8). Raise, never lower.
-      thresholds: { statements: 92, branches: 87, functions: 90, lines: 92 },
+      // Floors measured on 2026-09-27, after Task 5 (99.67/92.85/99.09/100). Raise, never lower.
+      thresholds: { statements: 99, branches: 92, functions: 99, lines: 100 },
     },
   },
 });
