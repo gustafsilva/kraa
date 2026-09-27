@@ -1,0 +1,14 @@
+{
+  "name": "kraa-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:server": "npm --prefix ../frontend run build && cd .. && go build -tags server -o bin/kraa-e2e .",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.59.1",
+    "@types/node": "^22.20.4",
+    "typescript": "^5.2.2"
+  }
+}
