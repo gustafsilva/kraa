@@ -1,6 +1,8 @@
 ## O que muda
 
-<!-- Descreva a mudança e o motivo. Link para a issue, se houver. -->
+<!-- Descreva a mudança e o motivo. -->
+
+Fecha #
 
 ## Como foi testado
 
@@ -12,5 +14,7 @@
 
 ## Checklist
 
+- [ ] Li o [guia de contribuição](https://github.com/gustafsilva/kraa/blob/main/CONTRIBUTING.md)
 - [ ] Textos da UI em PT-BR
 - [ ] Documentação atualizada (`site/src/content/docs`) e item no `CHANGELOG.md`
+- [ ] Não usei IA, ou usei e revisei e entendo todo o código ([política de uso de IA](https://github.com/gustafsilva/kraa/blob/main/CONTRIBUTING.md#uso-de-ia))

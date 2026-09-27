@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Dúvidas e ideias
+    url: https://github.com/gustafsilva/kraa/discussions
+    about: Perguntas sobre uso, configuração ou ideias ainda em aberto.
   - name: Documentação
     url: https://gustafsilva.github.io/kraa/
     about: Instalação, configuração e solução de problemas.

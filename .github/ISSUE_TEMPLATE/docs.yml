@@ -1,0 +1,31 @@
+name: Melhorar a documentação
+description: Algo confuso, errado ou faltando no README, no CONTRIBUTING ou no site.
+labels: [documentation, "status: triagem"]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Página ou arquivo
+      description: URL do site ou caminho no repositório.
+      placeholder: https://gustafsilva.github.io/kraa/docs/uso/primeiros-passos/
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: O que está confuso, errado ou faltando?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Sugestão
+      description: Como o texto poderia ficar, se você já tiver uma ideia.
+  - type: dropdown
+    id: implement
+    attributes:
+      label: Você gostaria de fazer essa melhoria?
+      options:
+        - Sim
+        - Talvez, com ajuda
+        - Não

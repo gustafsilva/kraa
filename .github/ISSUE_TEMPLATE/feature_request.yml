@@ -1,6 +1,6 @@
 name: Sugerir uma melhoria
 description: Uma ideia de recurso ou mudança.
-labels: [enhancement]
+labels: [enhancement, "status: triagem"]
 body:
   - type: textarea
     id: problem
@@ -19,3 +19,13 @@ body:
     id: alternatives
     attributes:
       label: Alternativas consideradas
+  - type: dropdown
+    id: implement
+    attributes:
+      label: Você gostaria de implementar?
+      options:
+        - Sim
+        - Talvez, com ajuda
+        - Não
+    validations:
+      required: true
