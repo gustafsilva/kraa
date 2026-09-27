@@ -17,6 +17,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 - A bandeja mostra o corvo do Kraa em vez do ícone padrão do Wails, adaptado ao tema claro e
   escuro em macOS, Windows e Linux.
+- Ícone do app redesenhado com fundo âmbar para continuar legível em tamanho pequeno (lista de
+  Acessibilidade, Finder, Dock); antes o corvo preto sumia no fundo escuro.
 
 ## [0.1.0] - 2026-09-26
 

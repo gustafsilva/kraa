@@ -1,6 +1,6 @@
 {
   "fill" : {
-    "solid" : "srgb:0.09412,0.09412,0.10588,1.00000"
+    "solid" : "srgb:0.96078,0.70196,0.14118,1.00000"
   },
   "groups" : [
     {
@@ -9,7 +9,7 @@
           "image-name" : "kraa-mark.png",
           "name" : "kraa-mark",
           "position" : {
-            "scale" : 0.62,
+            "scale" : 0.78,
             "translation-in-points" : [
               0.0,
               6.0

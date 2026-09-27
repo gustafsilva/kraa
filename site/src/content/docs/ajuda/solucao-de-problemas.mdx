@@ -66,6 +66,16 @@ corresponder a <Kbd keys={["⌘", "C"]} />/<Kbd keys={["⌘", "V"]} />.
 </details>
 
 <details>
+<summary>macOS: o ícone do Kraa continua antigo depois de atualizar</summary>
+
+**Causa:** o macOS guarda o ícone do app em cache, inclusive na lista de Acessibilidade.
+
+**Solução:** em **Ajustes do Sistema → Privacidade e Segurança → Acessibilidade**, remova o
+Kraa com "−" e adicione de novo (isso também renova a permissão, necessária a cada versão).
+Se o ícone antigo continuar no Dock ou no Finder, rode `killall Dock`.
+</details>
+
+<details>
 <summary>Windows: erro ao colar em um app</summary>
 
 O app de destino provavelmente roda como administrador. Por causa do UIPI a colagem é bloqueada:

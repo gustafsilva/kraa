@@ -20,10 +20,10 @@ para criar ou editar imagens novas mantendo o mesmo personagem.
 | Nome | Hex | Uso |
 |---|---|---|
 | near-black | `#0B0B0F` | Fundos escuros (banner, hero, site) |
-| charcoal | `#18181B` | Fundo do ícone do app |
+| charcoal | `#18181B` | Fundos escuros de UI (modal) |
 | zinc | `#3F3F46` | Sombras e penas |
 | off-white | `#FAFAFA` | Texto sobre fundo escuro, contorno dos stickers |
-| amber | `#F5B324` | Olho, detalhes e brilhos (acento único) |
+| amber | `#F5B324` | Olho, detalhes e brilhos (acento único); fundo do ícone do app |
 
 ## Estrutura
 
@@ -277,22 +277,53 @@ magick docs/brand/source/chatgpt-hero.png \
 magick docs/brand/kraa-hero.png -resize 1600x -quality 84 site/public/brand/hero.webp
 ```
 
-**Ícone do app.** Squircle `#18181B` de 824px com gradiente, centralizado num canvas de 1024 (grade do macOS), com a cabeça em 640px por cima:
+**Ícone do app.** Squircle âmbar (`#F8C44A` → `#E09A12`) de 824px, centralizado num canvas de
+1024 (grade do macOS), com a cabeça em 720px por cima. Até a v0.1.0 o fundo era carvão
+(`#18181B`): o corvo preto sumia em 16–32 px (lista de Acessibilidade, Finder em lista).
 ```bash
 magick -size 1024x1024 xc:none \
-  \( -size 824x824 xc:none -fill "#18181B" -draw "roundrectangle 0,0 823,823 185,185" \
-     \( -size 824x824 gradient:"#2A2A31-#121215" \) -compose SrcIn -composite \) \
+  \( -size 824x824 xc:none -fill white -draw "roundrectangle 0,0 823,823 185,185" \
+     \( -size 824x824 gradient:"#F8C44A-#E09A12" \) -compose SrcIn -composite \) \
   -gravity center -compose Over -composite \
-  \( docs/brand/kraa-mark.png -resize 640x640 \) -gravity center -geometry +0+10 -compose Over -composite \
+  \( docs/brand/kraa-mark.png -resize 720x720 \) -gravity center -geometry +0+10 -compose Over -composite \
   -strip docs/brand/kraa-app-icon.png
 cp docs/brand/kraa-app-icon.png build/appicon.png
 cp docs/brand/kraa-mark.png build/appicon.icon/Assets/kraa-mark.png
-cd build && wails3 generate icons -input appicon.png -macfilename darwin/icons.icns \
-  -windowsfilename windows/icon.ico -iconcomposerinput appicon.icon -macassetdir darwin
+wails3 task common:generate:icons
 ```
-O `Assets.car` do macOS depende do `actool` do Xcode. Se o `wails3` pular esse passo sem
-avisar, rode `xcrun actool --version`. Se aparecer "A required plugin failed to load", rode
+No macOS quem manda é o `build/appicon.icon` (Icon Composer): com o `actool` 26+, o
+`wails3 generate icons` gera **tanto o `Assets.car` quanto o `icons.icns`** a partir dele, e o
+`appicon.png` só alimenta o `icon.ico` do Windows. No `icon.json`, o fundo é
+`"solid" : "srgb:0.96078,0.70196,0.14118,1.00000"` (`#F5B324`) e a camada `kraa-mark.png` fica
+em `"scale" : 0.78`. A CI de release regera esses arquivos a cada build: mude as fontes, não só
+os gerados. O `Assets.car` sai com bytes diferentes a cada geração (mesmo tamanho, metadados
+internos do `actool`); diff nele sem mudança nas fontes não é problema.
+
+O `Assets.car` depende do `actool` do Xcode. Se o `wails3` pular esse passo sem avisar, rode
+`xcrun actool --version`. Se aparecer "A required plugin failed to load", rode
 `sudo xcodebuild -runFirstLaunch` e gere de novo.
+
+**Folha de preview.** Todo ícone novo passa por esta folha: em 16 e 32 px o corvo precisa ser
+reconhecível nos dois fundos. Coloque os candidatos em `$S/candidate-*.png` (com o atual como
+`candidate-0-atual.png`):
+```bash
+for f in "$S"/candidate-*.png; do
+  n=$(basename "$f" .png); row=()
+  for bg in l d; do
+    [ $bg = l ] && col="#ECECEC" || col="#1E1E1E"
+    for s in 16 32 64 128; do
+      magick "$f" -resize ${s}x${s} -background "$col" -gravity center -extent 136x136 "$S/p-$n-$bg-$s.png"
+      row+=("$S/p-$n-$bg-$s.png")
+    done
+  done
+  magick "${row[@]}" +append "$S/row-$n.png"
+done
+magick "$S"/row-candidate-*.png -append "$S/icon-preview.png"
+```
+Para ver o ícone como o macOS mostra (Acessibilidade, Finder), renderize o `.app` buildado com
+`NSWorkspace.shared.icon(forFile:)` num script Swift. Se vier o ícone genérico de documento,
+é sandbox ou cache: rode `lsregister -f bin/kraa.app`
+(`/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/`).
 
 **Glifo da bandeja.** Achatar sobre branco antes do threshold funciona tanto com alfa real
 quanto com fundo branco. Depois do glifo mestre, os três PNG de 64 px da bandeja:

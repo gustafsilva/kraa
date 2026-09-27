@@ -15,7 +15,7 @@ Próximos passos do projeto, organizados por categoria.
 ## Bugs
 
 - [x] macOS (instalado via npm): ícone da bandeja aparece como "W" (ícone padrão do Wails) em vez do ícone do Kraa
-- [ ] macOS: ícone do app em Ajustes > Privacidade e Segurança > Acessibilidade aparece todo preto (o corvo aparece, mas sem as cores/fundo corretos)
+- [x] macOS: ícone do app em Ajustes > Privacidade e Segurança > Acessibilidade aparece todo preto (o corvo aparece, mas sem as cores/fundo corretos)
 
 ## UI
 
