@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/brand/kraa-banner.png" alt="Kraa, o corvo mascote do Prompt Improve" width="720">
+</p>
+
 # Prompt Improve
 
 [![CI](https://github.com/gustafsilva/prompt-improve-beta/actions/workflows/ci.yml/badge.svg)](https://github.com/gustafsilva/prompt-improve-beta/actions/workflows/ci.yml)

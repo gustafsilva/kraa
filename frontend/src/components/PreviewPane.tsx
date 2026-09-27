@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
+import { Mascot, type MascotPose } from "@/components/Mascot";
 
 interface PreviewPaneProps {
   value: string;
@@ -8,12 +9,20 @@ interface PreviewPaneProps {
   /** True while the model is still writing; the pencil rule breathes. */
   streaming?: boolean;
   placeholder?: string;
+  /** Kraa pose shown in the corner while there is no result yet (null: none). */
+  mascot?: MascotPose | null;
 }
 
 /** Streaming/result preview. Read-only while streaming; editable once done. */
-export function PreviewPane({ value, onChange, editable, streaming = false, placeholder }: PreviewPaneProps) {
+export function PreviewPane({
+  value,
+  onChange,
+  editable,
+  streaming = false,
+  placeholder,
+  mascot = null,
+}: PreviewPaneProps) {
   const hasResult = value.trim().length > 0;
-
   return (
     <div className="group/preview relative -ml-3 flex min-h-0 flex-1 flex-col gap-1 pl-3">
       {/* Blue-pencil rule: marks the revised text, mirroring the graphite rule of the source. */}
@@ -37,6 +46,9 @@ export function PreviewPane({ value, onChange, editable, streaming = false, plac
         placeholder={placeholder}
         aria-label="Pré-visualização"
       />
+      {mascot && value.length === 0 && (
+        <Mascot key={mascot} pose={mascot} size={52} className="absolute right-0 bottom-0 opacity-90" />
+      )}
     </div>
   );
 }

@@ -9,6 +9,23 @@ export function href(path: string): string {
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+/** Ilustrações do Kraa em public/brand/<nome>.webp (fundo transparente). */
+export const ILLUSTRATIONS = [
+  "spot-install",
+  "spot-shortcuts",
+  "spot-config",
+  "spot-models",
+  "spot-troubleshooting",
+  "spot-linux",
+  "mascot-wave",
+  "mascot-typing",
+  "mascot-success",
+  "mascot-error",
+  "mascot-empty",
+  "mascot-profile",
+] as const;
+export type Illustration = (typeof ILLUSTRATIONS)[number];
+
 export interface NavItem {
   title: string;
   slug: string;

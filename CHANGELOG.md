@@ -20,6 +20,11 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
   `checksums.txt`.
 - Site de documentação em `site/` (Astro + MDX + shadcn/ui), publicado no GitHub Pages pelo
   workflow `docs.yml`.
+- Identidade visual com o mascote Kraa (corvo): banner no README, ícone do app, logo,
+  favicons, imagem de compartilhamento, hero e ilustrações nas páginas do site. Imagens e
+  prompts de geração em `docs/brand/`.
+- Mascote Kraa no modal (preview vazio, aguardando ação, gerando e erro) e na janela do
+  perfil.
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` e templates de issue e de pull request.
 - Perfil do usuário (bloco `profile` do `config.yaml`, desativado por padrão), editável em
   "Perfil do usuário…" na bandeja e enviado ao LLM nas ações com `use_profile: true` e na

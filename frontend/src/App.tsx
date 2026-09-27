@@ -8,6 +8,7 @@ import { ActionList } from "@/components/ActionList";
 import { PreviewPane } from "@/components/PreviewPane";
 import { Footer } from "@/components/Footer";
 import { ModelPicker } from "@/components/ModelPicker";
+import { Mascot, type MascotPose } from "@/components/Mascot";
 import { useImprove } from "@/hooks/useImprove";
 
 function App() {
@@ -100,6 +101,17 @@ function App() {
 
   const isStreaming = status === "streaming";
 
+  // Kraa in the empty preview: typing before the first token, waving when
+  // there is text ready for an action, "empty" when there is nothing to
+  // improve yet. On error the request alert carries the mascot instead.
+  const previewMascot: MascotPose | null = isStreaming
+    ? "typing"
+    : status === "error"
+      ? null
+      : text.trim()
+        ? "wave"
+        : "empty";
+
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
       <header className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-2.5 [--wails-draggable:drag]">
@@ -188,12 +200,14 @@ function App() {
           editable={status === "done"}
           streaming={isStreaming}
           placeholder={isStreaming ? "Gerando…" : "O resultado aparece aqui."}
+          mascot={previewMascot}
         />
 
         {status === "error" && requestError && (
-          <Alert variant="destructive">
-            <AlertTitle>Não foi possível melhorar o texto</AlertTitle>
-            <AlertDescription className="flex items-center justify-between gap-2">
+          <Alert variant="destructive" className="grid-cols-[auto_1fr] gap-x-2.5">
+            <Mascot pose="error" size={36} className="row-span-2 self-center" />
+            <AlertTitle className="col-start-2">Não foi possível melhorar o texto</AlertTitle>
+            <AlertDescription className="col-start-2 flex items-center justify-between gap-2">
               <span>{requestError}</span>
               <Button
                 variant="outline"

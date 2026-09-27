@@ -79,3 +79,17 @@ describe("<ProfileWindow />", () => {
     expect(screen.getByLabelText("Usar perfil")).not.toBeChecked();
   });
 });
+
+describe("<ProfileWindow /> — mascote Kraa", () => {
+  beforeEach(() => {
+    resetWailsMock();
+    resetImproveServiceMock();
+  });
+
+  it("mostra o Kraa de perfil no cabeçalho", async () => {
+    await renderLoaded();
+    const mascot = document.querySelector('[data-slot="mascot"]');
+    expect(mascot).toHaveAttribute("data-pose", "profile");
+    expect(mascot?.closest("header")).not.toBeNull();
+  });
+});

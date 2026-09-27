@@ -1,0 +1,24 @@
+---
+import { href, type Illustration } from "@/lib/site";
+
+interface Props {
+  name: Illustration;
+  /** Texto alternativo; vazio (padrão) marca a imagem como decorativa. */
+  alt?: string;
+  class?: string;
+}
+const { name, alt = "", class: className = "" } = Astro.props;
+const decorative = alt === "";
+---
+<img
+  src={href(`/brand/${name}.webp`)}
+  alt={alt}
+  aria-hidden={decorative ? "true" : undefined}
+  width="512"
+  height="512"
+  decoding="async"
+  class:list={[
+    "pointer-events-none aspect-square h-auto w-28 shrink-0 object-contain select-none drop-shadow-[0_12px_32px_rgb(245_179_36/0.14)] sm:w-40",
+    className,
+  ]}
+/>

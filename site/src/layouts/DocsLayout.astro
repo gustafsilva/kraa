@@ -4,15 +4,17 @@ import BaseLayout from "./BaseLayout.astro";
 import Header from "@/components/Header.astro";
 import Sidebar from "@/components/docs/Sidebar.astro";
 import Toc from "@/components/docs/Toc.astro";
-import { FLAT_NAV, NAV, REPO_URL, href } from "@/lib/site";
+import SpotIllustration from "@/components/SpotIllustration.astro";
+import { FLAT_NAV, NAV, REPO_URL, href, type Illustration } from "@/lib/site";
 
 interface Props {
   title: string;
   description: string;
   slug: string;
   headings: MarkdownHeading[];
+  illustration?: Illustration;
 }
-const { title, description, slug, headings } = Astro.props;
+const { title, description, slug, headings, illustration } = Astro.props;
 const index = FLAT_NAV.findIndex((i) => i.slug === slug);
 const prev = index > 0 ? FLAT_NAV[index - 1] : undefined;
 const next = index >= 0 && index < FLAT_NAV.length - 1 ? FLAT_NAV[index + 1] : undefined;
@@ -34,10 +36,13 @@ const editUrl = `${REPO_URL}/edit/main/site/src/content/docs/${slug}.mdx`;
 
     <main class="min-w-0 flex-1 py-10 lg:px-10 xl:pr-4">
       <article class="mx-auto max-w-3xl">
-        <header class="mb-10">
-          {section && <p class="mb-3 text-sm font-medium text-brand">{section.title}</p>}
-          <h1 class="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{title}</h1>
-          <p class="mt-3 text-lg text-balance text-muted-foreground">{description}</p>
+        <header class:list={["mb-10", illustration && "flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8"]}>
+          <div class="min-w-0">
+            {section && <p class="mb-3 text-sm font-medium text-brand">{section.title}</p>}
+            <h1 class="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{title}</h1>
+            <p class="mt-3 text-lg text-balance text-muted-foreground">{description}</p>
+          </div>
+          {illustration && <SpotIllustration name={illustration} class="-my-2 sm:-my-4" />}
         </header>
         <div class="prose-doc" data-doc>
           <slot />

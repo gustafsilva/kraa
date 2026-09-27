@@ -4,6 +4,7 @@ import { ImproveService } from "@bindings/github.com/gustavofreitas/prompt-impro
 import type { ProfileDTO } from "@bindings/github.com/gustavofreitas/prompt-improve/internal/app";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Mascot } from "@/components/Mascot";
 
 /** Mirrors maxProfileChars in internal/app/profile.go. */
 export const MAX_PROFILE_CHARS = 2000;
@@ -42,12 +43,15 @@ export function ProfileWindow() {
 
   return (
     <main className="flex h-screen flex-col gap-4 bg-background p-5 text-foreground">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-base font-semibold">Perfil do usuário</h1>
-        <p className="text-sm text-muted-foreground">
-          Conte quem você é: cargo, stack, preferências. Com o perfil ativo, ele é enviado ao LLM nas ações
-          de prompt e na instrução livre.
-        </p>
+      <header className="flex items-start gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <h1 className="text-base font-semibold">Perfil do usuário</h1>
+          <p className="text-sm text-muted-foreground">
+            Conte quem você é: cargo, stack, preferências. Com o perfil ativo, ele é enviado ao LLM nas ações
+            de prompt e na instrução livre.
+          </p>
+        </div>
+        <Mascot pose="profile" size={56} />
       </header>
 
       <label className="flex items-center gap-2 text-sm">
