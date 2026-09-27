@@ -1,27 +1,11 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@wailsio/runtime", async () => {
-  const mod = await import("../test/wailsRuntimeMock");
-  return { Events: mod.Events };
-});
-
-vi.mock("@bindings/github.com/gustavofreitas/kraa/internal/app", async () => {
-  const mod = await import("../test/improveServiceMock");
-  return { ImproveService: mod.ImproveService };
-});
-
-import { emit, resetWailsMock } from "../test/wailsRuntimeMock";
+import { emit } from "../test/wailsRuntimeMock";
 import { ImproveService } from "../test/improveServiceMock";
-import { resetImproveServiceMock } from "../test/improveServiceMock";
 import { useImprove } from "./useImprove";
 
 describe("useImprove", () => {
-  beforeEach(() => {
-    resetWailsMock();
-    resetImproveServiceMock();
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });
