@@ -13,7 +13,8 @@ O Kraa conversa com qualquer serviço compatível com a API **Chat Completions**
 uma camada de compatibilidade com essa API para o Gemini na base
 `https://generativelanguage.googleapis.com/v1beta/openai/`, mas ninguém ainda testou esse
 caminho no Kraa nem documentou a receita em `providers.mdx`. Sem isso, quem quiser usar Gemini
-fica sem instruções.
+fica sem instruções. É preciso gerar uma chave de API do Google AI Studio (o provider tem
+camada gratuita).
 
 ### O que fazer
 - Gerar uma API key no Google AI Studio.
@@ -55,13 +56,14 @@ Primeira vez por aqui? Veja o [guia de contribuição](https://github.com/gustaf
 
 ## Validar e documentar o provider Anthropic (Claude)
 
-Labels: area: providers, documentation, good first issue, help wanted
+Labels: area: providers, documentation, help wanted
 
 ### Contexto
 A Anthropic expõe uma camada de compatibilidade com a API Chat Completions da OpenAI na base
 `https://api.anthropic.com/v1/`, mas ninguém ainda validou esse caminho no Kraa
 (`internal/llm/client.go`) nem documentou a receita em `providers.mdx`. Sem isso, quem quiser
-usar modelos Claude fica sem instruções.
+usar modelos Claude fica sem instruções. É preciso uma chave de API com créditos pagos da
+Anthropic (não há camada gratuita).
 
 ### O que fazer
 - Gerar uma API key no console da Anthropic.
@@ -103,13 +105,13 @@ Primeira vez por aqui? Veja o [guia de contribuição](https://github.com/gustaf
 
 ## Validar e documentar o provider Grok (xAI)
 
-Labels: area: providers, documentation, good first issue, help wanted
+Labels: area: providers, documentation, help wanted
 
 ### Contexto
 A xAI expõe a API do Grok compatível com o formato Chat Completions da OpenAI na base
 `https://api.x.ai/v1`, mas ninguém ainda validou esse caminho no Kraa (`internal/llm/client.go`)
 nem documentou a receita em `providers.mdx`. Sem isso, quem quiser usar Grok fica sem
-instruções.
+instruções. É preciso uma chave de API com créditos pagos da xAI (não há camada gratuita).
 
 ### O que fazer
 - Gerar uma API key no console da xAI.
@@ -156,7 +158,7 @@ O OpenRouter (`https://openrouter.ai/api/v1`) hoje só é citado de passagem em 
 dentro da seção genérica "Outros endpoints compatíveis" ("LM Studio, vLLM, llama.cpp server,
 OpenRouter e similares..."). Ele dá acesso a dezenas de modelos com uma única chave, o que faz
 diferença para quem está começando, mas não tem uma receita própria como "Ollama Cloud" ou
-"OpenAI" têm.
+"OpenAI" têm. É preciso gerar uma chave de API do OpenRouter (o provider tem camada gratuita).
 
 ### O que fazer
 - Gerar uma API key no OpenRouter.
@@ -290,7 +292,8 @@ sem erro, janela oculta da barra de tarefas). Ninguém do time confirmou recente
 roteiro passa numa máquina Windows real; essa issue não pede código, só o relato dos resultados.
 
 ### O que fazer
-- Instalar o Kraa no Windows (build local com `wails3 build` ou o pacote npm).
+- Instalar o Kraa no Windows (build local com `wails3 build` ou o pacote npm, depois do
+  primeiro release).
 - Seguir, item a item, a seção **Windows** do checklist em `CLAUDE.md` (em "Checklist de
   verificação manual por SO").
 - Comentar na issue quais itens passaram, quais falharam (com print ou descrição do
@@ -322,7 +325,8 @@ esse roteiro passa numa máquina Ubuntu real, nas duas sessões; essa issue não
 relato dos resultados.
 
 ### O que fazer
-- Instalar o Kraa num Ubuntu (build local com `wails3 build -tags gtk3` ou o pacote npm).
+- Instalar o Kraa num Ubuntu (build local com `wails3 build` ou o pacote npm, depois do
+  primeiro release).
 - Seguir, item a item, a seção **Ubuntu** do checklist em `CLAUDE.md` (em "Checklist de
   verificação manual por SO"), tanto em uma sessão X11 quanto em uma sessão Wayland.
 - Comentar na issue quais itens passaram, quais falharam (com print ou descrição do
@@ -373,8 +377,9 @@ comportamento nem que o stream continua normalmente para os chunks seguintes.
 
 ### Como testar
 ```bash
-go test ./internal/llm/... -run TestStream -v
+go test ./internal/llm/...
 ```
+(ou `-run` com o nome do seu teste)
 
 Primeira vez por aqui? Veja o [guia de contribuição](https://github.com/gustafsilva/kraa/blob/main/CONTRIBUTING.md#como-pegar-uma-issue) e comente pedindo para ser atribuído.
 
@@ -409,7 +414,8 @@ só com um objeto `usage`, sem `choices`, antes do `[DONE]`. Não há nenhum tes
 
 ### Como testar
 ```bash
-go test ./internal/llm/... -run TestStream -v
+go test ./internal/llm/...
 ```
+(ou `-run` com o nome do seu teste)
 
 Primeira vez por aqui? Veja o [guia de contribuição](https://github.com/gustafsilva/kraa/blob/main/CONTRIBUTING.md#como-pegar-uma-issue) e comente pedindo para ser atribuído.

@@ -62,6 +62,9 @@ Se travar em qualquer etapa, pergunte nas
    wails3 dev
    ```
 
+   No Linux, instale antes as dependências de sistema e use a tag `gtk3` (veja o
+   [guia de ambiente](https://gustafsilva.github.io/kraa/docs/contribuir/ambiente/)).
+
 4. **Escreva o teste primeiro.** O projeto usa TDD: escreva o teste, veja falhar, implemente,
    veja passar. Veja [Testes](https://gustafsilva.github.io/kraa/docs/contribuir/testes/).
 5. **Rode a verificação** (seção abaixo).
@@ -108,7 +111,7 @@ repositório dá o contexto do projeto para ele.
 ## Revisão
 
 Respondemos issues e PRs em **até 7 dias**. Se passar disso, comente no PR marcando o
-mantenedor. Pedidos de ajuste fazem parte do processo e não são rejeição.
+mantenedor (@gustafsilva). Pedidos de ajuste fazem parte do processo e não são rejeição.
 
 ## Código de conduta e dúvidas
 

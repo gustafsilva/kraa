@@ -49,7 +49,7 @@ graça com o [Ollama](https://ollama.com).**
    ```
 
 <details>
-<summary>Sem Node.js, e observações por sistema</summary>
+<summary>Instalar sem Node.js e observações por sistema</summary>
 
 **Script de instalação**
 
@@ -66,7 +66,8 @@ irm https://raw.githubusercontent.com/gustafsilva/kraa/main/scripts/install.ps1 
 
 **Linux:** instale as dependências com
 `sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0 xdotool`. No Wayland só "Copiar" está
-disponível; use `kraa trigger` como atalho do sistema.
+disponível; use `kraa trigger` como atalho do sistema (veja
+[Linux](https://gustafsilva.github.io/kraa/docs/plataformas/linux/)).
 
 </details>
 

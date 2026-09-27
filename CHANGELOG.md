@@ -30,6 +30,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
   "Perfil do usuário…" na bandeja e enviado ao LLM nas ações com `use_profile: true` e na
   instrução livre.
 - `provider.temperature` (template: `0.2`), enviada só quando definida.
+- Template de issue para melhorias na documentação e checklist de uso de IA no template de PR.
 
 ### Alterado
 
@@ -44,7 +45,6 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - A instrução livre agora é digitada na própria busca de ações (o campo separado saiu).
 - README reescrito com foco em instalar e começar a usar (GIF de demonstração, instalação em
   três passos e tabela de atalhos) e guia de contribuição voltado à primeira contribuição
-  (como pegar uma issue, passo a passo, política de uso de IA e prazo de resposta). Novos
-  templates de issue para documentação e checklist de IA no template de PR.
+  (como pegar uma issue, passo a passo, política de uso de IA e prazo de resposta).
 
 [Não lançado]: https://github.com/gustafsilva/kraa/commits/main
