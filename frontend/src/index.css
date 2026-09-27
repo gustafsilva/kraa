@@ -187,3 +187,12 @@
     .mascot-bob { animation: none; }
   }
 }
+
+/* Kraa's crow glyph, painted with the current text color through a mask
+   so it follows the light/dark theme (set the color with bg-*). */
+@layer utilities {
+  .kraa-glyph {
+    -webkit-mask: url("./assets/kraa-glyph.png") center / contain no-repeat;
+    mask: url("./assets/kraa-glyph.png") center / contain no-repeat;
+  }
+}

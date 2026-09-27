@@ -52,7 +52,7 @@ ser regenerado com os comandos de [Pós-processamento](#pós-processamento).
 | `kraa-mark.png` | `source/chatgpt-mark.png` | Logo do header do site (`site/public/kraa-mark.png`), favicons, camada do `build/appicon.icon` |
 | `kraa-banner.png` | `source/chatgpt-banner.png` | Topo do `README.md`, `site/public/brand/banner.webp`, `site/public/brand/og.png` (preview de links) |
 | `kraa-app-icon.png` | montado a partir de `kraa-mark.png` (ver abaixo) | `build/appicon.png` → `build/darwin/icons.icns`, `build/windows/icon.ico` |
-| `kraa-glyph.png` | `source/chatgpt-tray-glyph.png` | Bandeja: `internal/trayicon/{mac-template,light,dark}.png` |
+| `kraa-glyph.png` | `source/chatgpt-tray-glyph.png` | Bandeja: `internal/trayicon/{mac-template,light,dark}.png`. Modal: glifo à esquerda de "Kraa" no cabeçalho (`frontend/src/assets/kraa-glyph.png`) |
 | `kraa-hero.png` | `source/chatgpt-hero.png` | Seção "Conheça o Kraa" da home (`site/public/brand/hero.webp`) |
 | `mascot/wave.png` | `source/chatgpt-mascot-wave.png` | Modal: preview vazio com texto, aguardando ação. Docs: "Primeiros passos" |
 | `mascot/typing.png` | `source/chatgpt-mascot-typing.png` | Modal: gerando, antes do primeiro trecho do stream |
@@ -73,6 +73,8 @@ pixels. O ícone final foi montado localmente a partir de `kraa-mark.png`.
 No código:
 - **App:** `frontend/src/assets/mascot/*.webp` (256px) e o componente
   `frontend/src/components/Mascot.tsx` (`<Mascot pose="error" />`).
+- **App (cabeçalho do modal):** `frontend/src/assets/kraa-glyph.png` (64 px, preto + alfa),
+  usado como máscara pela classe `.kraa-glyph` de `frontend/src/index.css`; a cor vem do tema.
 - **Site:** `site/public/brand/*.webp` (512px). As ilustrações entram pelo frontmatter
   `illustration: spot-install` das páginas `.mdx`, renderizadas por
   `site/src/components/SpotIllustration.astro`.
@@ -336,6 +338,7 @@ magick docs/brand/source/chatgpt-tray-glyph.png -background white -flatten -colo
 magick docs/brand/kraa-glyph.png -resize 64x64 -strip internal/trayicon/mac-template.png
 magick docs/brand/kraa-glyph.png -fill "#18181B" -colorize 100 -resize 64x64 -strip internal/trayicon/light.png
 magick docs/brand/kraa-glyph.png -fill "#FAFAFA" -colorize 100 -resize 64x64 -strip internal/trayicon/dark.png
+magick docs/brand/kraa-glyph.png -resize 64x64 -strip frontend/src/assets/kraa-glyph.png
 go test ./internal/trayicon/
 ```
 Sem uma imagem gerada, dá para derivar a máscara do próprio `kraa-mark.png` (os detalhes

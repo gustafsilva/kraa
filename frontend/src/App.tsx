@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { PenLine, RotateCcw, X } from "lucide-react";
+import { RotateCcw, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -120,7 +120,11 @@ function App() {
       <header className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-2.5 [--wails-draggable:drag]">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex shrink-0 items-center gap-1.5 text-[13px] font-semibold tracking-tight">
-            <PenLine className="size-3.5 text-pencil" aria-hidden="true" />
+            <span
+              data-slot="kraa-glyph"
+              aria-hidden="true"
+              className="kraa-glyph size-4 shrink-0 bg-foreground"
+            />
             Kraa
           </span>
           <ModelPicker

@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -19,6 +19,18 @@ describe("<App /> — renderização e edição do texto", () => {
     expect(screen.getByText("Deixar formal")).toBeInTheDocument();
     expect(screen.getByText("Deixar casual")).toBeInTheDocument();
     expect(screen.getByText("Corrigir erros")).toBeInTheDocument();
+  });
+
+  it("o cabeçalho mostra o glifo do Kraa (decorativo) em vez do lápis", async () => {
+    await renderAppHydrated();
+
+    const brand = within(screen.getByRole("banner")).getByText("Kraa");
+    const glyph = brand.querySelector('[data-slot="kraa-glyph"]');
+    expect(glyph).not.toBeNull();
+    expect(glyph).toHaveAttribute("aria-hidden", "true");
+    expect(glyph).toHaveClass("kraa-glyph");
+    // O lápis do lucide era um <svg>; não deve sobrar nenhum.
+    expect(brand.querySelector("svg")).toBeNull();
   });
 
   it("não existe mais o campo separado de instrução livre", async () => {
