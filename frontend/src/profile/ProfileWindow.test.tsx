@@ -1,19 +1,9 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-vi.mock("@wailsio/runtime", async () => {
-  const mod = await import("../test/wailsRuntimeMock");
-  return { Events: mod.Events };
-});
-
-vi.mock("@bindings/github.com/gustavofreitas/kraa/internal/app", async () => {
-  const mod = await import("../test/improveServiceMock");
-  return { ImproveService: mod.ImproveService };
-});
-
-import { emit, resetWailsMock } from "../test/wailsRuntimeMock";
-import { ImproveService, resetImproveServiceMock } from "../test/improveServiceMock";
+import { emit } from "../test/wailsRuntimeMock";
+import { ImproveService } from "../test/improveServiceMock";
 import { ProfileWindow } from "./ProfileWindow";
 
 async function renderLoaded(profile = { enabled: true, text: "Sou dev" }) {
@@ -23,11 +13,6 @@ async function renderLoaded(profile = { enabled: true, text: "Sou dev" }) {
 }
 
 describe("<ProfileWindow />", () => {
-  beforeEach(() => {
-    resetWailsMock();
-    resetImproveServiceMock();
-  });
-
   it("carrega o perfil atual", async () => {
     await renderLoaded();
     expect(screen.getByLabelText("Usar perfil")).toBeChecked();
@@ -81,11 +66,6 @@ describe("<ProfileWindow />", () => {
 });
 
 describe("<ProfileWindow /> — mascote Kraa", () => {
-  beforeEach(() => {
-    resetWailsMock();
-    resetImproveServiceMock();
-  });
-
   it("mostra o Kraa de perfil no cabeçalho", async () => {
     await renderLoaded();
     const mascot = document.querySelector('[data-slot="mascot"]');

@@ -2,7 +2,8 @@
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    // ES2022.Array on top of ES2020: Array.prototype.at(), used in tests.
+    "lib": ["ES2020", "ES2022.Array", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
 
@@ -31,6 +32,5 @@
     "noImplicitAny": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "bindings"],
-  "exclude": ["src/test", "src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src", "bindings"]
 }
