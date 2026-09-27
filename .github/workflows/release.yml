@@ -1,9 +1,19 @@
 name: Release
 
 # Publica um GitHub Release com os binários de cada plataforma quando uma tag
-# `v*` é empurrada. Os nomes dos assets são o contrato com o instalador npm
-# (npm/src/platform.ts) e com scripts/install.sh / scripts/install.ps1 —
-# mudar um nome aqui exige mudar lá também.
+# `v*` é empurrada e, depois, envia o pacote npm para o staging do npm. Os
+# nomes dos assets são o contrato com o instalador npm (npm/src/platform.ts) e
+# com scripts/install.sh / scripts/install.ps1 — mudar um nome aqui exige mudar
+# lá também.
+#
+# Segurança (veja site/src/content/docs/contribuir/release.mdx):
+# - actions fixadas por SHA completo (o Dependabot mantém atualizadas);
+# - sem cache de dependências nos builds de release (evita cache poisoning);
+# - o release nasce como rascunho e só é publicado com todos os assets, o que
+#   funciona com "releases imutáveis" ligado no repositório;
+# - o npm é publicado por trusted publishing (OIDC, sem token guardado) em modo
+#   `npm stage publish`: a versão só vai ao ar depois que o mantenedor aprova
+#   com 2FA no npm.
 on:
   push:
     tags: ['v*']
@@ -20,7 +30,9 @@ jobs:
     name: Confere versão do npm/package.json x tag
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       # O instalador npm baixa o release `v<version do package.json>`, então
       # a tag e o package.json precisam bater.
@@ -38,18 +50,18 @@ jobs:
     needs: check-version
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Instala wails3 (versão fixada)
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS3_VERSION }}
@@ -78,7 +90,7 @@ jobs:
           mkdir -p dist
           ditto -c -k --keepParent "bin/Kraa.app" dist/kraa-darwin-universal.app.zip
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: asset-darwin-universal
           path: dist/kraa-darwin-universal.app.zip
@@ -89,18 +101,18 @@ jobs:
     needs: check-version
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Instala wails3 (versão fixada)
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS3_VERSION }}
@@ -118,7 +130,7 @@ jobs:
           mkdir -p dist
           cp bin/kraa.exe dist/kraa-windows-amd64.exe
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: asset-windows-amd64
           path: dist/kraa-windows-amd64.exe
@@ -139,18 +151,18 @@ jobs:
           - arch: arm64
             runner: ubuntu-22.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
       # Mesmas deps GTK3/WebKit2GTK 4.1 do ci.yml (R15: build com -tags gtk3,
       # aplicado automaticamente por build/linux/Taskfile.yml).
@@ -175,7 +187,7 @@ jobs:
           cp bin/kraa "dist/kraa-linux-${{ matrix.arch }}"
           file "dist/kraa-linux-${{ matrix.arch }}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: asset-linux-${{ matrix.arch }}
           path: dist/kraa-linux-${{ matrix.arch }}
@@ -188,7 +200,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: asset-*
           merge-multiple: true
@@ -209,8 +221,66 @@ jobs:
           sha256sum $assets > checksums.txt
           cat checksums.txt
 
-      - uses: softprops/action-gh-release@v2
+      # Rascunho primeiro: com "releases imutáveis" ligado, os assets precisam
+      # estar anexados antes de o release ser publicado.
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: dist/*
+          draft: true
           generate_release_notes: true
           fail_on_unmatched_files: true
+
+      - name: Publica o rascunho
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false
+
+  # Envia o pacote para o staging do npm por trusted publishing (OIDC). Nada
+  # vai ao ar sem o mantenedor aprovar com 2FA (`npm stage approve` ou
+  # npmjs.com). Roda só depois do GitHub Release publicado, porque o
+  # instalador baixa o binário de lá.
+  #
+  # A variável NPM_TRUSTED_PUBLISHING (Settings → Secrets and variables →
+  # Actions → Variables) liga este job depois que o trusted publisher estiver
+  # configurado no npmjs.com; sem ela o job é pulado (ex.: na v0.1.0, publicada
+  # à mão).
+  publish-npm:
+    name: Envia o pacote para o staging do npm
+    needs: release
+    if: vars.NPM_TRUSTED_PUBLISHING == 'true'
+    runs-on: ubuntu-latest
+    # O environment `npm` só aceita tags `v*`; o trusted publisher no npm
+    # exige este workflow (release.yml) e este environment.
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: npm
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      # `npm stage publish` exige npm >= 11.15.0; versão fixada.
+      - name: Atualiza o npm
+        run: npm install -g npm@11.20.0
+
+      # --ignore-scripts: o `postinstall` do próprio pacote roda
+      # `node dist/install.js`, que não deve baixar nada aqui.
+      - name: Instala dependências
+        run: npm ci --ignore-scripts
+
+      - name: Testes
+        run: npm test
+
+      # O `prepack` compila o TypeScript. A provenance é gerada automaticamente
+      # pelo trusted publishing. Pacote sem escopo: sempre público.
+      - name: Envia para o staging
+        run: npm stage publish

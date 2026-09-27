@@ -46,5 +46,9 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - README reescrito com foco em instalar e começar a usar (GIF de demonstração, instalação em
   três passos e tabela de atalhos) e guia de contribuição voltado à primeira contribuição
   (como pegar uma issue, passo a passo, política de uso de IA e prazo de resposta).
+- Release mais seguro: actions fixadas por SHA (atualizadas pelo Dependabot), sem cache nos
+  builds de release, release criado como rascunho (compatível com releases imutáveis) e
+  publicação no npm por trusted publishing (OIDC, sem token) em modo staging, que só vai ao ar
+  com a aprovação do mantenedor com 2FA.
 
 [Não lançado]: https://github.com/gustafsilva/kraa/commits/main

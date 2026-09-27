@@ -1,9 +1,13 @@
 ---
 title: Release
-description: Como uma versão é publicada no GitHub Releases e no npm.
+description: Como uma versão é publicada no GitHub Releases e no npm, e por que só o mantenedor consegue publicar.
 ---
 import Callout from "@/components/mdx/Callout";
 import Steps from "@/components/mdx/Steps.astro";
+
+Uma tag `v*` dispara o workflow `release.yml`, que builda as quatro plataformas, publica o
+GitHub Release e envia o pacote npm para o **staging** do npm. A versão só fica disponível no npm
+depois que o mantenedor aprova com 2FA.
 
 <Steps>
 
@@ -11,30 +15,52 @@ import Steps from "@/components/mdx/Steps.astro";
 
    Altere `version` em `npm/package.json` e mova os itens de "Não lançado" do
    [CHANGELOG.md](https://github.com/gustafsilva/kraa/blob/main/CHANGELOG.md) para
-   a nova versão.
+   a nova versão. Faça o commit na `main`.
 
 2. **Crie e envie a tag**
 
    ```bash
-   git tag v0.1.0
-   git push origin v0.1.0
+   git tag v0.2.0
+   git push origin v0.2.0
    ```
 
    A tag precisa ser igual a `v` + `version` do `npm/package.json`: o workflow falha se não for.
+   Só o mantenedor consegue criar tags `v*` (regra de tag do repositório).
 
 3. **Aguarde o workflow `release.yml`**
 
-   Ele builda as quatro plataformas, gera o `checksums.txt` (SHA-256) e publica o GitHub Release.
+   Ele builda as quatro plataformas, gera o `checksums.txt` (SHA-256), publica o GitHub Release
+   e, no job `publish-npm`, roda `npm stage publish`.
 
-4. **Publique no npm**
+4. **Aprove a versão no npm**
 
    ```bash
-   cd npm && npm publish
+   npm stage list kraa
+   npm stage approve <stage-id>
    ```
 
-   O `npm publish` é manual. O `prepack` compila o TypeScript antes.
+   Ou pela página do pacote no [npmjs.com](https://www.npmjs.com/package/kraa). A aprovação pede
+   2FA.
 
 </Steps>
+
+## Por que só o mantenedor publica
+
+| Camada | O que garante |
+|---|---|
+| Regra de tag no GitHub | Só o mantenedor cria, move ou apaga tags `v*` |
+| Environment `npm` restrito a tags `v*` | A identidade OIDC do job de publicação só existe num release de verdade |
+| Trusted publishing (OIDC) | O CI publica sem nenhum token guardado; a provenance é gerada automaticamente |
+| Trusted publisher só com `npm stage publish` | Nada vai ao ar sem a aprovação com 2FA do mantenedor |
+| "Require two-factor authentication and disallow tokens" | Nenhum token do npm consegue publicar o pacote |
+| Actions fixadas por SHA, sem cache nos builds de release | Uma action ou um cache adulterado não entra no build |
+| Releases imutáveis | Tag e binários publicados não podem ser trocados |
+
+<Callout type="note" title="Primeira publicação">
+  O trusted publisher só pode ser configurado para um pacote que já existe. Por isso a primeira
+  versão foi publicada à mão, com `npm publish` e 2FA, e o job `publish-npm` só roda quando a
+  variável de repositório `NPM_TRUSTED_PUBLISHING` é `true`.
+</Callout>
 
 ## Assets do release
 
