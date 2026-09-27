@@ -66,7 +66,8 @@ Se travar em qualquer etapa, pergunte nas
    [guia de ambiente](https://gustafsilva.github.io/kraa/docs/contribuir/ambiente/)).
 
 4. **Escreva o teste primeiro.** O projeto usa TDD: escreva o teste, veja falhar, implemente,
-   veja passar. Veja [Testes](https://gustafsilva.github.io/kraa/docs/contribuir/testes/).
+   veja passar. Veja [Testes](https://gustafsilva.github.io/kraa/docs/contribuir/testes/) e,
+   se estiver usando um agente, a skill `.claude/skills/testes/` (`/testes`).
 5. **Rode a verificação** (seção abaixo).
 6. **Faça o commit** no formato [Conventional Commits](https://www.conventionalcommits.org/pt-br/):
    `feat(frontend): …`, `fix(llm): …`, `docs: …`.
@@ -75,10 +76,14 @@ Se travar em qualquer etapa, pergunte nas
 ## Antes de abrir o PR
 
 ```bash
-go test ./...                 # Linux: go test -tags gtk3 ./...
+go test ./...                       # Linux: go test -tags gtk3 ./...
 npm --prefix frontend test
-npm --prefix npm test
-npm --prefix site run build   # se mudou a documentação
+npm --prefix frontend run coverage  # idem, com gate de cobertura
+npm --prefix frontend run typecheck && npm --prefix frontend run lint
+npm --prefix npm run coverage
+npm --prefix e2e run build:server   # binário server mode + frontend
+npm --prefix e2e test               # E2E (Playwright), se tocou fluxo coberto por ele
+npm --prefix site run build         # se mudou a documentação
 ```
 
 - Mudanças visíveis ao usuário entram na seção "Não lançado" do [`CHANGELOG.md`](CHANGELOG.md)
@@ -87,8 +92,9 @@ npm --prefix site run build   # se mudou a documentação
 
 ## Regras do projeto
 
-- **Wails isolado:** só `main.go` e `internal/app` importam o Wails. `internal/config`,
-  `internal/llm`, `internal/improver` e `internal/platform/capture.go` não.
+- **Wails isolado:** só `main.go`, `main_server.go` (só E2E, `-tags server`) e `internal/app`
+  importam o Wails. `internal/config`, `internal/llm`, `internal/improver` e
+  `internal/platform/capture.go` não.
 - **Código por sistema operacional** usa build tags (`keys_darwin.go`, `keys_windows.go`,
   `keys_linux.go`), nunca `if runtime.GOOS` espalhado.
 - **Idioma:** textos da interface em PT-BR; identificadores e código em inglês.

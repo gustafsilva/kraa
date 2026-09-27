@@ -47,16 +47,22 @@ tasks:
     cmds:
       - task: common:setup:docker
 
+  # ATENÇÃO: `-tags server` também é usada pelo binário de teste do E2E
+  # (`bin/kraa-e2e`, `.github/workflows/ci.yml`, job `e2e`), que expõe os
+  # endpoints `/__e2e/*` sem autenticação. Este build é esse mesmo seam de
+  # teste; nunca implante o resultado destas tasks em produção.
   build:server:
     summary: Builds the application in server mode (no GUI, HTTP server only)
     cmds:
       - task: common:build:server
 
+  # Ver aviso acima em build:server.
   run:server:
     summary: Runs the application in server mode
     cmds:
       - task: common:run:server
 
+  # Ver aviso acima em build:server.
   build:docker:
     summary: Builds a Docker image for server mode deployment
     cmds:
