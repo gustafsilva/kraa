@@ -7,6 +7,11 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não lançado]
 
+### Adicionado
+
+- Suíte E2E com Playwright contra o backend real (modo servidor do Wails) e um LLM fake.
+- Gate de cobertura na CI para backend, frontend e CLI npm, além de typecheck e ESLint no frontend.
+
 ### Alterado
 
 - O pacote npm passa a se chamar `@gustavofsilva/kraa` (o npm recusou o nome `kraa` por ser
