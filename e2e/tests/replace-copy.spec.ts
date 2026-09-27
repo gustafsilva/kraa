@@ -17,14 +17,14 @@ test("Enter em Substituir cola o resultado e restaura o clipboard", async ({ pag
   await page.keyboard.press("Enter"); // foco já está em Substituir
 
   // Keys.Paste records the paste before platform.Paste's settle + restore,
-  // so poll both together until the clipboard is back to the user's value.
+  // so poll all three signals together until the clipboard is back to the
+  // user's value. hides is exactly 1: reset() zeroes the counter.
   await expect
     .poll(async () => {
-      const { pasted, clipboard } = await e2eState(request);
-      return { pasted, clipboard };
+      const { pasted, clipboard, window } = await e2eState(request);
+      return { pasted, clipboard, hides: window.hides };
     })
-    .toEqual({ pasted: [RESULT], clipboard: "clipboard do usuário" });
-  expect((await e2eState(request)).window.hides).toBeGreaterThanOrEqual(1);
+    .toEqual({ pasted: [RESULT], clipboard: "clipboard do usuário", hides: 1 });
 });
 
 test("Copiar põe o resultado no clipboard sem erro", async ({ page, request, openModal }) => {

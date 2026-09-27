@@ -10,7 +10,14 @@ test("Fechar no meio do stream cancela o pedido sem erro", async ({ page, reques
 
   await page.getByRole("button", { name: "Fechar" }).click();
 
-  await expect.poll(async () => (await llmRequests(request))[0]?.canceled).toBe(true);
-  expect((await e2eState(request)).window.hides).toBeGreaterThanOrEqual(1);
+  // Poll both signals together: the cancellation and the window hide race
+  // each other. hides is exactly 1: reset() zeroes the counter.
+  await expect
+    .poll(async () => {
+      const canceled = (await llmRequests(request))[0]?.canceled;
+      const hides = (await e2eState(request)).window.hides;
+      return { canceled, hides };
+    })
+    .toEqual({ canceled: true, hides: 1 });
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
