@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { emit } from "../test/wailsRuntimeMock";
+import { emit, listenerCount } from "../test/wailsRuntimeMock";
 import { ImproveService } from "../test/improveServiceMock";
 import { useImprove } from "./useImprove";
 
@@ -396,7 +396,10 @@ describe("useImprove", () => {
       });
       expect(result.current.modelsError).toBe("Não foi possível salvar o modelo: disco cheio");
       expect(result.current.modelSaving).toBe(false);
-      expect(result.current.model).not.toBe("fake-b");
+      // GetState wasn't overridden in this test, so the original model is
+      // the mock's default ("") — assert that exact value, not just "isn't
+      // the rejected one" (which "" would trivially satisfy anyway).
+      expect(result.current.model).toBe("");
     });
 
     it("ListModels rejeitado deixa a lista vazia com o erro", async () => {
@@ -407,9 +410,19 @@ describe("useImprove", () => {
     });
 
     it("ListModels null vira lista vazia", async () => {
-      ImproveService.ListModels.mockResolvedValueOnce(null);
+      // Seed a non-empty list first so the assertion below actually proves
+      // the null→[] handling, instead of trivially matching the initial []
+      // the hook starts with regardless of ListModels' response.
+      ImproveService.ListModels.mockResolvedValueOnce(["a", "b"]);
       const { result } = renderHook(() => useImprove());
-      await waitFor(() => expect(ImproveService.ListModels).toHaveBeenCalled());
+      await waitFor(() => expect(result.current.models).toEqual(["a", "b"]));
+
+      ImproveService.ListModels.mockResolvedValueOnce(null);
+      await act(async () => {
+        emit("selection:new", { text: "", canReplace: true, warning: "" });
+        await Promise.resolve();
+      });
+
       expect(result.current.models).toEqual([]);
     });
   });
@@ -440,11 +453,23 @@ describe("useImprove", () => {
     expect(result.current.output).toBe("editado");
   });
 
-  it("GetState rejeitado não quebra o hook", async () => {
+  it("GetState rejeitado não quebra o hook (nem recarrega os modelos)", async () => {
+    // useImprove.ts's GetState().catch() is a documented no-op ("GetState
+    // failures surface later via state:changed; nothing to do here"), so
+    // asserting status === "idle" alone doesn't prove the rejection was
+    // processed — idle is also the untouched initial value. loadModels()
+    // (hence ListModels()) is only called from the *success* branch, so
+    // asserting it was never invoked distinguishes "rejection handled" from
+    // "nothing happened yet".
     ImproveService.GetState.mockRejectedValueOnce(new Error("boom"));
     const { result } = renderHook(() => useImprove());
     await waitFor(() => expect(ImproveService.GetState).toHaveBeenCalled());
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
     expect(result.current.status).toBe("idle");
+    expect(ImproveService.ListModels).not.toHaveBeenCalled();
   });
 
   it("GetState com actions null vira lista vazia", async () => {
@@ -462,52 +487,18 @@ describe("useImprove", () => {
   });
 
   it("desmontar remove os listeners de eventos", async () => {
-    const { unmount, result } = renderHook(() => useImprove());
+    const events = ["improve:chunk", "improve:done", "improve:error", "selection:new", "state:changed"];
+    const { unmount } = renderHook(() => useImprove());
     await waitFor(() => expect(ImproveService.ListModels).toHaveBeenCalled());
+
+    for (const name of events) expect(listenerCount(name)).toBeGreaterThan(0);
+
     unmount();
-    emit("improve:chunk", { id: "req-1", text: "depois" }); // não pode lançar nem atualizar
-    expect(result.current.output).toBe("");
+
+    for (const name of events) expect(listenerCount(name)).toBe(0);
   });
 
-  it("selection:new com Start pendente ignora a resolução tardia (generation)", async () => {
-    let resolveStart!: (id: string) => void;
-    ImproveService.Start.mockImplementationOnce(
-      () =>
-        new Promise<string>((resolve) => {
-          resolveStart = resolve;
-        })
-    );
-
-    const { result } = renderHook(() => useImprove());
-    await waitFor(() => expect(ImproveService.ListModels).toHaveBeenCalled());
-
-    await act(async () => {
-      result.current.start({ actionId: "a1" });
-      await Promise.resolve();
-    });
-
-    // A new capture arrives while the Start() call above is still pending.
-    await act(async () => {
-      emit("selection:new", { text: "nova captura", canReplace: true, warning: "" });
-      await Promise.resolve();
-    });
-    expect(result.current.text).toBe("nova captura");
-    expect(result.current.status).toBe("idle");
-
-    // The stale Start() finally resolves: must not resurrect the superseded
-    // request's state, and must defensively cancel its own id.
-    await act(async () => {
-      resolveStart("req-stale");
-      await Promise.resolve();
-    });
-    expect(result.current.status).toBe("idle");
-    expect(result.current.output).toBe("");
-    expect(ImproveService.Cancel).toHaveBeenCalledWith("req-stale");
-
-    // A live event for the now-irrelevant id must not apply either.
-    act(() => {
-      emit("improve:chunk", { id: "req-stale", delta: "não deveria aparecer" });
-    });
-    expect(result.current.output).toBe("");
-  });
+  // "selection:new com Start pendente ignora a resolução tardia (generation)"
+  // moved to useImprove.race.test.ts (Fix round 1): it's a generation-race
+  // scenario like the rest of that file, not a plain hook test.
 });

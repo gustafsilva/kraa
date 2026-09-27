@@ -117,9 +117,13 @@ describe("<ActionList />", () => {
 
   it("mudar o filtro volta o destaque ao primeiro item", async () => {
     const { user, onSelectAction } = setup();
-    await user.keyboard("{ArrowDown}");
-    await user.keyboard("gramatica");
+    await user.keyboard("{ArrowDown}"); // destaca a2 ("Deixar casual")
+    // Filtra para "deixar": a1 e a2 continuam os dois na lista, então só
+    // provaria o reset do destaque se o Enter escolher a1, não a2.
+    await user.keyboard("deixar");
+    const labels = screen.getAllByRole("option").map((o) => o.textContent);
+    expect(labels.slice(0, 2)).toEqual(["Deixar formal", "Deixar casual"]);
     await user.keyboard("{Enter}");
-    expect(onSelectAction).toHaveBeenCalledWith("b1");
+    expect(onSelectAction).toHaveBeenCalledWith("a1");
   });
 });

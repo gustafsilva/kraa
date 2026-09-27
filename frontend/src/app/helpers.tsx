@@ -50,7 +50,16 @@ export async function renderAppHydrated(state = mockState()) {
 // call's flush — React then warns about the *later* Footer state update
 // (onFocus) as "not wrapped in act()", even though it happens inside this
 // callback. Blurring whatever is currently focused first (itself wrapped in
-// act()) avoids that cmdk interaction entirely.
+// act()) avoids that cmdk interaction entirely, at the cost of collapsing
+// App.tsx's `!active || active === document.body ||
+// active.closest('[data-slot="action-list"]')` focus-effect condition
+// (App.tsx:100) down to just its first two branches for every test that
+// calls this — the cmdk-search branch (a real, keyboard-only user who never
+// left the search box) is deliberately NOT exercised by any test that uses
+// this helper. src/app/keyboard.test.tsx has one dedicated test that skips
+// this helper and instead contains the resulting warning with a scoped,
+// message-filtered console.error spy, to keep that branch covered without
+// it (see that test's comment).
 export function blurActiveElement() {
   (document.activeElement as HTMLElement | null)?.blur();
 }

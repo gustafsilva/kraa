@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { emit } from "../test/wailsRuntimeMock";
@@ -191,5 +191,47 @@ describe("useImprove — R12 event ordering/race with the Start id", () => {
       emit("improve:chunk", { id: "req-new", delta: " mundo" });
     });
     expect(result.current.output).toBe("novo mundo");
+  });
+
+  it("selection:new com Start pendente ignora a resolução tardia (generation)", async () => {
+    let resolveStart!: (id: string) => void;
+    ImproveService.Start.mockImplementationOnce(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveStart = resolve;
+        })
+    );
+
+    const { result } = renderHook(() => useImprove());
+    await waitFor(() => expect(ImproveService.ListModels).toHaveBeenCalled());
+
+    await act(async () => {
+      result.current.start({ actionId: "a1" });
+      await Promise.resolve();
+    });
+
+    // A new capture arrives while the Start() call above is still pending.
+    await act(async () => {
+      emit("selection:new", { text: "nova captura", canReplace: true, warning: "" });
+      await Promise.resolve();
+    });
+    expect(result.current.text).toBe("nova captura");
+    expect(result.current.status).toBe("idle");
+
+    // The stale Start() finally resolves: must not resurrect the superseded
+    // request's state, and must defensively cancel its own id.
+    await act(async () => {
+      resolveStart("req-stale");
+      await Promise.resolve();
+    });
+    expect(result.current.status).toBe("idle");
+    expect(result.current.output).toBe("");
+    expect(ImproveService.Cancel).toHaveBeenCalledWith("req-stale");
+
+    // A live event for the now-irrelevant id must not apply either.
+    act(() => {
+      emit("improve:chunk", { id: "req-stale", delta: "não deveria aparecer" });
+    });
+    expect(result.current.output).toBe("");
   });
 });

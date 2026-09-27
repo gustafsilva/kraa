@@ -190,15 +190,24 @@ describe("<App /> — atalhos e ações do resultado", () => {
     await renderAppHydrated();
     await produceOutput("resultado"); // req-1 chega a "done".
 
-    // A ação (Copiar) falha primeiro, enquanto o pedido ainda está "done".
+    // A ação (Copiar) falha primeiro, enquanto o pedido ainda está "done"
+    // (resultReady=true, então o botão Copiar não está desabilitado).
     await userEvent.setup().click(screen.getByRole("button", { name: /copiar/i }));
     await screen.findByText("Não foi possível copiar para a área de transferência.");
 
-    // Um erro chega depois para o MESMO pedido (req-1): o actionError da
-    // ação já concluída não é limpo por isso, então os dois alerts convivem.
+    // Um erro chega depois para o MESMO pedido (req-1). O handler de
+    // improve:error só mexe em status/requestError (useImprove.ts:126), não
+    // em actionError — só um novo start() limpa actionError
+    // (useImprove.ts:241) — então o alerta da ação já concluída continua de
+    // pé ao lado do alerta do pedido (App.tsx:190 e :209 renderizam os dois
+    // independentemente). Se a ordem fosse invertida (erro do pedido antes
+    // do clique em Copiar), resultReady viraria false e o botão Copiar
+    // ficaria desabilitado, então o clique nunca chamaria Copy — por isso o
+    // Copiar precisa vir primeiro.
     act(() => {
       emit("improve:error", { id: "req-1", message: "Falhou" });
     });
+    await screen.findByText("Falhou");
 
     expect(screen.getAllByRole("alert")).toHaveLength(2);
   });

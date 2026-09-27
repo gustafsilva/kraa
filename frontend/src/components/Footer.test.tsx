@@ -83,5 +83,6 @@ describe("<Footer />", () => {
 
     await user.tab();
     expect(screen.getByText(/executar/i)).toBeInTheDocument();
+    expect(screen.queryByText(/aplicar/i)).not.toBeInTheDocument();
   });
 });
