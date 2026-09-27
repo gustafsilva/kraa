@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/gustavofreitas/kraa/internal/config"
@@ -250,66 +251,70 @@ func blockingRunner(started chan<- string) Runner {
 }
 
 func TestSecondStartCancelsFirst(t *testing.T) {
-	started := make(chan string, 2)
-	var calls int
-	var mu sync.Mutex
-	block := blockingRunner(started)
-	runner := fakeRunner{run: func(ctx context.Context, r improver.Request, onChunk func(string)) error {
-		mu.Lock()
-		calls++
-		n := calls
-		mu.Unlock()
-		if n == 1 {
-			return block.Run(ctx, r, onChunk)
-		}
-		onChunk("b")
-		return nil
-	}}
-	h := newHarness(t, runner, canSimulate)
+	synctest.Test(t, func(t *testing.T) {
+		started := make(chan string, 2)
+		var calls int
+		var mu sync.Mutex
+		block := blockingRunner(started)
+		runner := fakeRunner{run: func(ctx context.Context, r improver.Request, onChunk func(string)) error {
+			mu.Lock()
+			calls++
+			n := calls
+			mu.Unlock()
+			if n == 1 {
+				return block.Run(ctx, r, onChunk)
+			}
+			onChunk("b")
+			return nil
+		}}
+		h := newHarness(t, runner, canSimulate)
 
-	id1, _ := h.svc.Start(StartRequest{Text: "one", ActionID: "fix"})
-	<-started
-	id2, _ := h.svc.Start(StartRequest{Text: "two", ActionID: "fix"})
-	if id1 == id2 {
-		t.Fatal("ids must differ")
-	}
-	h.em.waitFor(t, isEvent(EventDone, id2))
-	time.Sleep(20 * time.Millisecond) // give the first goroutine time to finish
-
-	var first []string
-	for _, ev := range h.em.snapshot() {
-		if eventID(ev) == id1 {
-			first = append(first, ev.name+":"+fmt.Sprint(ev.data))
+		id1, _ := h.svc.Start(StartRequest{Text: "one", ActionID: "fix"})
+		<-started
+		id2, _ := h.svc.Start(StartRequest{Text: "two", ActionID: "fix"})
+		if id1 == id2 {
+			t.Fatal("ids must differ")
 		}
-	}
-	if len(first) != 1 || !strings.HasPrefix(first[0], EventChunk) {
-		t.Fatalf("first request events = %v, want only the initial chunk", first)
-	}
+		h.em.waitFor(t, isEvent(EventDone, id2))
+		synctest.Wait() // all goroutines from this test are durably blocked: the first request's goroutine has finished
+
+		var first []string
+		for _, ev := range h.em.snapshot() {
+			if eventID(ev) == id1 {
+				first = append(first, ev.name+":"+fmt.Sprint(ev.data))
+			}
+		}
+		if len(first) != 1 || !strings.HasPrefix(first[0], EventChunk) {
+			t.Fatalf("first request events = %v, want only the initial chunk", first)
+		}
+	})
 }
 
 func TestCancelStopsRequestWithoutFurtherEvents(t *testing.T) {
-	started := make(chan string, 1)
-	finished := make(chan struct{})
-	block := blockingRunner(started)
-	runner := fakeRunner{run: func(ctx context.Context, r improver.Request, onChunk func(string)) error {
-		defer close(finished)
-		return block.Run(ctx, r, onChunk)
-	}}
-	h := newHarness(t, runner, canSimulate)
+	synctest.Test(t, func(t *testing.T) {
+		started := make(chan string, 1)
+		finished := make(chan struct{})
+		block := blockingRunner(started)
+		runner := fakeRunner{run: func(ctx context.Context, r improver.Request, onChunk func(string)) error {
+			defer close(finished)
+			return block.Run(ctx, r, onChunk)
+		}}
+		h := newHarness(t, runner, canSimulate)
 
-	id, _ := h.svc.Start(StartRequest{Text: "x", ActionID: "fix"})
-	<-started
-	h.svc.Cancel(id)
-	select {
-	case <-finished:
-	case <-time.After(2 * time.Second):
-		t.Fatal("runner not cancelled")
-	}
-	time.Sleep(10 * time.Millisecond)
-	evs := h.em.snapshot()
-	if len(evs) != 1 || evs[0].name != EventChunk {
-		t.Fatalf("events after cancel = %+v, want only the first chunk", evs)
-	}
+		id, _ := h.svc.Start(StartRequest{Text: "x", ActionID: "fix"})
+		<-started
+		h.svc.Cancel(id)
+		select {
+		case <-finished:
+		case <-time.After(2 * time.Second):
+			t.Fatal("runner not cancelled")
+		}
+		synctest.Wait() // all goroutines from this test are durably blocked: nothing more will be emitted
+		evs := h.em.snapshot()
+		if len(evs) != 1 || evs[0].name != EventChunk {
+			t.Fatalf("events after cancel = %+v, want only the first chunk", evs)
+		}
+	})
 }
 
 func TestCancelWithUnknownIDIsNoop(t *testing.T) {
@@ -322,32 +327,34 @@ func TestCancelWithUnknownIDIsNoop(t *testing.T) {
 }
 
 func TestCloseCancelsInFlightAndHidesWindow(t *testing.T) {
-	started := make(chan string, 1)
-	finished := make(chan struct{})
-	block := blockingRunner(started)
-	runner := fakeRunner{run: func(ctx context.Context, r improver.Request, onChunk func(string)) error {
-		defer close(finished)
-		return block.Run(ctx, r, onChunk)
-	}}
-	h := newHarness(t, runner, canSimulate)
+	synctest.Test(t, func(t *testing.T) {
+		started := make(chan string, 1)
+		finished := make(chan struct{})
+		block := blockingRunner(started)
+		runner := fakeRunner{run: func(ctx context.Context, r improver.Request, onChunk func(string)) error {
+			defer close(finished)
+			return block.Run(ctx, r, onChunk)
+		}}
+		h := newHarness(t, runner, canSimulate)
 
-	h.svc.Start(StartRequest{Text: "x", ActionID: "fix"})
-	<-started
-	h.svc.Close()
-	select {
-	case <-finished:
-	case <-time.After(2 * time.Second):
-		t.Fatal("Close did not cancel the request")
-	}
-	if log := h.rec.snapshot(); strings.Join(log, "|") != "hide|release-focus" {
-		t.Fatalf("side effects = %v, want [hide release-focus]", log)
-	}
-	time.Sleep(10 * time.Millisecond)
-	for _, ev := range h.em.snapshot() {
-		if ev.name != EventChunk {
-			t.Fatalf("unexpected event after Close: %+v", ev)
+		h.svc.Start(StartRequest{Text: "x", ActionID: "fix"})
+		<-started
+		h.svc.Close()
+		select {
+		case <-finished:
+		case <-time.After(2 * time.Second):
+			t.Fatal("Close did not cancel the request")
 		}
-	}
+		if log := h.rec.snapshot(); strings.Join(log, "|") != "hide|release-focus" {
+			t.Fatalf("side effects = %v, want [hide release-focus]", log)
+		}
+		synctest.Wait() // all goroutines from this test are durably blocked: nothing more will be emitted
+		for _, ev := range h.em.snapshot() {
+			if ev.name != EventChunk {
+				t.Fatalf("unexpected event after Close: %+v", ev)
+			}
+		}
+	})
 }
 
 // ---- error mapping ---------------------------------------------------------
@@ -385,18 +392,20 @@ func TestRunnerErrorsBecomePTBRErrorEvents(t *testing.T) {
 }
 
 func TestRunnerCanceledErrorEmitsNothing(t *testing.T) {
-	returned := make(chan struct{})
-	runner := fakeRunner{run: func(context.Context, improver.Request, func(string)) error {
-		defer close(returned)
-		return context.Canceled
-	}}
-	h := newHarness(t, runner, canSimulate)
-	h.svc.Start(StartRequest{Text: "x", ActionID: "fix"})
-	<-returned
-	time.Sleep(10 * time.Millisecond)
-	if evs := h.em.snapshot(); len(evs) != 0 {
-		t.Fatalf("events = %+v, want none", evs)
-	}
+	synctest.Test(t, func(t *testing.T) {
+		returned := make(chan struct{})
+		runner := fakeRunner{run: func(context.Context, improver.Request, func(string)) error {
+			defer close(returned)
+			return context.Canceled
+		}}
+		h := newHarness(t, runner, canSimulate)
+		h.svc.Start(StartRequest{Text: "x", ActionID: "fix"})
+		<-returned
+		synctest.Wait() // all goroutines from this test are durably blocked: nothing more will be emitted
+		if evs := h.em.snapshot(); len(evs) != 0 {
+			t.Fatalf("events = %+v, want none", evs)
+		}
+	})
 }
 
 // ---- Replace / Copy --------------------------------------------------------

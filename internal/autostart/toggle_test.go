@@ -6,6 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
@@ -117,67 +118,75 @@ func (f *fakeManager) Enabled() (bool, error) {
 }
 
 func TestToggleEnableSuccessChecksBoxAndClearsWarning(t *testing.T) {
-	mgr := &fakeManager{}
-	box := &fakeCheckbox{}
-	toggler := NewToggler(mgr)
-	warn := "old warning"
+	synctest.Test(t, func(t *testing.T) {
+		mgr := &fakeManager{}
+		box := &fakeCheckbox{}
+		toggler := NewToggler(mgr)
+		warn := "old warning"
 
-	toggler.Toggle(true, toggler.NextGeneration(), box, func(msg string) { warn = msg })
+		toggler.Toggle(true, toggler.NextGeneration(), box, func(msg string) { warn = msg })
 
-	if !box.Checked() {
-		t.Fatal("checkbox should be true (Enable succeeded)")
-	}
-	if warn != "" {
-		t.Fatalf("warn = %q, want cleared", warn)
-	}
+		if !box.Checked() {
+			t.Fatal("checkbox should be true (Enable succeeded)")
+		}
+		if warn != "" {
+			t.Fatalf("warn = %q, want cleared", warn)
+		}
+	})
 }
 
 func TestToggleEnableFailureResyncsCheckboxFromRealState(t *testing.T) {
-	mgr := &fakeManager{enableErr: errors.New("boom")}
-	box := &fakeCheckbox{checked: true} // Wails already flipped it on click
-	toggler := NewToggler(mgr)
+	synctest.Test(t, func(t *testing.T) {
+		mgr := &fakeManager{enableErr: errors.New("boom")}
+		box := &fakeCheckbox{checked: true} // Wails already flipped it on click
+		toggler := NewToggler(mgr)
 
-	var warn string
-	toggler.Toggle(true, toggler.NextGeneration(), box, func(msg string) { warn = msg })
+		var warn string
+		toggler.Toggle(true, toggler.NextGeneration(), box, func(msg string) { warn = msg })
 
-	if box.Checked() {
-		t.Fatal("checkbox should be resynced to false: Enable failed, real state stayed off")
-	}
-	if warn == "" || !strings.Contains(warn, "ativar") {
-		t.Fatalf("warn = %q, want a message about ativar", warn)
-	}
+		if box.Checked() {
+			t.Fatal("checkbox should be resynced to false: Enable failed, real state stayed off")
+		}
+		if warn == "" || !strings.Contains(warn, "ativar") {
+			t.Fatalf("warn = %q, want a message about ativar", warn)
+		}
+	})
 }
 
 func TestToggleDisableFailureResyncsCheckboxFromRealState(t *testing.T) {
-	mgr := &fakeManager{enabled: true, disableErr: errors.New("boom")}
-	box := &fakeCheckbox{checked: false} // Wails already flipped it on click
-	toggler := NewToggler(mgr)
+	synctest.Test(t, func(t *testing.T) {
+		mgr := &fakeManager{enabled: true, disableErr: errors.New("boom")}
+		box := &fakeCheckbox{checked: false} // Wails already flipped it on click
+		toggler := NewToggler(mgr)
 
-	var warn string
-	toggler.Toggle(false, toggler.NextGeneration(), box, func(msg string) { warn = msg })
+		var warn string
+		toggler.Toggle(false, toggler.NextGeneration(), box, func(msg string) { warn = msg })
 
-	if !box.Checked() {
-		t.Fatal("checkbox should be resynced to true: Disable failed, real state stayed on")
-	}
-	if warn == "" || !strings.Contains(warn, "desativar") {
-		t.Fatalf("warn = %q, want a message about desativar", warn)
-	}
+		if !box.Checked() {
+			t.Fatal("checkbox should be resynced to true: Disable failed, real state stayed on")
+		}
+		if warn == "" || !strings.Contains(warn, "desativar") {
+			t.Fatalf("warn = %q, want a message about desativar", warn)
+		}
+	})
 }
 
 func TestToggleSurfacesEnabledCheckFailureAndLeavesCheckboxUnchanged(t *testing.T) {
-	mgr := &fakeManager{enabledErr: errors.New("reg.exe not found")}
-	box := &fakeCheckbox{checked: true}
-	toggler := NewToggler(mgr)
+	synctest.Test(t, func(t *testing.T) {
+		mgr := &fakeManager{enabledErr: errors.New("reg.exe not found")}
+		box := &fakeCheckbox{checked: true}
+		toggler := NewToggler(mgr)
 
-	var warn string
-	toggler.Toggle(true, toggler.NextGeneration(), box, func(msg string) { warn = msg })
+		var warn string
+		toggler.Toggle(true, toggler.NextGeneration(), box, func(msg string) { warn = msg })
 
-	if warn == "" {
-		t.Fatal("expected a warning when the post-toggle Enabled() check fails")
-	}
-	if !box.Checked() {
-		t.Fatal("checkbox should be left as Wails set it when Enabled() can't confirm state")
-	}
+		if warn == "" {
+			t.Fatal("expected a warning when the post-toggle Enabled() check fails")
+		}
+		if !box.Checked() {
+			t.Fatal("checkbox should be left as Wails set it when Enabled() can't confirm state")
+		}
+	})
 }
 
 // TestToggleBurstFinalStateMatchesLastClickByGeneration fires N clicks as a
@@ -196,6 +205,15 @@ func TestToggleSurfacesEnabledCheckFailureAndLeavesCheckboxUnchanged(t *testing.
 // avoided the very reordering this test exists to catch and silently
 // turned a real production bug into what looked like scheduler-specific
 // flakiness. This version restores true, unsynchronized concurrency.
+// NOTA: este teste NÃO usa synctest. As 50 goroutines contendem de verdade
+// pelo sync.Mutex interno do Toggler enquanto quem detém o lock chama
+// time.Sleep (via fakeManager.Enable/Disable) — e bloqueio em sync.Mutex não
+// conta como "durably blocked" para o synctest (ver pkg.go.dev/testing/synctest:
+// "locking a sync.Mutex or sync.RWMutex" está explicitamente fora da lista).
+// Reproduzido isoladamente: embrulhar este teste em synctest.Test trava para
+// sempre, porque o relógio falso nunca avança (nem todas as goroutines do
+// bubble ficam "durably blocked" ao mesmo tempo) e o Sleep de quem segura o
+// lock nunca retorna, então os demais nunca destravam.
 func TestToggleBurstFinalStateMatchesLastClickByGeneration(t *testing.T) {
 	mgr := &fakeManager{}
 	box := &fakeCheckbox{}
@@ -253,33 +271,35 @@ func TestToggleBurstFinalStateMatchesLastClickByGeneration(t *testing.T) {
 // showed checked. The fix must skip the ENTIRE call — no Enable/Disable, no
 // resync, no onWarn — the moment it's found to be stale.
 func TestToggleSkipsSupersededClickEntirely(t *testing.T) {
-	mgr := &fakeManager{}
-	box := &fakeCheckbox{}
-	toggler := NewToggler(mgr)
+	synctest.Test(t, func(t *testing.T) {
+		mgr := &fakeManager{}
+		box := &fakeCheckbox{}
+		toggler := NewToggler(mgr)
 
-	// g2 (off) and g3 (on) are both already allocated (as if both clicks
-	// already happened), but g3 is the one that reaches Toggle first —
-	// the exact non-FIFO-mutex interleaving R21 describes.
-	g2 := toggler.NextGeneration()
-	g3 := toggler.NextGeneration()
+		// g2 (off) and g3 (on) are both already allocated (as if both clicks
+		// already happened), but g3 is the one that reaches Toggle first —
+		// the exact non-FIFO-mutex interleaving R21 describes.
+		g2 := toggler.NextGeneration()
+		g3 := toggler.NextGeneration()
 
-	toggler.Toggle(true, g3, box, func(string) {})
+		toggler.Toggle(true, g3, box, func(string) {})
 
-	g2Warned := false
-	toggler.Toggle(false, g2, box, func(string) { g2Warned = true })
+		g2Warned := false
+		toggler.Toggle(false, g2, box, func(string) { g2Warned = true })
 
-	if enabled, err := mgr.Enabled(); err != nil || !enabled {
-		t.Fatalf("Enabled() = %v, %v; want true (g3, the newer click, turned it on)", enabled, err)
-	}
-	if !box.Checked() {
-		t.Fatal("checkbox should be true, matching the newer click (g3)")
-	}
-	if n := atomic.LoadInt32(&mgr.disableCalls); n != 0 {
-		t.Fatalf("Disable was called %d time(s) for the superseded click g2, want 0", n)
-	}
-	if g2Warned {
-		t.Fatal("the superseded click (g2) must not call onWarn at all")
-	}
+		if enabled, err := mgr.Enabled(); err != nil || !enabled {
+			t.Fatalf("Enabled() = %v, %v; want true (g3, the newer click, turned it on)", enabled, err)
+		}
+		if !box.Checked() {
+			t.Fatal("checkbox should be true, matching the newer click (g3)")
+		}
+		if n := atomic.LoadInt32(&mgr.disableCalls); n != 0 {
+			t.Fatalf("Disable was called %d time(s) for the superseded click g2, want 0", n)
+		}
+		if g2Warned {
+			t.Fatal("the superseded click (g2) must not call onWarn at all")
+		}
+	})
 }
 
 // TestToggleAppliesInClickOrderAndSkipsStaleResync is the deterministic
@@ -290,54 +310,56 @@ func TestToggleSkipsSupersededClickEntirely(t *testing.T) {
 // intent) has run — click 1 must recognize it's no longer the latest
 // generation and skip its own resync entirely.
 func TestToggleAppliesInClickOrderAndSkipsStaleResync(t *testing.T) {
-	block := make(chan struct{})
-	// started is buffered: click 1's Enable and click 2's Disable both call
-	// signalStarted, but this test only actively waits for the first
-	// (click 1's); an unbuffered channel would make click 2's send block
-	// forever with no matching receive.
-	mgr := &fakeManager{enableGate: block, started: make(chan struct{}, 1)}
-	box := &fakeCheckbox{}
-	toggler := NewToggler(mgr)
+	synctest.Test(t, func(t *testing.T) {
+		block := make(chan struct{})
+		// started is buffered: click 1's Enable and click 2's Disable both call
+		// signalStarted, but this test only actively waits for the first
+		// (click 1's); an unbuffered channel would make click 2's send block
+		// forever with no matching receive.
+		mgr := &fakeManager{enableGate: block, started: make(chan struct{}, 1)}
+		box := &fakeCheckbox{}
+		toggler := NewToggler(mgr)
 
-	// Click 1: turn on. want/gen captured synchronously, exactly like
-	// main.go's OnClick does before spawning the goroutine that calls
-	// Toggle (which is where the blocking happens).
-	want1, gen1 := true, toggler.NextGeneration()
-	g1Done := make(chan struct{})
-	go func() {
-		defer close(g1Done)
-		toggler.Toggle(want1, gen1, box, func(string) {})
-	}()
+		// Click 1: turn on. want/gen captured synchronously, exactly like
+		// main.go's OnClick does before spawning the goroutine that calls
+		// Toggle (which is where the blocking happens).
+		want1, gen1 := true, toggler.NextGeneration()
+		g1Done := make(chan struct{})
+		go func() {
+			defer close(g1Done)
+			toggler.Toggle(want1, gen1, box, func(string) {})
+		}()
 
-	<-mgr.started // click 1 now holds the lock, blocked inside Enable
+		<-mgr.started // click 1 now holds the lock, blocked inside Enable
 
-	// Click 2: turn off, captured while click 1 is still running/holding
-	// the lock, so click 2's own goroutine will genuinely wait on the lock.
-	want2, gen2 := false, toggler.NextGeneration()
-	g2Done := make(chan struct{})
-	go func() {
-		defer close(g2Done)
-		toggler.Toggle(want2, gen2, box, func(string) {})
-	}()
+		// Click 2: turn off, captured while click 1 is still running/holding
+		// the lock, so click 2's own goroutine will genuinely wait on the lock.
+		want2, gen2 := false, toggler.NextGeneration()
+		g2Done := make(chan struct{})
+		go func() {
+			defer close(g2Done)
+			toggler.Toggle(want2, gen2, box, func(string) {})
+		}()
 
-	close(block) // release click 1's Enable
-	<-g1Done
-	<-g2Done
+		close(block) // release click 1's Enable
+		<-g1Done
+		<-g2Done
 
-	enabled, err := mgr.Enabled()
-	if err != nil {
-		t.Fatalf("Enabled: %v", err)
-	}
-	if enabled {
-		t.Fatal("final Enabled() should be false: click 2 (off) was the last click")
-	}
-	if box.Checked() {
-		t.Fatal("final checkbox should be false")
-	}
-	// Exactly one SetChecked call total (click 2's): click 1 must have
-	// detected it was superseded and skipped its resync entirely, rather
-	// than briefly setting the box to true before click 2 corrected it.
-	if n := box.callCount(); n != 1 {
-		t.Fatalf("checkbox was resynced %d times, want exactly 1 (click 1 must skip its stale resync)", n)
-	}
+		enabled, err := mgr.Enabled()
+		if err != nil {
+			t.Fatalf("Enabled: %v", err)
+		}
+		if enabled {
+			t.Fatal("final Enabled() should be false: click 2 (off) was the last click")
+		}
+		if box.Checked() {
+			t.Fatal("final checkbox should be false")
+		}
+		// Exactly one SetChecked call total (click 2's): click 1 must have
+		// detected it was superseded and skipped its resync entirely, rather
+		// than briefly setting the box to true before click 2 corrected it.
+		if n := box.callCount(); n != 1 {
+			t.Fatalf("checkbox was resynced %d times, want exactly 1 (click 1 must skip its stale resync)", n)
+		}
+	})
 }
