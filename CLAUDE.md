@@ -88,6 +88,8 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
 - Escolher uma ação: o preview aparece em stream.
 - `⌘Enter` substitui o texto no app de origem e o clipboard volta ao valor
   anterior.
+- Só teclado: digitar, ↑/↓, Enter; quando o resultado termina o foco vai
+  para Substituir; ←/→ alterna com Copiar; Enter aplica; ↑ volta às ações.
 - Sem permissão de Acessibilidade: aviso no modal, "Substituir" some, só
   "Copiar" funciona.
 - Sem seleção: modal abre vazio e editável (colar/digitar no campo "Texto a

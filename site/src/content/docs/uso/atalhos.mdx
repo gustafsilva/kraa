@@ -27,13 +27,23 @@ No **Wayland** não há atalho global nativo: configure um atalho do sistema que
 
 ## Dentro do modal
 
+Dá para usar o Kraa inteiro sem o mouse:
+
 | Atalho | Ação |
 |---|---|
-| <Kbd keys={["↑"]} /> <Kbd keys={["↓"]} /> | Navega pela lista de ações (digite para filtrar) |
-| <Kbd keys={["Enter"]} /> | Executa a ação selecionada ou envia a instrução livre |
-| <Kbd keys={["⌘/Ctrl", "Enter"]} /> | **Substituir**: cola o resultado no app de origem |
-| <Kbd keys={["⌘/Ctrl", "Shift", "C"]} /> | **Copiar**: copia o resultado para a área de transferência |
+| digitar | Filtra as ações; se nada combinar, vira uma **instrução livre** |
+| <Kbd keys={["↑"]} /> <Kbd keys={["↓"]} /> | Navega pela lista de ações |
+| <Kbd keys={["Enter"]} /> | Executa a ação selecionada (ou a instrução livre) |
+| <Kbd keys={["←"]} /> <Kbd keys={["→"]} /> | Com o resultado pronto, escolhe entre **Copiar** e **Substituir** |
+| <Kbd keys={["Enter"]} /> | Aplica a opção escolhida |
+| <Kbd keys={["↑"]} /> | Volta para a lista de ações para tentar outra |
+| <Kbd keys={["⌘/Ctrl", "Enter"]} /> | **Substituir** direto, de qualquer lugar |
+| <Kbd keys={["⌘/Ctrl", "Shift", "C"]} /> | **Copiar** direto, de qualquer lugar |
 | <Kbd keys={["Esc"]} /> | Fecha o modal e cancela o stream em andamento |
+
+Quando o resultado termina, o foco vai sozinho para **Substituir** (ou **Copiar**, se não der para
+colar no app de origem): basta apertar <Kbd keys={["Enter"]} />. Se você estiver editando o texto,
+o foco fica onde está.
 
 "Substituir" e "Copiar" só agem sobre o resultado **completo**: nunca sobre um stream parcial nem
 depois de um erro. Nesse caso, tente de novo.

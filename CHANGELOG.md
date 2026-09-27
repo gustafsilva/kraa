@@ -39,5 +39,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - System prompt e instruções das ações de Prompt revisados: usam só o que está no texto, na
   instrução e no perfil, com placeholders (`[público-alvo]`) em vez de suposições, e formato
   adaptado à complexidade do pedido.
+- Modal em duas colunas (ações à esquerda, resultado à direita) e fluxo só com teclado: ↑/↓ e
+  Enter escolhem a ação, ←/→ e Enter escolhem entre Copiar e Substituir, ↑ volta às ações.
+- A instrução livre agora é digitada na própria busca de ações (o campo separado saiu).
 
 [Não lançado]: https://github.com/gustafsilva/kraa/commits/main
