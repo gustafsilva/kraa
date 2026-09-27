@@ -63,9 +63,20 @@ Teste novo que envolve concorrência ou tempo: rode `-count=5` (Go) ou
 - HTTP/SSE: `httptest.NewServer` com `writeSSE` (`internal/llm/client_test.go:20`) ou
   `internal/llmfake` (cenários, requisições gravadas, cancelamento visível).
 - Tempo e goroutines: `testing/synctest` (`synctest.Test` + `synctest.Wait`), nunca
-  `time.Sleep`. Dentro de uma bolha não use rede real (I/O de rede não é *durably blocking*):
-  com `httptest`, sincronize por canal `done` fechado pelo fake ou por polling com prazo.
-  Ao escrever ou mudar um plano/brief de teste, prescreva o mecanismo de espera.
+  `time.Sleep`. `synctest.Wait` só considera *durably blocked* canal/`select`/`time`/
+  `sync.WaitGroup` — contenção em `sync.Mutex` **não** conta e trava o relógio virtual
+  (deadlock reproduzido); teste com mutex + sleep fica fora da bolha, com comentário
+  explicando por quê. Rede real também fica fora: sincronize por canal `done` ou polling
+  com prazo. Brief/plano de teste deve prescrever o mecanismo de espera.
+- Erros de setup (`os.WriteFile`/`ReadFile`, `svc.Start(...)`) sempre em `t.Fatal`, nunca `_`.
+  Enum comparado em asserção (`StartupAction`, `internal/app/launch.go:13`) ganha `String()`.
+  Falha de criação por "pai é um arquivo" não é `os.IsNotExist` (é `ENOTDIR`): use um
+  diretório existente somente leitura, não um caminho inexistente.
+- Payload de evento: type assertion + igualdade exata (`ev.data.(DoneEvent)`,
+  `internal/app/integration_test.go:62`), nunca `fmt.Sprint(x)` + `strings.Contains` (falso
+  positivo por substring).
+- Fake que guarda e dispara callback, e teste de concorrência que não prova nada: padrão e
+  contraexemplos reais em `references/padroes.md#fakes-e-concorrência`.
 - `t.Parallel()` só em teste sem `t.Setenv`, HOME, arquivo compartilhado ou estado global
   (com `t.Setenv` o Go entra em pânico). Hoje `internal/` não usa paralelo; não é meta.
 - Isolamento de disco: `t.TempDir()` e `t.Setenv("HOME", …)`; nunca o `config.yaml` real.
@@ -85,7 +96,11 @@ Teste novo que envolve concorrência ou tempo: rode `-count=5` (Go) ou
   o `setup.ts` faz `mockReset` + defaults depois de cada teste. **Nunca** `vi.mock` desses
   módulos por arquivo; por teste use `ImproveService.X.mockResolvedValueOnce(...)`.
 - O mock é tipado com `satisfies Record<keyof typeof RealService, unknown>`: mudou método no
-  Go → `wails3 generate bindings -ts` → `npm run typecheck` aponta o mock a atualizar.
+  Go → `wails3 generate bindings -ts` → `npm run typecheck` aponta o mock a atualizar; prove o
+  gate removendo um método e vendo o `tsc` falhar antes de confiar nele. `mockClear` serve
+  para mock de implementação fixa (registro de listener em `Events.On`); mock cuja resposta
+  cada teste define (`mockResolvedValueOnce`) exige `mockReset` + defaults, como
+  `resetImproveServiceMock` faz.
 - Zero warnings de `act()` na saída: warning é bug do teste (estado mudando depois da
   asserção), não ruído. Esperas assíncronas com `findBy…`/`waitFor`, nunca `setTimeout`.
 - Um arquivo por `describe` grande; helpers compartilhados num `helpers.tsx`.
@@ -93,17 +108,31 @@ Teste novo que envolve concorrência ou tempo: rode `-count=5` (Go) ou
 **CLI npm**
 - Tudo por injeção: `run(args, deps)` com `CliDeps` falso via `deps(over)` e HOME temporário
   (`npm/test/cli.test.ts`). `fetch`, `exec`, `spawnDetached`, `commandExists` são `vi.fn`.
-- Processo real só no teste de `exec.ts` (com `process.execPath`). Nunca download real.
+- Sem rede externa nunca; loopback só quando o comportamento sob teste É do transporte
+  (timeout, abort, stream travado). Processo real só em `exec.test.ts` (`process.execPath`).
+  Wrapper fino de fetch: `vi.stubGlobal("fetch", ...)` (`cli.test.ts:269`, `install.test.ts:334`).
+- `path.win32.join` num host POSIX grava `\` como nome de arquivo real no cwd: espie `fs`
+  (`vi.spyOn(fs, "writeFileSync")`, restaurando depois) em vez de escrever no disco
+  (`install.test.ts:108`, `cli.test.ts:181`).
+- Asserção de "fiação padrão" compara o valor real (ex.: `readPackageJson().version`), não só
+  o tipo. Brief que diverge do código real: ajuste a asserção ao comportamento verificado e
+  cite o `file:line` que prova — nunca invente mensagem; comportamento que parecer errado é bug
+  a reportar.
 
 **E2E (Playwright)**
 - Alvo: `bin/kraa-e2e` (`main_server.go`, `-tags server`) + `cmd/llmfake`, dirigidos por
-  `/__e2e/*` (`trigger`, `state`, `session`, `clipboard`, `reset`) e `/__control/*`.
+  `/__e2e/*` (`trigger`, `state`, `session`, `clipboard`, `reset`) e `/__control/*`. Nova tag
+  de build para um seam de teste: confira o Taskfile/Docker antes de escolher — `server` já
+  é usada em `build:server`/`build:docker`.
 - `workers: 1` (um backend e um `config.yaml`); toda spec usa o fixture `openModal`, que
   roda `resetAll()` e espera o console `Event WebSocket connected` antes do `trigger`.
 - Locators por papel; asserções *web-first* (`await expect(locator).toBeVisible()`); estado
   do backend com `expect.poll(...)`. Nunca `waitForTimeout` nem `expect(await x.isVisible())`.
 - `trace: "retain-on-failure"`; `retries: 1` só no CI e teste que só passa no retry é flaky.
-- Fatos do server mode e armadilhas: `references/padroes.md#e2e`.
+- `trigger` sem seleção espera o `CaptureWait` inteiro (`defaultCaptureWait`,
+  `internal/app/service.go:34`, 400 ms — considere no timeout). Clipboard fake vazio muda a
+  semântica do restore (bug real encontrado); `reset` cancela o stream em andamento antes de
+  limpar os fakes. Fatos do server mode e armadilhas: `references/padroes.md#e2e`.
 
 ## Manutenção
 
@@ -148,8 +177,9 @@ Marque cada item; qualquer "não" bloqueia.
 - [ ] Cada teste tem asserção sobre saída observável (evento, DOM, arquivo, requisição). Só
   `toHaveBeenCalled` do próprio mock não conta.
 - [ ] Seletores por papel/label/texto, nunca por classe CSS ou estrutura do DOM.
-- [ ] Sem `vi.mock("@wailsio/runtime")` ou do binding no arquivo; sem `mockClear` onde a
-  implementação precisa ser zerada (`mockReset`; `vi.restoreAllMocks` não reseta `vi.fn`).
+- [ ] Sem `vi.mock("@wailsio/runtime")` ou do binding no arquivo; `mockClear` só em mock de
+  implementação fixa, `mockReset` + defaults em mock cuja resposta cada teste define
+  (`vi.restoreAllMocks` não reseta `vi.fn`).
 - [ ] Sem estado vazando: HOME/`t.TempDir`, listeners, `config.yaml` do E2E via `resetAll()`.
 - [ ] `await user.…` fora de `act()` (ex. real a corrigir: `frontend/src/App.test.tsx:114`);
   saída do Vitest sem warning de `act()`.
@@ -159,6 +189,12 @@ Marque cada item; qualquer "não" bloqueia.
 - [ ] E2E: fixture `openModal`, `expect.poll` para estado do backend, sem `workers > 1`.
 - [ ] Thresholds iguais ou maiores; limitação nova registrada na tabela + checklist manual.
 - [ ] Strings de UI/erro nas asserções em PT-BR; identificadores em inglês.
+- [ ] Erro de setup (I/O, `svc.Start`) checado com `t.Fatal`, nunca `_`. Fake que recebe
+  callback (`Shortcuts` e similares) guarda e dispara ao menos um em teste; teste de
+  concorrência prova exclusão/ordem, não só `-race` sem falha.
+- [ ] Gate de tipo do mock (`satisfies`) provado com o typecheck cobrindo os arquivos de
+  teste. Asserção adaptada por divergência entre brief e código real cita o `file:line` que
+  prova o comportamento (nunca uma mensagem inventada).
 
 ## Racionalizações comuns
 
@@ -187,3 +223,21 @@ marque os obsoletos como `(obsoleto: motivo)`.
   Fakes HTTP quebram a integração em silêncio quando o path ou o JSON divergem do cliente real.
 - 2026-09-27 (Onda 1): plano ou brief de teste deve prescrever o mecanismo de espera
   (synctest, canal `done`, `expect.poll`); implementação ao pé da letra herda o anti-padrão.
+- 2026-09-27 (Onda 1, Task 2): fake que recebe callback guarda e dispara ao menos um em
+  teste; teste de concorrência só sob `-race` sem contador/ordem é vácuo; erro de setup
+  sempre em `t.Fatal`; enum comparado em asserção ganha `String()`.
+- 2026-09-27 (Onda 1, Task 3): `synctest.Wait` não cobre contenção de `sync.Mutex`
+  (deadlock reproduzido); `os.IsNotExist` não cobre `ENOTDIR`; `_linux_test.go` desenvolvido
+  no macOS precisa do job Ubuntu acompanhando o PR.
+- 2026-09-27 (Onda 1, Task 4): gate de tipo `satisfies` só vale com o typecheck cobrindo os
+  arquivos de teste (prove removendo um método); `mockClear` x `mockReset` depende de a
+  implementação do mock ser fixa ou definida por teste.
+- 2026-09-27 (Onda 1, Task 6): npm sem rede externa nunca (loopback só para o transporte);
+  `path.win32` em host POSIX exige espiar `fs`; asserção de fiação compara o valor real;
+  divergência entre brief e código real cita o `file:line` que prova o comportamento.
+- 2026-09-27 (Onda 1, Task 7): payload de evento com type assertion + igualdade exata, nunca
+  `fmt.Sprint` + `Contains`; erro de chamada de setup nunca descartado com `_`.
+- 2026-09-27 (Onda 1, Task 8): fake de E2E também não descarta callback; clipboard fake vazio
+  muda a semântica do restore do `Capture` (bug real de produto); `reset` cancela o stream em
+  andamento antes de limpar os fakes; `trigger` sem seleção espera o `CaptureWait` inteiro;
+  tag de build nova para um seam de teste checa colisão com tasks de deploy antes de escolher.
