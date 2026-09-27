@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Events } from "@wailsio/runtime";
-import { ImproveService } from "@bindings/github.com/gustavofreitas/prompt-improve/internal/app";
+import { ImproveService } from "@bindings/github.com/gustavofreitas/kraa/internal/app";
 import type {
   ActionDTO,
   ChunkEvent,
@@ -9,7 +9,7 @@ import type {
   SelectionEvent,
   StartRequest,
   State,
-} from "@bindings/github.com/gustavofreitas/prompt-improve/internal/app";
+} from "@bindings/github.com/gustavofreitas/kraa/internal/app";
 
 export type ImproveStatus = "idle" | "streaming" | "done" | "error";
 

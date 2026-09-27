@@ -32,8 +32,8 @@ function deps(over: Partial<CliDeps> = {}) {
 function fakeInstalled(platform: NodeJS.Platform): string {
   const bin =
     platform === "darwin"
-      ? path.join(home, "Applications/Prompt Improve.app/Contents/MacOS/prompt-improve")
-      : path.join(home, ".local/share/prompt-improve/prompt-improve");
+      ? path.join(home, "Applications/Kraa.app/Contents/MacOS/kraa")
+      : path.join(home, ".local/share/kraa/kraa");
   fs.mkdirSync(path.dirname(bin), { recursive: true });
   fs.writeFileSync(bin, "");
   return bin;
@@ -68,7 +68,7 @@ describe("cli", () => {
     await expect(run(["start"], d)).resolves.toBe(0);
     expect(d.spawnDetached).toHaveBeenCalledWith("open", [
       "-a",
-      path.join(home, "Applications/Prompt Improve.app"),
+      path.join(home, "Applications/Kraa.app"),
     ]);
   });
 
@@ -81,9 +81,9 @@ describe("cli", () => {
   });
 
   it.each([
-    ["darwin", "osascript", ["-e", 'quit app "Prompt Improve"']],
-    ["win32", "taskkill", ["/IM", "prompt-improve.exe", "/F"]],
-    ["linux", "pkill", ["-x", "prompt-improve"]],
+    ["darwin", "osascript", ["-e", 'quit app "Kraa"']],
+    ["win32", "taskkill", ["/IM", "kraa.exe", "/F"]],
+    ["linux", "pkill", ["-x", "kraa"]],
   ] as const)("stop (%s)", async (platform, cmd, args) => {
     const { d } = deps({ platform, env: { LOCALAPPDATA: "C:\\L", APPDATA: "C:\\R" } });
     await expect(run(["stop"], d)).resolves.toBe(0);
@@ -112,14 +112,14 @@ describe("cli", () => {
     expect(d.spawnDetached).toHaveBeenCalledWith("open", [
       "-n",
       "-a",
-      path.join(home, "Applications/Prompt Improve.app"),
+      path.join(home, "Applications/Kraa.app"),
       "--args",
       "--trigger",
     ]);
   });
 
   it("config abre o YAML existente e mostra o caminho", async () => {
-    const cfg = path.join(home, ".config/prompt-improve/config.yaml");
+    const cfg = path.join(home, ".config/kraa/config.yaml");
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
     fs.writeFileSync(cfg, "provider: {}\n");
     const { d, out } = deps();
@@ -136,7 +136,7 @@ describe("cli", () => {
   });
 
   it("autostart on/off (Linux) escreve e remove o .desktop no HOME temporário", async () => {
-    const file = path.join(home, ".config/autostart/prompt-improve.desktop");
+    const file = path.join(home, ".config/autostart/kraa.desktop");
     const { d } = deps();
     await expect(run(["autostart", "on"], d)).resolves.toBe(0);
     expect(fs.existsSync(file)).toBe(true);
@@ -150,8 +150,8 @@ describe("cli", () => {
     expect(out()).toMatch(/on\|off/);
   });
 
-  it("install com PROMPT_IMPROVE_SKIP_DOWNLOAD=1 pula", async () => {
-    const { d, out } = deps({ env: { PROMPT_IMPROVE_SKIP_DOWNLOAD: "1" } });
+  it("install com KRAA_SKIP_DOWNLOAD=1 pula", async () => {
+    const { d, out } = deps({ env: { KRAA_SKIP_DOWNLOAD: "1" } });
     await expect(run(["install"], d)).resolves.toBe(0);
     expect(d.fetch).not.toHaveBeenCalled();
     expect(out()).toMatch(/ignorado/);

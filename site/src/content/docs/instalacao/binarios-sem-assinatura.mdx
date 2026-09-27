@@ -5,7 +5,7 @@ description: Como lidar com o Gatekeeper (macOS) e o SmartScreen (Windows).
 import Callout from "@/components/mdx/Callout";
 import OsTabs from "@/components/mdx/OsTabs";
 
-Os binários do Prompt Improve **ainda não são assinados** (no macOS há apenas assinatura ad-hoc).
+Os binários do Kraa **ainda não são assinados** (no macOS há apenas assinatura ad-hoc).
 
 Arquivos baixados pelo npm ou por `curl`/`Invoke-WebRequest` normalmente não recebem a marca de
 quarentena (macOS) nem o Mark-of-the-Web (Windows), então o Gatekeeper e o SmartScreen
@@ -17,7 +17,7 @@ navegador.
     Remova a quarentena e abra o app de novo:
 
     ```bash
-    xattr -dr com.apple.quarantine ~/Applications/"Prompt Improve.app"
+    xattr -dr com.apple.quarantine ~/Applications/"Kraa.app"
     ```
   </div>
   <div slot="windows">
@@ -27,6 +27,6 @@ navegador.
 
 <Callout type="warning" title="Confira a origem">
   Só faça isso com binários baixados dos
-  [releases oficiais](https://github.com/gustafsilva/prompt-improve-beta/releases) e com o
+  [releases oficiais](https://github.com/gustafsilva/kraa/releases) e com o
   SHA-256 conferido contra o `checksums.txt`. O npm e os scripts já fazem essa conferência.
 </Callout>

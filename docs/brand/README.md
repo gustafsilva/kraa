@@ -1,6 +1,6 @@
 # Identidade visual: Kraa
 
-Kraa é o mascote do Prompt Improve: um corvo preto, esperto, com olho e detalhes âmbar. O
+Kraa é o nome do app e do seu mascote: um corvo preto, esperto, com olho e detalhes âmbar. O
 nome vem da onomatopeia do corvo ("kraa!"). O corvo combina com o app porque é inteligente,
 imita fala e coleta coisas brilhantes: pega o seu texto e devolve polido.
 

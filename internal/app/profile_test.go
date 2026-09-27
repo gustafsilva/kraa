@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gustavofreitas/prompt-improve/internal/config"
+	"github.com/gustavofreitas/kraa/internal/config"
 )
 
 func TestGetProfileReturnsConfigProfile(t *testing.T) {

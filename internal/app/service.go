@@ -14,10 +14,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gustavofreitas/prompt-improve/internal/config"
-	"github.com/gustavofreitas/prompt-improve/internal/improver"
-	"github.com/gustavofreitas/prompt-improve/internal/llm"
-	"github.com/gustavofreitas/prompt-improve/internal/platform"
+	"github.com/gustavofreitas/kraa/internal/config"
+	"github.com/gustavofreitas/kraa/internal/improver"
+	"github.com/gustavofreitas/kraa/internal/llm"
+	"github.com/gustavofreitas/kraa/internal/platform"
 )
 
 // Event names emitted to the frontend.

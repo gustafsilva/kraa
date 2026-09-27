@@ -7,7 +7,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import type { ActionDTO } from "@bindings/github.com/gustavofreitas/prompt-improve/internal/app";
+import type { ActionDTO } from "@bindings/github.com/gustavofreitas/kraa/internal/app";
 
 interface ActionListProps {
   actions: ActionDTO[];

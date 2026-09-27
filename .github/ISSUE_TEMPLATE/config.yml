@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Documentação
-    url: https://gustafsilva.github.io/prompt-improve-beta/
+    url: https://gustafsilva.github.io/kraa/
     about: Instalação, configuração e solução de problemas.
   - name: Reportar uma vulnerabilidade
-    url: https://github.com/gustafsilva/prompt-improve-beta/security/advisories/new
+    url: https://github.com/gustafsilva/kraa/security/advisories/new
     about: Vulnerabilidades devem ser reportadas em privado, não em issues.

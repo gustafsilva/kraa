@@ -118,7 +118,7 @@ function App() {
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex shrink-0 items-center gap-1.5 text-[13px] font-semibold tracking-tight">
             <PenLine className="size-3.5 text-pencil" aria-hidden="true" />
-            Prompt Improve
+            Kraa
           </span>
           <ModelPicker
             model={model}

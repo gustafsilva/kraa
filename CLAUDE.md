@@ -1,4 +1,4 @@
-# Prompt Improve
+# Kraa
 
 App de bandeja (macOS, Windows, Ubuntu) que melhora um texto selecionado em
 qualquer aplicativo via LLM compatível com OpenAI (padrão: Ollama local). Um
@@ -6,8 +6,8 @@ atalho global abre um modal com ações pré-configuradas e instrução livre; o
 resultado chega em stream e pode ser **Substituído** no app de origem ou
 **Copiado**.
 
-Módulo Go: `github.com/gustavofreitas/prompt-improve`. Identificador único do
-app: `dev.matrixia.prompt-improve`.
+Módulo Go: `github.com/gustavofreitas/kraa`. Identificador único do
+app: `dev.matrixia.kraa`.
 
 ## Stack
 
@@ -28,7 +28,7 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
 | `internal/app` | `ImproveService` exposto ao frontend (bindings) e adapters do Wails (clipboard, emitter). |
 | `internal/autostart` | "Iniciar com o sistema": LaunchAgent (macOS), chave `Run` do registro (Windows), `.desktop` (Linux); usado pela bandeja e com os mesmos artefatos da CLI npm. Não importa o Wails. |
 | `frontend/src` | Modal em React: `App.tsx`, `components/*` (ActionList, PreviewPane, Footer), `hooks/useImprove.ts`; `profile/ProfileWindow` (janela do perfil, `?view=profile`). |
-| `npm/` | Pacote npm (TypeScript): instalador do binário (`postinstall`/`install`) e CLI `prompt-improve` (start/stop/trigger/config/doctor/autostart). |
+| `npm/` | Pacote npm (TypeScript): instalador do binário (`postinstall`/`install`) e CLI `kraa` (start/stop/trigger/config/doctor/autostart). |
 | `site/` | Site de documentação (Astro + MDX + React + Tailwind + shadcn/ui, só tema escuro) publicado no GitHub Pages por `.github/workflows/docs.yml`. Páginas em `site/src/content/docs/**/*.mdx`; a ordem da barra lateral fica em `site/src/lib/site.ts` (`NAV`). |
 
 ## Comandos
@@ -102,7 +102,7 @@ Tailwind, shadcn/ui, `gopkg.in/yaml.v3`, Vitest + Testing Library.
 **Ubuntu**
 - X11: mesmo checklist do macOS, com `xdotool` instalado.
 - X11 sem `xdotool`: aviso claro, só "Copiar" disponível.
-- Wayland: usar `prompt-improve --trigger` como atalho do GNOME; só
+- Wayland: usar `kraa --trigger` como atalho do GNOME; só
   "Copiar" aparece (sem colagem automática).
 
 **Todos os SOs**

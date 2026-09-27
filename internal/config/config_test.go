@@ -20,7 +20,7 @@ func TestDefaultPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("os.UserConfigDir() error = %v", err)
 	}
-	want := filepath.Join(userDir, "prompt-improve", "config.yaml")
+	want := filepath.Join(userDir, "kraa", "config.yaml")
 
 	if got != want {
 		t.Errorf("DefaultPath() = %q, want %q", got, want)
@@ -223,7 +223,7 @@ provider:
 		t.Fatalf("setup WriteFile: %v", err)
 	}
 
-	t.Setenv("PROMPT_IMPROVE_API_KEY", "from-env")
+	t.Setenv("KRAA_API_KEY", "from-env")
 
 	cfg, err := Load(path)
 	if err != nil {

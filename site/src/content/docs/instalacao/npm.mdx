@@ -9,11 +9,11 @@ import OsTabs from "@/components/mdx/OsTabs";
 Com **Node.js 18+**:
 
 ```bash
-npm i -g prompt-improve && prompt-improve start
+npm i -g kraa && kraa start
 ```
 
 O pacote npm é só um instalador. No `postinstall` ele baixa do
-[GitHub Release](https://github.com/gustafsilva/prompt-improve-beta/releases) o binário da **mesma
+[GitHub Release](https://github.com/gustafsilva/kraa/releases) o binário da **mesma
 versão** do pacote, confere o SHA-256 contra o `checksums.txt` do release e o instala no
 diretório do usuário (sem `sudo`).
 
@@ -21,9 +21,9 @@ diretório do usuário (sem `sudo`).
 
 | SO | Caminho | Arquitetura |
 |---|---|---|
-| macOS | `~/Applications/Prompt Improve.app` | universal (arm64 + x64) |
-| Windows | `%LOCALAPPDATA%\prompt-improve\prompt-improve.exe` | x64 |
-| Linux | `~/.local/share/prompt-improve/prompt-improve` | x64 e arm64 |
+| macOS | `~/Applications/Kraa.app` | universal (arm64 + x64) |
+| Windows | `%LOCALAPPDATA%\kraa\kraa.exe` | x64 |
+| Linux | `~/.local/share/kraa/kraa` | x64 e arm64 |
 
 ## Dependências do sistema
 
@@ -53,28 +53,28 @@ Sem internet no momento do `npm i`, a instalação **não quebra**: o pacote é 
 binário. Depois, rode:
 
 ```bash
-prompt-improve install
+kraa install
 ```
 
-`prompt-improve start` também baixa o binário automaticamente se ele ainda não existir.
+`kraa start` também baixa o binário automaticamente se ele ainda não existir.
 
 ## Variáveis de ambiente
 
 | Variável | Efeito |
 |---|---|
-| `PROMPT_IMPROVE_SKIP_DOWNLOAD=1` | Pula o download no `postinstall` (útil em CI). |
-| `PROMPT_IMPROVE_REPO` | Repositório `dono/repo` de onde baixar o release (forks). |
+| `KRAA_SKIP_DOWNLOAD=1` | Pula o download no `postinstall` (útil em CI). |
+| `KRAA_REPO` | Repositório `dono/repo` de onde baixar o release (forks). |
 
 ## Atualizar e desinstalar
 
 ```bash
-npm i -g prompt-improve@latest   # atualiza (baixa o binário da nova versão)
-prompt-improve stop
-npm rm -g prompt-improve         # remove a CLI
+npm i -g kraa@latest   # atualiza (baixa o binário da nova versão)
+kraa stop
+npm rm -g kraa         # remove a CLI
 ```
 
 <Callout type="note">
   O `npm rm` remove só a CLI. Para apagar o app, remova também o diretório da tabela acima e,
   se quiser, a [configuração](/docs/configuracao/arquivo/). Desligue antes o início automático
-  com `prompt-improve autostart off`.
+  com `kraa autostart off`.
 </Callout>

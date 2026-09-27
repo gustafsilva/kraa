@@ -1,4 +1,4 @@
-// `prompt-improve doctor`: diagnóstico rápido do ambiente.
+// `kraa doctor`: diagnóstico rápido do ambiente.
 import fs from "node:fs";
 import path from "node:path";
 import { binaryPath, configPath, type Env } from "./platform";
@@ -42,7 +42,7 @@ export async function realCommandExists(name: string, env: Env = process.env): P
 /** Retorna true quando o binário existe e o provider respondeu. */
 export async function doctor(d: DoctorDeps): Promise<boolean> {
   let ok = true;
-  d.log("Prompt Improve — diagnóstico\n");
+  d.log("Kraa — diagnóstico\n");
 
   const bin = binaryPath(d.platform, d.env, d.home);
   if (fs.existsSync(bin)) {
@@ -50,7 +50,7 @@ export async function doctor(d: DoctorDeps): Promise<boolean> {
   } else {
     ok = false;
     d.log(`[erro] Binário não encontrado em ${bin}`);
-    d.log("       Rode `prompt-improve install` para baixá-lo.");
+    d.log("       Rode `kraa install` para baixá-lo.");
   }
 
   let baseUrl = DEFAULT_BASE_URL;
@@ -91,7 +91,7 @@ export async function doctor(d: DoctorDeps): Promise<boolean> {
     if (d.env.XDG_SESSION_TYPE === "wayland" || d.env.WAYLAND_DISPLAY) {
       d.log(
         "[aviso] Sessão Wayland: só \"Copiar\" fica disponível. Configure um atalho do sistema " +
-          "apontando para `prompt-improve trigger`.",
+          "apontando para `kraa trigger`.",
       );
     } else {
       d.log("[ok] Sessão X11.");

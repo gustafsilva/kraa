@@ -3,7 +3,7 @@
 <plist version="1.0">
 	<dict>
 		<key>CFBundleExecutable</key>
-		<string>prompt-improve</string>
+		<string>kraa</string>
 		<key>CFBundleGetInfoString</key>
 		<string>App de bandeja que melhora o texto selecionado via LLM compatível com OpenAI</string>
 		<key>CFBundleIconFile</key>
@@ -11,9 +11,9 @@
 		<key>CFBundleIconName</key>
 		<string>appicon</string>
 		<key>CFBundleIdentifier</key>
-		<string>dev.matrixia.prompt-improve</string>
+		<string>dev.matrixia.kraa</string>
 		<key>CFBundleName</key>
-		<string>Prompt Improve</string>
+		<string>Kraa</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>

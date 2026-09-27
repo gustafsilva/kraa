@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Events } from "@wailsio/runtime";
-import { ImproveService } from "@bindings/github.com/gustavofreitas/prompt-improve/internal/app";
-import type { ProfileDTO } from "@bindings/github.com/gustavofreitas/prompt-improve/internal/app";
+import { ImproveService } from "@bindings/github.com/gustavofreitas/kraa/internal/app";
+import type { ProfileDTO } from "@bindings/github.com/gustavofreitas/kraa/internal/app";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Mascot } from "@/components/Mascot";

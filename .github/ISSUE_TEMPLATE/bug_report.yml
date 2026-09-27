@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Obrigado por relatar! Antes, confira a [solução de problemas](https://gustafsilva.github.io/prompt-improve-beta/docs/ajuda/solucao-de-problemas/).
+        Obrigado por relatar! Antes, confira a [solução de problemas](https://gustafsilva.github.io/kraa/docs/ajuda/solucao-de-problemas/).
   - type: textarea
     id: what
     attributes:
@@ -34,7 +34,7 @@ body:
     id: version
     attributes:
       label: Versão
-      description: Saída de `prompt-improve --version`.
+      description: Saída de `kraa --version`.
     validations:
       required: true
   - type: input
@@ -45,6 +45,6 @@ body:
   - type: textarea
     id: doctor
     attributes:
-      label: Saída do `prompt-improve doctor`
+      label: Saída do `kraa doctor`
       description: Remova qualquer chave de API antes de colar.
       render: text

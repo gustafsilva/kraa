@@ -8,13 +8,13 @@
         AllowPromptForPassword="false">
     </Settings>
     <Installer
-        Path="prompt-improve"
+        Path="kraa"
         Arguments=""
-        InstallLocation="C:\Program Files\Matrix IA\Prompt Improve">
+        InstallLocation="C:\Program Files\Matrix IA\Kraa">
     </Installer>
     <PackageInformation
-        PackageName="Prompt Improve"
-        PackageDisplayName="Prompt Improve"
+        PackageName="Kraa"
+        PackageDisplayName="Kraa"
         PublisherName="CN=Matrix IA"
         PublisherDisplayName="Matrix IA"
         Version="0.1.0.0"
@@ -25,10 +25,10 @@
         </Capabilities>
         <Applications>
             <Application
-                Id="dev.matrixia.prompt-improve"
+                Id="dev.matrixia.kraa"
                 Description="Melhore prompts e mensagens com IA a partir de qualquer app"
-                DisplayName="Prompt Improve"
-                ExecutableName="prompt-improve"
+                DisplayName="Kraa"
+                ExecutableName="kraa"
                 EntryPoint="Windows.FullTrustApplication">
 
             </Application>
@@ -41,13 +41,13 @@
         </Dependencies>
         <Properties>
             <Framework>false</Framework>
-            <DisplayName>Prompt Improve</DisplayName>
+            <DisplayName>Kraa</DisplayName>
             <PublisherDisplayName>Matrix IA</PublisherDisplayName>
             <Description>Melhore prompts e mensagens com IA a partir de qualquer app</Description>
             <Logo>Assets\AppIcon.png</Logo>
         </Properties>
     </PackageInformation>
-    <SaveLocation PackagePath="prompt-improve.msix" />
+    <SaveLocation PackagePath="kraa.msix" />
     <PackageIntegrity>
         <CertificatePath></CertificatePath>
     </PackageIntegrity>

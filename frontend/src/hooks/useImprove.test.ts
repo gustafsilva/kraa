@@ -6,7 +6,7 @@ vi.mock("@wailsio/runtime", async () => {
   return { Events: mod.Events };
 });
 
-vi.mock("@bindings/github.com/gustavofreitas/prompt-improve/internal/app", async () => {
+vi.mock("@bindings/github.com/gustavofreitas/kraa/internal/app", async () => {
   const mod = await import("../test/improveServiceMock");
   return { ImproveService: mod.ImproveService };
 });

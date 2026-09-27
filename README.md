@@ -1,19 +1,19 @@
 <p align="center">
-  <img src="docs/brand/kraa-banner.png" alt="Kraa, o corvo mascote do Prompt Improve" width="720">
+  <img src="docs/brand/kraa-banner.png" alt="Kraa, o corvo mascote" width="720">
 </p>
 
-# Prompt Improve
+# Kraa
 
-[![CI](https://github.com/gustafsilva/prompt-improve-beta/actions/workflows/ci.yml/badge.svg)](https://github.com/gustafsilva/prompt-improve-beta/actions/workflows/ci.yml)
-[![Docs](https://github.com/gustafsilva/prompt-improve-beta/actions/workflows/docs.yml/badge.svg)](https://gustafsilva.github.io/prompt-improve-beta/)
-[![npm](https://img.shields.io/npm/v/prompt-improve)](https://www.npmjs.com/package/prompt-improve)
+[![CI](https://github.com/gustafsilva/kraa/actions/workflows/ci.yml/badge.svg)](https://github.com/gustafsilva/kraa/actions/workflows/ci.yml)
+[![Docs](https://github.com/gustafsilva/kraa/actions/workflows/docs.yml/badge.svg)](https://gustafsilva.github.io/kraa/)
+[![npm](https://img.shields.io/npm/v/kraa)](https://www.npmjs.com/package/kraa)
 
 App de bandeja (macOS, Windows, Linux) que melhora o texto selecionado em qualquer aplicativo
 usando um LLM compatível com a API OpenAI (padrão: [Ollama](https://ollama.com) local). Um atalho
 global captura a seleção e abre um modal com ações prontas e instrução livre; o resultado chega em
 stream e pode ser **Substituído** no app de origem ou **Copiado**.
 
-**📖 Documentação: <https://gustafsilva.github.io/prompt-improve-beta/>**
+**📖 Documentação: <https://gustafsilva.github.io/kraa/>**
 
 ```
  seleciona texto   ──►   ⌘/Ctrl+Shift+Y   ──►   escolhe ação   ──►   resposta em stream
@@ -26,35 +26,35 @@ stream e pode ser **Substituído** no app de origem ou **Copiado**.
 
 ```bash
 ollama pull llama3.2 && ollama serve          # LLM local (https://ollama.com/download)
-npm i -g prompt-improve && prompt-improve start
+npm i -g kraa && kraa start
 ```
 
 Sem Node:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.sh | sh   # macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/gustafsilva/kraa/main/scripts/install.sh | sh   # macOS / Linux
 ```
 
 ```powershell
-irm https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.ps1 | iex        # Windows
+irm https://raw.githubusercontent.com/gustafsilva/kraa/main/scripts/install.ps1 | iex        # Windows
 ```
 
 - **macOS:** conceda a permissão de Acessibilidade na primeira execução.
 - **Linux:** `sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0 xdotool`. No Wayland só "Copiar"
   está disponível.
 
-Algo não funcionou? Rode `prompt-improve doctor` e veja a
-[solução de problemas](https://gustafsilva.github.io/prompt-improve-beta/docs/ajuda/solucao-de-problemas/).
+Algo não funcionou? Rode `kraa doctor` e veja a
+[solução de problemas](https://gustafsilva.github.io/kraa/docs/ajuda/solucao-de-problemas/).
 
 ## Documentação
 
 | | |
 |---|---|
-| [Primeiros passos](https://gustafsilva.github.io/prompt-improve-beta/docs/uso/primeiros-passos/) | Da instalação à primeira melhoria |
-| [Instalação](https://gustafsilva.github.io/prompt-improve-beta/docs/instalacao/npm/) | npm, scripts, Ollama, binários sem assinatura |
-| [Configuração](https://gustafsilva.github.io/prompt-improve-beta/docs/configuracao/arquivo/) | `config.yaml`, providers, ações customizadas |
-| [CLI](https://gustafsilva.github.io/prompt-improve-beta/docs/referencia/cli/) | `start`, `stop`, `trigger`, `doctor`… |
-| [Plataformas](https://gustafsilva.github.io/prompt-improve-beta/docs/plataformas/macos/) | macOS, Windows, Linux (X11/Wayland) e privacidade |
+| [Primeiros passos](https://gustafsilva.github.io/kraa/docs/uso/primeiros-passos/) | Da instalação à primeira melhoria |
+| [Instalação](https://gustafsilva.github.io/kraa/docs/instalacao/npm/) | npm, scripts, Ollama, binários sem assinatura |
+| [Configuração](https://gustafsilva.github.io/kraa/docs/configuracao/arquivo/) | `config.yaml`, providers, ações customizadas |
+| [CLI](https://gustafsilva.github.io/kraa/docs/referencia/cli/) | `start`, `stop`, `trigger`, `doctor`… |
+| [Plataformas](https://gustafsilva.github.io/kraa/docs/plataformas/macos/) | macOS, Windows, Linux (X11/Wayland) e privacidade |
 
 A fonte da documentação fica em [`site/src/content/docs`](site/src/content/docs) (MDX).
 
@@ -71,6 +71,6 @@ npm --prefix site run dev      # site de documentação
 ```
 
 Veja o [guia de contribuição](CONTRIBUTING.md), a
-[arquitetura](https://gustafsilva.github.io/prompt-improve-beta/docs/contribuir/arquitetura/) e o
+[arquitetura](https://gustafsilva.github.io/kraa/docs/contribuir/arquitetura/) e o
 [`CLAUDE.md`](CLAUDE.md). Mudanças ficam no [CHANGELOG](CHANGELOG.md); vulnerabilidades, pelo
 [SECURITY.md](SECURITY.md).

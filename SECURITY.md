@@ -2,13 +2,13 @@
 
 ## Versões suportadas
 
-Só a versão mais recente publicada nos [releases](https://github.com/gustafsilva/prompt-improve-beta/releases)
+Só a versão mais recente publicada nos [releases](https://github.com/gustafsilva/kraa/releases)
 recebe correções de segurança.
 
 ## Como reportar uma vulnerabilidade
 
 **Não abra uma issue pública.** Use o
-[reporte privado de vulnerabilidades](https://github.com/gustafsilva/prompt-improve-beta/security/advisories/new)
+[reporte privado de vulnerabilidades](https://github.com/gustafsilva/kraa/security/advisories/new)
 do GitHub, com:
 
 - descrição do problema e do impacto;

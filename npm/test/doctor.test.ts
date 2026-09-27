@@ -47,8 +47,8 @@ async function closedPort(): Promise<number> {
 function writeConfig(platform: NodeJS.Platform, baseUrl: string) {
   const dir =
     platform === "darwin"
-      ? path.join(home, "Library/Application Support/prompt-improve")
-      : path.join(home, ".config/prompt-improve");
+      ? path.join(home, "Library/Application Support/kraa")
+      : path.join(home, ".config/kraa");
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "config.yaml"), `provider:\n  base_url: "${baseUrl}"\n`);
 }
@@ -104,15 +104,15 @@ describe("doctor", () => {
     expect(out()).toMatch(/padrão/);
   });
 
-  it("binário ausente sugere `prompt-improve install`", async () => {
+  it("binário ausente sugere `kraa install`", async () => {
     const { d, out } = deps({ fetch: async () => new Response("{}") });
     await expect(doctor(d)).resolves.toBe(false);
     expect(out()).toMatch(/\[erro\].*não encontrado/);
-    expect(out()).toContain("prompt-improve install");
+    expect(out()).toContain("kraa install");
   });
 
   it("binário presente é reportado como ok", async () => {
-    const bin = path.join(home, ".local/share/prompt-improve/prompt-improve");
+    const bin = path.join(home, ".local/share/kraa/kraa");
     fs.mkdirSync(path.dirname(bin), { recursive: true });
     fs.writeFileSync(bin, "");
     const { d, out } = deps({ fetch: async () => new Response("{}") });

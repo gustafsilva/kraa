@@ -129,7 +129,7 @@ jobs:
       - name: Publica artifact
         uses: actions/upload-artifact@v4
         with:
-          name: prompt-improve-${{ matrix.os }}
+          name: kraa-${{ matrix.os }}
           path: bin/
           if-no-files-found: error
 

@@ -1,6 +1,6 @@
 // Baixa do GitHub Release o binário da versão igual à do package.json,
 // confere o SHA-256 contra o checksums.txt e instala em installDir.
-// Usado pelo `postinstall` (nunca falha o `npm i`) e por `prompt-improve install`.
+// Usado pelo `postinstall` (nunca falha o `npm i`) e por `kraa install`.
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -79,7 +79,7 @@ async function download(d: InstallDeps, url: string): Promise<Buffer> {
 
 /** Mensagem quando o binário atual está em uso e não pode ser substituído. */
 export const BINARY_IN_USE_MESSAGE =
-  "Feche o Prompt Improve (prompt-improve stop) e rode prompt-improve install novamente";
+  "Feche o Kraa (kraa stop) e rode kraa install novamente";
 
 /**
  * Move o binário baixado para o destino. No Windows, renomear por cima de um
@@ -99,19 +99,19 @@ function replaceBinary(d: InstallDeps, from: string, to: string): void {
 }
 
 function skipDownload(env: Env): boolean {
-  const v = env.PROMPT_IMPROVE_SKIP_DOWNLOAD;
+  const v = env.KRAA_SKIP_DOWNLOAD;
   return !!v && v !== "0" && v.toLowerCase() !== "false";
 }
 
 export async function install(d: InstallDeps): Promise<"skipped" | "installed"> {
   if (skipDownload(d.env)) {
-    d.log("PROMPT_IMPROVE_SKIP_DOWNLOAD definido: download do binário ignorado.");
+    d.log("KRAA_SKIP_DOWNLOAD definido: download do binário ignorado.");
     return "skipped";
   }
 
   const asset = assetName(d.platform, d.arch);
   const target = installDir(d.platform, d.env, d.home);
-  d.log(`Baixando Prompt Improve v${d.version} (${asset})...`);
+  d.log(`Baixando Kraa v${d.version} (${asset})...`);
 
   const sums = parseChecksums((await download(d, checksumsUrl(d.repo, d.version))).toString("utf8"));
   const expected = sums.get(asset);
@@ -122,7 +122,7 @@ export async function install(d: InstallDeps): Promise<"skipped" | "installed"> 
   // levando junto qualquer arquivo parcial.
   const stagingParent = d.platform === "darwin" ? path.dirname(target) : target;
   fs.mkdirSync(stagingParent, { recursive: true });
-  const staging = fs.mkdtempSync(path.join(stagingParent, ".prompt-improve-download-"));
+  const staging = fs.mkdtempSync(path.join(stagingParent, ".kraa-download-"));
   try {
     const file = path.join(staging, asset);
     fs.writeFileSync(file, await download(d, assetUrl(d.repo, d.version, asset)));
@@ -152,16 +152,16 @@ export async function install(d: InstallDeps): Promise<"skipped" | "installed"> 
     fs.rmSync(staging, { recursive: true, force: true });
   }
 
-  d.log(`Prompt Improve instalado em ${target}`);
+  d.log(`Kraa instalado em ${target}`);
   return "installed";
 }
 
 function warnDownloadFailed(log: (msg: string) => void, err: unknown): void {
   log(
-    `\n[prompt-improve] Aviso: Não foi possível baixar o binário do Prompt Improve ` +
+    `\n[kraa] Aviso: Não foi possível baixar o binário do Kraa ` +
       `(${err instanceof Error ? err.message : String(err)}).\n` +
       "O pacote npm foi instalado mesmo assim. Quando tiver conexão, rode:\n\n" +
-      "    prompt-improve install\n",
+      "    kraa install\n",
   );
 }
 

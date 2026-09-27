@@ -1,4 +1,4 @@
-module github.com/gustavofreitas/prompt-improve
+module github.com/gustavofreitas/kraa
 
 go 1.25.0
 

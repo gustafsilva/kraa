@@ -14,11 +14,11 @@ import {
 
 describe("conteúdo gerado", () => {
   it("plist do LaunchAgent abre o .app no login", () => {
-    const xml = launchAgentPlist("/Users/ana/Applications/Prompt Improve.app");
-    expect(xml).toContain("<key>Label</key>\n  <string>dev.matrixia.prompt-improve</string>");
+    const xml = launchAgentPlist("/Users/ana/Applications/Kraa.app");
+    expect(xml).toContain("<key>Label</key>\n  <string>dev.matrixia.kraa</string>");
     expect(xml).toContain(
       "<key>ProgramArguments</key>\n  <array>\n    <string>/usr/bin/open</string>\n" +
-        "    <string>-a</string>\n    <string>/Users/ana/Applications/Prompt Improve.app</string>\n  </array>",
+        "    <string>-a</string>\n    <string>/Users/ana/Applications/Kraa.app</string>\n  </array>",
     );
     expect(xml).toContain("<key>RunAtLoad</key>\n  <true/>");
     expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true);
@@ -29,14 +29,14 @@ describe("conteúdo gerado", () => {
   });
 
   it(".desktop do autostart do XDG", () => {
-    const txt = desktopEntry("/home/ana/.local/share/prompt-improve/prompt-improve");
+    const txt = desktopEntry("/home/ana/.local/share/kraa/kraa");
     expect(txt).toBe(
       [
         "[Desktop Entry]",
         "Type=Application",
-        "Name=Prompt Improve",
+        "Name=Kraa",
         "Comment=Melhora o texto selecionado via LLM",
-        'Exec="/home/ana/.local/share/prompt-improve/prompt-improve"',
+        'Exec="/home/ana/.local/share/kraa/kraa"',
         "Terminal=false",
         "X-GNOME-Autostart-enabled=true",
         "",
@@ -50,35 +50,35 @@ describe("conteúdo gerado", () => {
 
   it("argumentos do reg add/delete", () => {
     expect(REG_RUN_KEY).toBe("HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run");
-    expect(regAddArgs("C:\\Users\\Ana\\AppData\\Local\\prompt-improve\\prompt-improve.exe")).toEqual([
+    expect(regAddArgs("C:\\Users\\Ana\\AppData\\Local\\kraa\\kraa.exe")).toEqual([
       "add",
       "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
       "/v",
-      "PromptImprove",
+      "Kraa",
       "/t",
       "REG_SZ",
       "/d",
-      '"C:\\Users\\Ana\\AppData\\Local\\prompt-improve\\prompt-improve.exe"',
+      '"C:\\Users\\Ana\\AppData\\Local\\kraa\\kraa.exe"',
       "/f",
     ]);
     expect(regDeleteArgs()).toEqual([
       "delete",
       "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
       "/v",
-      "PromptImprove",
+      "Kraa",
       "/f",
     ]);
   });
 
   it("caminhos dos arquivos de autostart", () => {
     expect(autostartPath("darwin", {}, "/Users/ana")).toBe(
-      "/Users/ana/Library/LaunchAgents/dev.matrixia.prompt-improve.plist",
+      "/Users/ana/Library/LaunchAgents/dev.matrixia.kraa.plist",
     );
     expect(autostartPath("linux", {}, "/home/ana")).toBe(
-      "/home/ana/.config/autostart/prompt-improve.desktop",
+      "/home/ana/.config/autostart/kraa.desktop",
     );
     expect(autostartPath("linux", { XDG_CONFIG_HOME: "/xdg" }, "/home/ana")).toBe(
-      "/xdg/autostart/prompt-improve.desktop",
+      "/xdg/autostart/kraa.desktop",
     );
   });
 });
@@ -93,9 +93,9 @@ describe("setAutostart (em HOME temporário, exec injetado)", () => {
   it("macOS: cria e remove o plist", async () => {
     const exec = vi.fn(async () => {});
     const d = { platform: "darwin" as const, env: {}, home, exec };
-    const file = path.join(home, "Library/LaunchAgents/dev.matrixia.prompt-improve.plist");
+    const file = path.join(home, "Library/LaunchAgents/dev.matrixia.kraa.plist");
     await setAutostart(true, d);
-    expect(fs.readFileSync(file, "utf8")).toContain("Prompt Improve.app");
+    expect(fs.readFileSync(file, "utf8")).toContain("Kraa.app");
     await setAutostart(false, d);
     expect(fs.existsSync(file)).toBe(false);
     await expect(setAutostart(false, d)).resolves.toBeUndefined(); // idempotente
@@ -104,10 +104,10 @@ describe("setAutostart (em HOME temporário, exec injetado)", () => {
 
   it("Linux: cria e remove o .desktop", async () => {
     const d = { platform: "linux" as const, env: {}, home, exec: vi.fn(async () => {}) };
-    const file = path.join(home, ".config/autostart/prompt-improve.desktop");
+    const file = path.join(home, ".config/autostart/kraa.desktop");
     await setAutostart(true, d);
     expect(fs.readFileSync(file, "utf8")).toContain(
-      `Exec="${home}/.local/share/prompt-improve/prompt-improve"`,
+      `Exec="${home}/.local/share/kraa/kraa"`,
     );
     await setAutostart(false, d);
     expect(fs.existsSync(file)).toBe(false);
@@ -118,7 +118,7 @@ describe("setAutostart (em HOME temporário, exec injetado)", () => {
     const env = { LOCALAPPDATA: "C:\\L" };
     const d = { platform: "win32" as const, env, home: "C:\\Users\\Ana", exec };
     await setAutostart(true, d);
-    expect(exec).toHaveBeenLastCalledWith("reg", regAddArgs("C:\\L\\prompt-improve\\prompt-improve.exe"));
+    expect(exec).toHaveBeenLastCalledWith("reg", regAddArgs("C:\\L\\kraa\\kraa.exe"));
     await setAutostart(false, d);
     expect(exec).toHaveBeenLastCalledWith("reg", regDeleteArgs());
   });

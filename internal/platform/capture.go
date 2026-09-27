@@ -115,7 +115,7 @@ func saveClipboard(cb Clipboard) func() {
 func newSentinel() string {
 	var b [8]byte
 	if _, err := rand.Read(b[:]); err != nil {
-		return fmt.Sprintf("prompt-improve-sentinel-%d", time.Now().UnixNano())
+		return fmt.Sprintf("kraa-sentinel-%d", time.Now().UnixNano())
 	}
-	return "prompt-improve-sentinel-" + hex.EncodeToString(b[:])
+	return "kraa-sentinel-" + hex.EncodeToString(b[:])
 }

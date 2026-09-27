@@ -5,10 +5,10 @@ import path from "node:path";
 
 export type Env = Record<string, string | undefined>;
 
-export const APP_ID = "dev.matrixia.prompt-improve";
-export const APP_NAME = "Prompt Improve";
-export const BIN_NAME = "prompt-improve";
-export const DEFAULT_REPO = "gustafsilva/prompt-improve-beta";
+export const APP_ID = "dev.matrixia.kraa";
+export const APP_NAME = "Kraa";
+export const BIN_NAME = "kraa";
+export const DEFAULT_REPO = "gustafsilva/kraa";
 
 /** path.win32 no Windows e path.posix nos demais, independente do SO do host. */
 export function pathFor(platform: NodeJS.Platform): path.PlatformPath {
@@ -18,19 +18,19 @@ export function pathFor(platform: NodeJS.Platform): path.PlatformPath {
 /** Nome do arquivo publicado no GitHub Release para a combinação SO/arquitetura. */
 export function assetName(platform: NodeJS.Platform, arch: string): string {
   if (platform === "darwin" && (arch === "x64" || arch === "arm64")) {
-    return "prompt-improve-darwin-universal.app.zip";
+    return "kraa-darwin-universal.app.zip";
   }
   if (platform === "win32" && arch === "x64") {
-    return "prompt-improve-windows-amd64.exe";
+    return "kraa-windows-amd64.exe";
   }
   if (platform === "linux" && arch === "x64") {
-    return "prompt-improve-linux-amd64";
+    return "kraa-linux-amd64";
   }
   if (platform === "linux" && arch === "arm64") {
-    return "prompt-improve-linux-arm64";
+    return "kraa-linux-arm64";
   }
   throw new Error(
-    `A plataforma ${platform}/${arch} não é suportada pelo Prompt Improve ` +
+    `A plataforma ${platform}/${arch} não é suportada pelo Kraa ` +
       "(suportadas: macOS x64/arm64, Windows x64, Linux x64/arm64).",
   );
 }
@@ -41,9 +41,9 @@ function localAppData(env: Env, home: string): string {
 
 /**
  * Onde o app fica instalado.
- * - macOS: o bundle `~/Applications/Prompt Improve.app`;
- * - Windows: a pasta `%LOCALAPPDATA%\prompt-improve`;
- * - Linux: a pasta `~/.local/share/prompt-improve`.
+ * - macOS: o bundle `~/Applications/Kraa.app`;
+ * - Windows: a pasta `%LOCALAPPDATA%\kraa`;
+ * - Linux: a pasta `~/.local/share/kraa`.
  */
 export function installDir(platform: NodeJS.Platform, env: Env, home: string): string {
   switch (platform) {
@@ -96,9 +96,9 @@ export function configPath(platform: NodeJS.Platform, env: Env, home: string): s
 
 type Repository = string | { type?: string; url?: string } | undefined;
 
-/** "owner/repo": PROMPT_IMPROVE_REPO ou o `repository` do package.json. */
+/** "owner/repo": KRAA_REPO ou o `repository` do package.json. */
 export function resolveRepo(env: Env, repository: Repository): string {
-  if (env.PROMPT_IMPROVE_REPO) return env.PROMPT_IMPROVE_REPO;
+  if (env.KRAA_REPO) return env.KRAA_REPO;
   const raw = typeof repository === "string" ? repository : repository?.url ?? "";
   const m = raw.match(/^(?:github:)?([\w.-]+\/[\w.-]+?)(?:\.git)?$/) ??
     raw.match(/github\.com[/:]([\w.-]+\/[\w.-]+?)(?:\.git)?$/);

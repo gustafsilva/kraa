@@ -1,11 +1,11 @@
 ---
-title: CLI prompt-improve
+title: CLI kraa
 description: Referência dos comandos instalados pelo pacote npm.
 ---
 import Callout from "@/components/mdx/Callout";
 
 ```text
-Uso: prompt-improve <comando>
+Uso: kraa <comando>
 ```
 
 | Comando | O que faz |
@@ -47,17 +47,17 @@ Mostra o caminho do `config.yaml` e o abre no editor padrão (`open -t`, `notepa
 ## autostart
 
 ```bash
-prompt-improve autostart on
-prompt-improve autostart off
+kraa autostart on
+kraa autostart off
 ```
 
 Cria ou remove os mesmos artefatos usados pelo item **Iniciar com o sistema** da bandeja:
 
 | SO | Artefato |
 |---|---|
-| macOS | `~/Library/LaunchAgents/dev.matrixia.prompt-improve.plist` |
-| Windows | valor `PromptImprove` em `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
-| Linux | `~/.config/autostart/prompt-improve.desktop` |
+| macOS | `~/Library/LaunchAgents/dev.matrixia.kraa.plist` |
+| Windows | valor `Kraa` em `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
+| Linux | `~/.config/autostart/kraa.desktop` |
 
 ## doctor
 
@@ -69,10 +69,10 @@ Verifica, em ordem:
 4. no Linux, se o `xdotool` existe e se a sessão é X11 ou Wayland.
 
 ```text
-Prompt Improve — diagnóstico
+Kraa — diagnóstico
 
-[ok] Binário instalado: ~/.local/share/prompt-improve/prompt-improve
-[ok] Configuração: ~/.config/prompt-improve/config.yaml
+[ok] Binário instalado: ~/.local/share/kraa/kraa
+[ok] Configuração: ~/.config/kraa/config.yaml
 [erro] Não foi possível conectar em http://localhost:11434/v1/models (connect ECONNREFUSED).
        Se estiver usando o Ollama local, inicie o servidor com: ollama serve
 [ok] xdotool encontrado.

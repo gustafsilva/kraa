@@ -1,18 +1,18 @@
 #!/bin/sh
-# Instalador do Prompt Improve para macOS e Linux (sem Node).
+# Instalador do Kraa para macOS e Linux (sem Node).
 #
-#   curl -fsSL https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/gustafsilva/kraa/main/scripts/install.sh | sh
 #
 # Variáveis de ambiente:
-#   PROMPT_IMPROVE_VERSION  versão a instalar (ex.: 0.1.0); padrão: o último release
-#   PROMPT_IMPROVE_REPO     repositório "dono/repo" no GitHub; padrão: gustafsilva/prompt-improve-beta
+#   KRAA_VERSION  versão a instalar (ex.: 0.1.0); padrão: o último release
+#   KRAA_REPO     repositório "dono/repo" no GitHub; padrão: gustafsilva/kraa
 #
 # Mesmas regras do instalador npm (npm/src/install.ts): nome do asset,
 # conferência do SHA-256 contra o checksums.txt e diretório de instalação.
 set -eu
 
-REPO="${PROMPT_IMPROVE_REPO:-gustafsilva/prompt-improve-beta}"
-VERSION="${PROMPT_IMPROVE_VERSION:-}"
+REPO="${KRAA_REPO:-gustafsilva/kraa}"
+VERSION="${KRAA_VERSION:-}"
 VERSION="${VERSION#v}"
 
 fail() {
@@ -24,12 +24,12 @@ os="$(uname -s)"
 arch="$(uname -m)"
 case "$os" in
 Darwin)
-	asset="prompt-improve-darwin-universal.app.zip"
+	asset="kraa-darwin-universal.app.zip"
 	;;
 Linux)
 	case "$arch" in
-	x86_64 | amd64) asset="prompt-improve-linux-amd64" ;;
-	aarch64 | arm64) asset="prompt-improve-linux-arm64" ;;
+	x86_64 | amd64) asset="kraa-linux-amd64" ;;
+	aarch64 | arm64) asset="kraa-linux-arm64" ;;
 	*) fail "a arquitetura $arch não é suportada no Linux (suportadas: x86_64, arm64)." ;;
 	esac
 	;;
@@ -66,11 +66,11 @@ sha256() {
 	fi
 }
 
-tmp="$(mktemp -d 2>/dev/null || mktemp -d -t prompt-improve)"
+tmp="$(mktemp -d 2>/dev/null || mktemp -d -t kraa)"
 trap 'rm -rf "$tmp"' EXIT
 trap 'exit 130' INT TERM
 
-echo "Baixando Prompt Improve ($label, $asset)..."
+echo "Baixando Kraa ($label, $asset)..."
 download "$base/checksums.txt" "$tmp/checksums.txt" ||
 	fail "não foi possível baixar $base/checksums.txt"
 download "$base/$asset" "$tmp/$asset" ||
@@ -86,27 +86,27 @@ fi
 
 if [ "$os" = "Darwin" ]; then
 	apps="$HOME/Applications"
-	target="$apps/Prompt Improve.app"
+	target="$apps/Kraa.app"
 	mkdir -p "$apps"
 	ditto -x -k "$tmp/$asset" "$tmp/app"
 	bundle="$(find "$tmp/app" -maxdepth 1 -name '*.app' | head -n 1)"
 	[ -n "$bundle" ] || fail "o zip $asset não contém um .app."
 	rm -rf "$target"
 	ditto "$bundle" "$target"
-	echo "Prompt Improve instalado em $target"
+	echo "Kraa instalado em $target"
 	echo
 	echo "Para iniciar:  open -a \"$target\""
 	echo "Na primeira vez, conceda a permissão de Acessibilidade quando o app pedir."
 else
-	dir="$HOME/.local/share/prompt-improve"
-	target="$dir/prompt-improve"
+	dir="$HOME/.local/share/kraa"
+	target="$dir/kraa"
 	mkdir -p "$dir"
 	chmod +x "$tmp/$asset"
 	# Copia para um nome temporário e renomeia: substitui atomicamente mesmo
 	# com o app em execução.
 	cp "$tmp/$asset" "$target.new"
 	mv -f "$target.new" "$target"
-	echo "Prompt Improve instalado em $target"
+	echo "Kraa instalado em $target"
 	echo
 	echo "Para iniciar:  \"$target\" &"
 	echo "Atalho no Wayland (GNOME): aponte um atalho personalizado para: \"$target\" --trigger"

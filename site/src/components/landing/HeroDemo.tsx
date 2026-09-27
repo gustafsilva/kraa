@@ -85,13 +85,13 @@ export default function HeroDemo() {
   let lastCategory = ""
 
   return (
-    <div className="relative mx-auto w-full max-w-[34rem] text-left" aria-label="Demonstração do modal do Prompt Improve" role="img">
+    <div className="relative mx-auto w-full max-w-[34rem] text-left" aria-label="Demonstração do modal do Kraa" role="img">
       <div className="absolute -inset-10 -z-10 rounded-full bg-[radial-gradient(closest-side,oklch(0.6_0.18_290/0.28),transparent)] blur-2xl" />
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-card/90 shadow-2xl shadow-black/60 ring-1 ring-black/40 backdrop-blur-xl">
         {/* Cabeçalho do modal */}
         <div className="flex items-center justify-between border-b border-white/[0.07] px-3.5 py-2.5">
           <div className="flex items-center gap-3">
-            <span className="text-[0.8rem] font-medium">Prompt Improve</span>
+            <span className="text-[0.8rem] font-medium">Kraa</span>
             <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-background/60 px-2 py-0.5 font-mono text-[0.7rem] text-muted-foreground">
               llama3.2 <ChevronDown className="size-3" />
             </span>

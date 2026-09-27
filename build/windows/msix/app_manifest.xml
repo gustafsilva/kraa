@@ -8,13 +8,13 @@
   IgnorableNamespaces="uap3">
   
   <Identity
-    Name="dev.matrixia.prompt-improve"
+    Name="dev.matrixia.kraa"
     Publisher="CN=Matrix IA"
     Version="0.1.0.0"
     ProcessorArchitecture="arm64" />
 
   <Properties>
-    <DisplayName>Prompt Improve</DisplayName>
+    <DisplayName>Kraa</DisplayName>
     <PublisherDisplayName>Matrix IA</PublisherDisplayName>
     <Description>Melhore prompts e mensagens com IA a partir de qualquer app</Description>
     <Logo>Assets\StoreLogo.png</Logo>
@@ -29,9 +29,9 @@
   </Resources>
   
   <Applications>
-    <Application Id="dev.matrixia.prompt-improve" Executable="prompt-improve" EntryPoint="Windows.FullTrustApplication">
+    <Application Id="dev.matrixia.kraa" Executable="kraa" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="Prompt Improve"
+        DisplayName="Kraa"
         Description="Melhore prompts e mensagens com IA a partir de qualquer app"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
@@ -41,7 +41,7 @@
       </uap:VisualElements>
       
       <Extensions>
-        <desktop:Extension Category="windows.fullTrustProcess" Executable="prompt-improve" />
+        <desktop:Extension Category="windows.fullTrustProcess" Executable="kraa" />
         
         
       </Extensions>

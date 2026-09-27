@@ -3,7 +3,7 @@
 #
 # The lines below are called `modelines`. See `:help modeline`
 
-name: "prompt-improve"
+name: "kraa"
 arch: ${GOARCH}
 platform: "linux"
 version: "0.0.1"
@@ -17,12 +17,12 @@ license: "MIT"
 release: "1"
 
 contents:
-  - src: "./bin/prompt-improve"
-    dst: "/usr/local/bin/prompt-improve"
+  - src: "./bin/kraa"
+    dst: "/usr/local/bin/kraa"
   - src: "./build/appicon.png"
-    dst: "/usr/share/icons/hicolor/128x128/apps/prompt-improve.png"
-  - src: "./build/linux/prompt-improve.desktop"
-    dst: "/usr/share/applications/prompt-improve.desktop"
+    dst: "/usr/share/icons/hicolor/128x128/apps/kraa.png"
+  - src: "./build/linux/kraa.desktop"
+    dst: "/usr/share/applications/kraa.desktop"
 
 # Dependencies for the GTK3 + WebKit2GTK 4.1 stack. The app is built with
 # `-tags gtk3` on Linux (see build/linux/Taskfile.yml, ruling R15): the

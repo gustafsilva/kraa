@@ -1,7 +1,7 @@
 // Package autostart implements "Iniciar com o sistema": a LaunchAgent plist
 // on macOS, the HKCU Run registry key on Windows and an XDG autostart
 // .desktop file on Linux. It must produce byte-identical artifacts to the
-// npm CLI's `prompt-improve autostart on|off` (npm/src/autostart.ts and
+// npm CLI's `kraa autostart on|off` (npm/src/autostart.ts and
 // npm/src/platform.ts) so the CLI and the tray agree on state. This file
 // holds the pure content generators; internal/autostart/autostart.go holds
 // the Manager that writes/reads them.
@@ -14,13 +14,13 @@ import (
 
 // Identifiers shared with npm/src/platform.ts.
 const (
-	AppID   = "dev.matrixia.prompt-improve"
-	AppName = "Prompt Improve"
-	BinName = "prompt-improve"
+	AppID   = "dev.matrixia.kraa"
+	AppName = "Kraa"
+	BinName = "kraa"
 
 	// RegRunKey and RegValue mirror npm/src/autostart.ts's REG_RUN_KEY/REG_VALUE.
 	RegRunKey = `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
-	RegValue  = "PromptImprove"
+	RegValue  = "Kraa"
 )
 
 var xmlEscaper = strings.NewReplacer(

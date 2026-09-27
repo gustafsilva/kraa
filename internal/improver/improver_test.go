@@ -7,9 +7,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/gustavofreitas/prompt-improve/internal/config"
-	"github.com/gustavofreitas/prompt-improve/internal/improver"
-	"github.com/gustavofreitas/prompt-improve/internal/llm"
+	"github.com/gustavofreitas/kraa/internal/config"
+	"github.com/gustavofreitas/kraa/internal/improver"
+	"github.com/gustavofreitas/kraa/internal/llm"
 )
 
 // fakeClient implements llm.Client, recording the messages it received and

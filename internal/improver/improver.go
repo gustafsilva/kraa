@@ -11,8 +11,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/gustavofreitas/prompt-improve/internal/config"
-	"github.com/gustavofreitas/prompt-improve/internal/llm"
+	"github.com/gustavofreitas/kraa/internal/config"
+	"github.com/gustavofreitas/kraa/internal/llm"
 )
 
 // systemPrompt é a mensagem de sistema enviada em toda chamada ao LLM. A

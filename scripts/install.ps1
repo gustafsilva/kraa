@@ -1,10 +1,10 @@
-# Instalador do Prompt Improve para Windows (sem Node).
+# Instalador do Kraa para Windows (sem Node).
 #
-#   irm https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/gustafsilva/kraa/main/scripts/install.ps1 | iex
 #
 # Variáveis de ambiente:
-#   PROMPT_IMPROVE_VERSION  versão a instalar (ex.: 0.1.0); padrão: o último release
-#   PROMPT_IMPROVE_REPO     repositório "dono/repo" no GitHub; padrão: gustafsilva/prompt-improve-beta
+#   KRAA_VERSION  versão a instalar (ex.: 0.1.0); padrão: o último release
+#   KRAA_REPO     repositório "dono/repo" no GitHub; padrão: gustafsilva/kraa
 #
 # Mesmas regras do instalador npm (npm/src/install.ts): nome do asset,
 # conferência do SHA-256 contra o checksums.txt e diretório de instalação.
@@ -17,15 +17,15 @@
     $ProgressPreference = 'SilentlyContinue' # o progresso deixa o Invoke-WebRequest muito lento no 5.1
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
-    $repo = if ($env:PROMPT_IMPROVE_REPO) { $env:PROMPT_IMPROVE_REPO } else { 'gustafsilva/prompt-improve-beta' }
-    $version = if ($env:PROMPT_IMPROVE_VERSION) { $env:PROMPT_IMPROVE_VERSION.TrimStart('v') } else { '' }
+    $repo = if ($env:KRAA_REPO) { $env:KRAA_REPO } else { 'gustafsilva/kraa' }
+    $version = if ($env:KRAA_VERSION) { $env:KRAA_VERSION.TrimStart('v') } else { '' }
 
     # PROCESSOR_ARCHITEW6432 aparece quando o PowerShell é 32 bits num Windows 64 bits.
     $arch = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
     if ($arch -ne 'AMD64') {
-        throw "A arquitetura $arch nao e suportada pelo Prompt Improve no Windows (suportada: x64)."
+        throw "A arquitetura $arch nao e suportada pelo Kraa no Windows (suportada: x64)."
     }
-    $asset = 'prompt-improve-windows-amd64.exe'
+    $asset = 'kraa-windows-amd64.exe'
 
     if ($version) {
         $base = "https://github.com/$repo/releases/download/v$version"
@@ -36,17 +36,17 @@
     }
 
     $localAppData = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { Join-Path $HOME 'AppData\Local' }
-    $dir = Join-Path $localAppData 'prompt-improve'
-    $target = Join-Path $dir 'prompt-improve.exe'
+    $dir = Join-Path $localAppData 'kraa'
+    $target = Join-Path $dir 'kraa.exe'
 
-    if (Get-Process -Name 'prompt-improve' -ErrorAction SilentlyContinue) {
-        throw 'O Prompt Improve esta em execucao. Feche-o pela bandeja (ou rode: taskkill /IM prompt-improve.exe /F) e tente de novo.'
+    if (Get-Process -Name 'kraa' -ErrorAction SilentlyContinue) {
+        throw 'O Kraa esta em execucao. Feche-o pela bandeja (ou rode: taskkill /IM kraa.exe /F) e tente de novo.'
     }
 
-    $tmp = Join-Path ([IO.Path]::GetTempPath()) ("prompt-improve-" + [Guid]::NewGuid().ToString('N'))
+    $tmp = Join-Path ([IO.Path]::GetTempPath()) ("kraa-" + [Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $tmp | Out-Null
     try {
-        Write-Host "Baixando Prompt Improve ($label, $asset)..."
+        Write-Host "Baixando Kraa ($label, $asset)..."
         $sumsFile = Join-Path $tmp 'checksums.txt'
         $file = Join-Path $tmp $asset
         Invoke-WebRequest -UseBasicParsing -Uri "$base/checksums.txt" -OutFile $sumsFile
@@ -73,7 +73,7 @@
         Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    Write-Host "Prompt Improve instalado em $target"
+    Write-Host "Kraa instalado em $target"
     Write-Host ''
     Write-Host "Para iniciar:  Start-Process '$target'"
 }

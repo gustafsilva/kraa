@@ -6,15 +6,15 @@ illustration: spot-config
 import Callout from "@/components/mdx/Callout";
 
 O arquivo é criado automaticamente, com comentários, na primeira execução, em
-`os.UserConfigDir()/prompt-improve/config.yaml`:
+`os.UserConfigDir()/kraa/config.yaml`:
 
 | SO | Caminho |
 |---|---|
-| macOS | `~/Library/Application Support/prompt-improve/config.yaml` |
-| Windows | `%AppData%\prompt-improve\config.yaml` |
-| Linux | `~/.config/prompt-improve/config.yaml` (ou `$XDG_CONFIG_HOME`) |
+| macOS | `~/Library/Application Support/kraa/config.yaml` |
+| Windows | `%AppData%\kraa\config.yaml` |
+| Linux | `~/.config/kraa/config.yaml` (ou `$XDG_CONFIG_HOME`) |
 
-Para abrir: **Editar configuração** na bandeja ou `prompt-improve config`. Depois de salvar, use
+Para abrir: **Editar configuração** na bandeja ou `kraa config`. Depois de salvar, use
 **Recarregar configuração** na bandeja: não é preciso reiniciar.
 
 <Callout type="note">
@@ -27,7 +27,7 @@ Para abrir: **Editar configuração** na bandeja ou `prompt-improve config`. Dep
 |---|---|---|---|
 | `hotkey` | string | `"CmdOrCtrl+Shift+Y"` | Atalho global que abre o modal. |
 | `provider.base_url` | string | `"http://localhost:11434/v1"` | Endpoint compatível com a API OpenAI. **Obrigatório.** |
-| `provider.api_key` | string | `""` | Chave de API. A variável `PROMPT_IMPROVE_API_KEY` tem precedência. |
+| `provider.api_key` | string | `""` | Chave de API. A variável `KRAA_API_KEY` tem precedência. |
 | `provider.model` | string | `"llama3.2"` | Modelo usado. **Obrigatório.** Também muda pelo seletor do modal. |
 | `provider.timeout_seconds` | inteiro | `60` | Tempo máximo de uma requisição. `0` usa o padrão. |
 | `provider.temperature` | número | `0.2` | Opcional, de 0 a 2. Menor = mais fiel ao texto. Sem a chave, vale o padrão do servidor. Veja [Providers](/docs/configuracao/providers/). |
@@ -79,11 +79,11 @@ Ao carregar, o app recusa a configuração e mostra o erro no modal quando:
 - `temperature` está fora do intervalo de 0 a 2;
 - uma ação não tem `id`, `label` ou `instruction`, ou repete um `id`.
 
-## Variável de ambiente `PROMPT_IMPROVE_API_KEY`
+## Variável de ambiente `KRAA_API_KEY`
 
 Se definida e não vazia, substitui `provider.api_key` depois do carregamento. Ela **nunca** é
 gravada no arquivo, o que evita deixar a chave em texto plano.
 
 ```bash
-export PROMPT_IMPROVE_API_KEY="sua-chave-aqui"
+export KRAA_API_KEY="sua-chave-aqui"
 ```

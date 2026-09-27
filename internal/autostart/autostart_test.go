@@ -11,11 +11,11 @@ import (
 )
 
 func TestAppBundlePathMapsExecutableToBundle(t *testing.T) {
-	got, err := appBundlePath("/Users/ana/Applications/Prompt Improve.app/Contents/MacOS/prompt-improve")
+	got, err := appBundlePath("/Users/ana/Applications/Kraa.app/Contents/MacOS/kraa")
 	if err != nil {
 		t.Fatalf("appBundlePath: %v", err)
 	}
-	if want := "/Users/ana/Applications/Prompt Improve.app"; got != want {
+	if want := "/Users/ana/Applications/Kraa.app"; got != want {
 		t.Fatalf("appBundlePath = %q, want %q", got, want)
 	}
 }
@@ -51,7 +51,7 @@ func TestNewResolvesManagerOrFailsOutsideABundleOnDarwin(t *testing.T) {
 
 func TestDarwinEnableWritesPlistDisableRemovesIt(t *testing.T) {
 	home := t.TempDir()
-	m := &Manager{goos: "darwin", home: home, exePath: "/Users/ana/Applications/Prompt Improve.app"}
+	m := &Manager{goos: "darwin", home: home, exePath: "/Users/ana/Applications/Kraa.app"}
 	file := filepath.Join(home, "Library", "LaunchAgents", AppID+".plist")
 
 	if enabled, err := m.Enabled(); err != nil || enabled {
@@ -87,9 +87,9 @@ func TestDarwinEnableWritesPlistDisableRemovesIt(t *testing.T) {
 func TestLinuxEnableWritesDesktopEntryDisableRemovesIt(t *testing.T) {
 	home := t.TempDir()
 	configDir := filepath.Join(home, ".config")
-	exePath := filepath.Join(home, ".local", "share", "prompt-improve", "prompt-improve")
+	exePath := filepath.Join(home, ".local", "share", "kraa", "kraa")
 	m := &Manager{goos: "linux", home: home, configDir: configDir, exePath: exePath}
-	file := filepath.Join(configDir, "autostart", "prompt-improve.desktop")
+	file := filepath.Join(configDir, "autostart", "kraa.desktop")
 
 	if err := m.Enable(); err != nil {
 		t.Fatalf("Enable: %v", err)
@@ -113,7 +113,7 @@ func TestLinuxEnableWritesDesktopEntryDisableRemovesIt(t *testing.T) {
 func TestWindowsEnableCallsRegAddDisableCallsRegDelete(t *testing.T) {
 	var calls [][]string
 	registered := false
-	exePath := `C:\Users\Ana\AppData\Local\prompt-improve\prompt-improve.exe`
+	exePath := `C:\Users\Ana\AppData\Local\kraa\kraa.exe`
 	m := &Manager{
 		goos:    "windows",
 		exePath: exePath,

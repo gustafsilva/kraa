@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// CLI `prompt-improve`: controla o app instalado pelo pacote npm.
+// CLI `kraa`: controla o app instalado pelo pacote npm.
 import fs from "node:fs";
 import os from "node:os";
 import { setAutostart } from "./autostart";
@@ -14,11 +14,11 @@ export interface CliDeps extends InstallDeps {
   commandExists: (name: string) => Promise<boolean>;
 }
 
-const USAGE = `Uso: prompt-improve <comando>
+const USAGE = `Uso: kraa <comando>
 
 Comandos:
-  start              Inicia o Prompt Improve em segundo plano
-  stop               Encerra o Prompt Improve
+  start              Inicia o Kraa em segundo plano
+  stop               Encerra o Kraa
   trigger            Dispara a captura no app em execução (o mesmo que --trigger)
   config             Abre o config.yaml no editor
   autostart on|off   Liga/desliga iniciar com o sistema
@@ -52,7 +52,7 @@ function isInstalled(d: CliDeps): boolean {
 function requireInstalled(d: CliDeps): boolean {
   if (isInstalled(d)) return true;
   d.log(`[erro] Binário não encontrado em ${binaryPath(d.platform, d.env, d.home)}.`);
-  d.log("       Rode `prompt-improve install` para baixá-lo.");
+  d.log("       Rode `kraa install` para baixá-lo.");
   return false;
 }
 
@@ -110,7 +110,7 @@ function config(d: CliDeps): number {
   const file = configPath(d.platform, d.env, d.home);
   d.log(`Configuração: ${file}`);
   if (!fs.existsSync(file)) {
-    d.log("O arquivo ainda não existe: ele é criado na primeira execução do app (`prompt-improve start`).");
+    d.log("O arquivo ainda não existe: ele é criado na primeira execução do app (`kraa start`).");
     return 1;
   }
   if (d.platform === "darwin") d.spawnDetached("open", ["-t", file]);
@@ -121,7 +121,7 @@ function config(d: CliDeps): number {
 
 async function autostart(arg: string | undefined, d: CliDeps): Promise<number> {
   if (arg !== "on" && arg !== "off") {
-    d.log("Uso: prompt-improve autostart on|off");
+    d.log("Uso: kraa autostart on|off");
     return 2;
   }
   try {
@@ -132,7 +132,7 @@ async function autostart(arg: string | undefined, d: CliDeps): Promise<number> {
   }
   d.log(arg === "on" ? `${APP_NAME} vai iniciar com o sistema.` : "Início automático desligado.");
   if (arg === "on" && !isInstalled(d)) {
-    d.log("[aviso] O binário ainda não está instalado; rode `prompt-improve install`.");
+    d.log("[aviso] O binário ainda não está instalado; rode `kraa install`.");
   }
   return 0;
 }

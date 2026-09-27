@@ -16,12 +16,12 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 	"github.com/wailsapp/wails/v3/pkg/icons"
 
-	"github.com/gustavofreitas/prompt-improve/internal/app"
-	"github.com/gustavofreitas/prompt-improve/internal/autostart"
-	"github.com/gustavofreitas/prompt-improve/internal/config"
-	"github.com/gustavofreitas/prompt-improve/internal/improver"
-	"github.com/gustavofreitas/prompt-improve/internal/llm"
-	"github.com/gustavofreitas/prompt-improve/internal/platform"
+	"github.com/gustavofreitas/kraa/internal/app"
+	"github.com/gustavofreitas/kraa/internal/autostart"
+	"github.com/gustavofreitas/kraa/internal/config"
+	"github.com/gustavofreitas/kraa/internal/improver"
+	"github.com/gustavofreitas/kraa/internal/llm"
+	"github.com/gustavofreitas/kraa/internal/platform"
 )
 
 // Wails uses Go's `embed` package to embed the frontend files into the binary.
@@ -33,7 +33,7 @@ import (
 var assets embed.FS
 
 // triggerArg makes a second launch run the hotkey flow (manual fallback for
-// Wayland/GNOME, where a custom system shortcut runs `prompt-improve --trigger`).
+// Wayland/GNOME, where a custom system shortcut runs `kraa --trigger`).
 const triggerArg = "--trigger"
 
 // loadConfig loads the user config from the default path.
@@ -76,7 +76,7 @@ func main() {
 	var pendingLaunch atomic.Int32 // 0 none, 1 show window, 2 run trigger flow
 
 	wailsApp := application.New(application.Options{
-		Name:        "prompt-improve",
+		Name:        "kraa",
 		Description: "Melhora o texto selecionado via LLM compatível com OpenAI",
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -93,7 +93,7 @@ func main() {
 			DisableQuitOnLastWindowClosed: true,
 		},
 		SingleInstance: &application.SingleInstanceOptions{
-			UniqueID: "dev.matrixia.prompt-improve",
+			UniqueID: "dev.matrixia.kraa",
 			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
 				capture := slices.Contains(data.Args, triggerArg)
 				if fn := trigger.Load(); fn != nil {
@@ -110,7 +110,7 @@ func main() {
 	})
 
 	window := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:       "Prompt Improve",
+		Title:       "Kraa",
 		Width:       560,
 		Height:      580,
 		Frameless:   true,
@@ -284,7 +284,7 @@ func main() {
 	})
 
 	tray := wailsApp.SystemTray.New()
-	tray.SetTooltip("Prompt Improve")
+	tray.SetTooltip("Kraa")
 
 	if runtime.GOOS == "darwin" {
 		tray.SetTemplateIcon(icons.SystrayMacTemplate)
@@ -323,7 +323,7 @@ func main() {
 
 	// "Iniciar com o sistema": reuses internal/autostart, which produces the
 	// exact same LaunchAgent/registry key/.desktop artifacts as the npm CLI
-	// (`prompt-improve autostart on|off`). If New fails (e.g. `wails3 dev`
+	// (`kraa autostart on|off`). If New fails (e.g. `wails3 dev`
 	// running from a temp path outside a .app bundle on macOS), the item is
 	// hidden since there's nothing autostart-able to toggle. Clicks go
 	// through a Toggler, which serializes them: Wails runs every click's

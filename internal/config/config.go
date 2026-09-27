@@ -14,7 +14,7 @@ import (
 
 // EnvAPIKey is the environment variable that, when non-empty, overrides
 // provider.api_key after Load. It is never written back to disk.
-const EnvAPIKey = "PROMPT_IMPROVE_API_KEY"
+const EnvAPIKey = "KRAA_API_KEY"
 
 // DefaultHotkey is used whenever Hotkey is empty, either because the field
 // was omitted from the YAML or explicitly set to "".
@@ -53,7 +53,7 @@ type Profile struct {
 	Text    string `yaml:"text"`
 }
 
-// Config is the full user configuration for Prompt Improve.
+// Config is the full user configuration for Kraa.
 type Config struct {
 	Hotkey        string   `yaml:"hotkey"`
 	Provider      Provider `yaml:"provider"`
@@ -63,13 +63,13 @@ type Config struct {
 }
 
 // DefaultPath returns the default config file location:
-// os.UserConfigDir()/prompt-improve/config.yaml.
+// os.UserConfigDir()/kraa/config.yaml.
 func DefaultPath() (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("config: não foi possível localizar o diretório de configuração: %w", err)
 	}
-	return filepath.Join(dir, "prompt-improve", "config.yaml"), nil
+	return filepath.Join(dir, "kraa", "config.yaml"), nil
 }
 
 // Default returns the built-in default configuration. It is derived by
@@ -88,7 +88,7 @@ func Default() *Config {
 
 // Load reads the config at path, creating it with the default template if
 // it does not exist yet. Fields omitted from the YAML fall back to their
-// defaults, and PROMPT_IMPROVE_API_KEY, if set and non-empty, overrides
+// defaults, and KRAA_API_KEY, if set and non-empty, overrides
 // provider.api_key after load (it is never written back to disk).
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
@@ -129,7 +129,7 @@ func writeDefaultFile(path string) error {
 	return nil
 }
 
-// ApplyEnv applies environment overrides: PROMPT_IMPROVE_API_KEY, when set
+// ApplyEnv applies environment overrides: KRAA_API_KEY, when set
 // and non-empty, replaces provider.api_key. Load calls it; callers that fall
 // back to Default() (e.g. when Load fails) must call it too.
 func (c *Config) ApplyEnv() {

@@ -65,8 +65,8 @@ describe("parseChecksums", () => {
 });
 
 describe("install", () => {
-  it("PROMPT_IMPROVE_SKIP_DOWNLOAD=1 pula o download", async () => {
-    const d = deps({ env: { PROMPT_IMPROVE_SKIP_DOWNLOAD: "1" } });
+  it("KRAA_SKIP_DOWNLOAD=1 pula o download", async () => {
+    const d = deps({ env: { KRAA_SKIP_DOWNLOAD: "1" } });
     await expect(install(d)).resolves.toBe("skipped");
     expect(d.fetch).not.toHaveBeenCalled();
     expect(fs.readdirSync(home)).toEqual([]);
@@ -74,7 +74,7 @@ describe("install", () => {
 
   it("Linux: baixa, confere o SHA-256, instala e faz chmod +x", async () => {
     const bin = Buffer.from("#!/bin/sh\necho oi\n");
-    const asset = "prompt-improve-linux-amd64";
+    const asset = "kraa-linux-amd64";
     const fetch = fakeFetch({ [asset]: bin, "checksums.txt": `${sha(bin)}  ${asset}\n` });
     await expect(install(deps({ fetch }))).resolves.toBe("installed");
 
@@ -82,13 +82,13 @@ describe("install", () => {
       `https://github.com/o/r/releases/download/v1.2.3/${asset}`,
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
-    const target = path.join(home, ".local/share/prompt-improve/prompt-improve");
+    const target = path.join(home, ".local/share/kraa/kraa");
     expect(fs.readFileSync(target)).toEqual(bin);
     if (process.platform !== "win32") {
       expect(fs.statSync(target).mode & 0o111).toBe(0o111);
     }
-    expect(lsRecursive(path.join(home, ".local/share/prompt-improve"))).toEqual([
-      "prompt-improve",
+    expect(lsRecursive(path.join(home, ".local/share/kraa"))).toEqual([
+      "kraa",
     ]);
   });
 
@@ -96,22 +96,22 @@ describe("install", () => {
     "binário em uso (%s no rename, ex.: .exe rodando no Windows) vira mensagem PT-BR e não deixa temporários",
     async (code) => {
       const bin = Buffer.from("bin");
-      const asset = "prompt-improve-linux-amd64";
+      const asset = "kraa-linux-amd64";
       const fetch = fakeFetch({ [asset]: bin, "checksums.txt": `${sha(bin)}  ${asset}\n` });
       const renameSync = vi.fn(() => {
         throw Object.assign(new Error(`${code}: operation not permitted, rename`), { code });
       });
       await expect(install(deps({ fetch, fs: { renameSync } }))).rejects.toThrow(
-        "Feche o Prompt Improve (prompt-improve stop) e rode prompt-improve install novamente",
+        "Feche o Kraa (kraa stop) e rode kraa install novamente",
       );
       expect(renameSync).toHaveBeenCalledTimes(1);
-      expect(lsRecursive(path.join(home, ".local/share/prompt-improve"))).toEqual([]);
+      expect(lsRecursive(path.join(home, ".local/share/kraa"))).toEqual([]);
     },
   );
 
   it("outros erros do rename continuam propagando como estão", async () => {
     const bin = Buffer.from("bin");
-    const asset = "prompt-improve-linux-amd64";
+    const asset = "kraa-linux-amd64";
     const fetch = fakeFetch({ [asset]: bin, "checksums.txt": `${sha(bin)}  ${asset}\n` });
     const renameSync = vi.fn(() => {
       throw Object.assign(new Error("ENOSPC: no space left on device"), { code: "ENOSPC" });
@@ -120,21 +120,21 @@ describe("install", () => {
   });
 
   it("checksum inválido aborta e remove o arquivo parcial", async () => {
-    const asset = "prompt-improve-linux-amd64";
+    const asset = "kraa-linux-amd64";
     const fetch = fakeFetch({
       [asset]: "conteudo adulterado",
       "checksums.txt": `${sha("original")}  ${asset}\n`,
     });
     await expect(install(deps({ fetch }))).rejects.toThrow(/SHA-256/);
-    const dir = path.join(home, ".local/share/prompt-improve");
+    const dir = path.join(home, ".local/share/kraa");
     expect(lsRecursive(dir)).toEqual([]);
   });
 
   it("asset ausente do checksums.txt aborta", async () => {
-    const asset = "prompt-improve-linux-amd64";
+    const asset = "kraa-linux-amd64";
     const fetch = fakeFetch({ [asset]: "x", "checksums.txt": `${sha("x")}  outro\n` });
     await expect(install(deps({ fetch }))).rejects.toThrow(/checksums\.txt/);
-    expect(lsRecursive(path.join(home, ".local/share/prompt-improve"))).toEqual([]);
+    expect(lsRecursive(path.join(home, ".local/share/kraa"))).toEqual([]);
   });
 
   it("HTTP 404 vira erro com a URL", async () => {
@@ -146,7 +146,7 @@ describe("install", () => {
   });
 
   it("download travado estoura o timeout com mensagem PT-BR e não deixa arquivo parcial", async () => {
-    const asset = "prompt-improve-linux-amd64";
+    const asset = "kraa-linux-amd64";
     // Servidor real: o checksums.txt responde, o asset manda um pedaço e trava.
     const server = http.createServer((req, res) => {
       if (req.url?.endsWith("checksums.txt")) {
@@ -164,8 +164,8 @@ describe("install", () => {
         fetch: (url, init) =>
           fetch(`http://127.0.0.1:${port}/${String(url).split("/").pop()}`, init),
       });
-      await expect(install(d)).rejects.toThrow(/Tempo esgotado.*0\.2s.*prompt-improve-linux-amd64/);
-      expect(lsRecursive(path.join(home, ".local/share/prompt-improve"))).toEqual([]);
+      await expect(install(d)).rejects.toThrow(/Tempo esgotado.*0\.2s.*kraa-linux-amd64/);
+      expect(lsRecursive(path.join(home, ".local/share/kraa"))).toEqual([]);
     } finally {
       server.closeAllConnections();
       await new Promise((r) => server.close(r));
@@ -180,21 +180,21 @@ describe("install", () => {
 
   it("macOS: extrai o zip com ditto e move o .app para ~/Applications", async () => {
     const zip = Buffer.from("zip falso");
-    const asset = "prompt-improve-darwin-universal.app.zip";
+    const asset = "kraa-darwin-universal.app.zip";
     const fetch = fakeFetch({ [asset]: zip, "checksums.txt": `${sha(zip)}  ${asset}\n` });
     // ditto simulado: cria o bundle no diretório de destino.
     const exec = vi.fn(async (cmd: string, args: string[]) => {
       expect(cmd).toBe("ditto");
       expect(args.slice(0, 2)).toEqual(["-x", "-k"]);
       const out = args[3];
-      fs.mkdirSync(path.join(out, "Prompt Improve.app/Contents/MacOS"), { recursive: true });
-      fs.writeFileSync(path.join(out, "Prompt Improve.app/Contents/MacOS/prompt-improve"), "bin");
+      fs.mkdirSync(path.join(out, "Kraa.app/Contents/MacOS"), { recursive: true });
+      fs.writeFileSync(path.join(out, "Kraa.app/Contents/MacOS/kraa"), "bin");
     });
     await install(deps({ platform: "darwin", arch: "arm64", fetch, exec }));
     expect(exec).toHaveBeenCalledOnce();
-    const app = path.join(home, "Applications/Prompt Improve.app");
-    expect(fs.readFileSync(path.join(app, "Contents/MacOS/prompt-improve"), "utf8")).toBe("bin");
-    expect(fs.readdirSync(path.join(home, "Applications"))).toEqual(["Prompt Improve.app"]);
+    const app = path.join(home, "Applications/Kraa.app");
+    expect(fs.readFileSync(path.join(app, "Contents/MacOS/kraa"), "utf8")).toBe("bin");
+    expect(fs.readdirSync(path.join(home, "Applications"))).toEqual(["Kraa.app"]);
   });
 
   it.skipIf(process.platform !== "darwin")(
@@ -202,16 +202,16 @@ describe("install", () => {
     async () => {
       const src = fs.mkdtempSync(path.join(os.tmpdir(), "pi-zip-src-"));
       try {
-        const app = path.join(src, "Prompt Improve.app/Contents/MacOS");
+        const app = path.join(src, "Kraa.app/Contents/MacOS");
         fs.mkdirSync(app, { recursive: true });
-        fs.writeFileSync(path.join(app, "prompt-improve"), "bin", { mode: 0o755 });
+        fs.writeFileSync(path.join(app, "kraa"), "bin", { mode: 0o755 });
         const zipPath = path.join(src, "a.zip");
-        execFileSync("ditto", ["-c", "-k", "--keepParent", path.join(src, "Prompt Improve.app"), zipPath]);
+        execFileSync("ditto", ["-c", "-k", "--keepParent", path.join(src, "Kraa.app"), zipPath]);
         const zip = fs.readFileSync(zipPath);
-        const asset = "prompt-improve-darwin-universal.app.zip";
+        const asset = "kraa-darwin-universal.app.zip";
         const fetch = fakeFetch({ [asset]: zip, "checksums.txt": `${sha(zip)}  ${asset}\n` });
         await install(deps({ platform: "darwin", arch: "arm64", fetch, exec: realExec }));
-        const bin = path.join(home, "Applications/Prompt Improve.app/Contents/MacOS/prompt-improve");
+        const bin = path.join(home, "Applications/Kraa.app/Contents/MacOS/kraa");
         expect(fs.statSync(bin).mode & 0o111).toBe(0o111);
       } finally {
         fs.rmSync(src, { recursive: true, force: true });
@@ -221,14 +221,14 @@ describe("install", () => {
 });
 
 describe("postinstall", () => {
-  it("falha de download sai com 0 e avisa para rodar `prompt-improve install`", async () => {
+  it("falha de download sai com 0 e avisa para rodar `kraa install`", async () => {
     const log = vi.fn();
     const fetch = vi.fn(async () => {
       throw new TypeError("fetch failed");
     });
     await expect(postinstall(deps({ fetch, log }))).resolves.toBe(0);
     const out = log.mock.calls.map((c) => c[0]).join("\n");
-    expect(out).toMatch(/prompt-improve install/);
+    expect(out).toMatch(/kraa install/);
     expect(out).toMatch(/Não foi possível/);
   });
 
@@ -241,11 +241,11 @@ describe("postinstall", () => {
     const out = log.mock.calls.map((c) => c[0]).join("\n");
     expect(out).toMatch(/Não foi possível/);
     expect(out).toMatch(/package\.json ilegível/);
-    expect(out).toMatch(/prompt-improve install/);
+    expect(out).toMatch(/kraa install/);
   });
 
   it("SKIP_DOWNLOAD sai com 0 sem baixar", async () => {
-    const d = deps({ env: { PROMPT_IMPROVE_SKIP_DOWNLOAD: "1" } });
+    const d = deps({ env: { KRAA_SKIP_DOWNLOAD: "1" } });
     await expect(postinstall(d)).resolves.toBe(0);
     expect(d.fetch).not.toHaveBeenCalled();
   });

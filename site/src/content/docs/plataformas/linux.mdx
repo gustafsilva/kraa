@@ -15,7 +15,7 @@ sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0   # obrigatórias
 sudo apt install xdotool                          # X11: captura e colagem automáticas
 ```
 
-`prompt-improve doctor` confere o `xdotool` e o tipo de sessão.
+`kraa doctor` confere o `xdotool` e o tipo de sessão.
 
 ## X11
 
@@ -31,26 +31,26 @@ O Wayland não permite simular teclas globalmente, então:
   **antes** do atalho. O modal abre com o conteúdo da área de transferência (e você pode editá-lo);
 - **só "Copiar"** está disponível, sem colagem automática.
 
-Para o atalho global, crie um atalho personalizado do sistema que rode `prompt-improve --trigger`
-(ou `prompt-improve trigger`). No GNOME:
+Para o atalho global, crie um atalho personalizado do sistema que rode `kraa --trigger`
+(ou `kraa trigger`). No GNOME:
 
 **Configurações › Teclado › Atalhos de teclado › Atalhos personalizados › +**
 
 | Campo | Valor |
 |---|---|
-| Nome | Prompt Improve |
-| Comando | `prompt-improve --trigger` |
+| Nome | Kraa |
+| Comando | `kraa --trigger` |
 | Atalho | <Kbd keys={["Ctrl", "Shift", "Y"]} /> |
 
 <Callout type="note">
   Se o comando não for encontrado pelo atalho, use o caminho completo do binário:
-  `~/.local/share/prompt-improve/prompt-improve --trigger`.
+  `~/.local/share/kraa/kraa --trigger`.
 </Callout>
 
 ## Onde ficam os arquivos
 
 | O quê | Caminho |
 |---|---|
-| App | `~/.local/share/prompt-improve/prompt-improve` |
-| Configuração | `~/.config/prompt-improve/config.yaml` |
-| Início automático | `~/.config/autostart/prompt-improve.desktop` |
+| App | `~/.local/share/kraa/kraa` |
+| Configuração | `~/.config/kraa/config.yaml` |
+| Início automático | `~/.config/autostart/kraa.desktop` |

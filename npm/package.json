@@ -1,11 +1,11 @@
 {
-  "name": "prompt-improve",
+  "name": "kraa",
   "version": "0.0.1",
-  "description": "Instalador e CLI do Prompt Improve: app de bandeja que melhora o texto selecionado via LLM compatível com OpenAI.",
-  "repository": "github:gustafsilva/prompt-improve-beta",
+  "description": "Instalador e CLI do Kraa: app de bandeja que melhora o texto selecionado via LLM compatível com OpenAI.",
+  "repository": "github:gustafsilva/kraa",
   "type": "commonjs",
   "bin": {
-    "prompt-improve": "dist/cli.js"
+    "kraa": "dist/cli.js"
   },
   "files": [
     "dist/"

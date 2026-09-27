@@ -20,7 +20,7 @@ import * as $models from "./models.js";
  * emitted for it. Unknown or finished ids are ignored.
  */
 export function Cancel(id: string): $CancellablePromise<void> {
-    return $Call.ByID(1301769902, id);
+    return $Call.ByID(4149314778, id);
 }
 
 /**
@@ -28,35 +28,35 @@ export function Cancel(id: string): $CancellablePromise<void> {
  * back to the previously active app.
  */
 export function Close(): $CancellablePromise<void> {
-    return $Call.ByID(1672743312);
+    return $Call.ByID(1605895300);
 }
 
 /**
  * CloseProfile hides the profile window.
  */
 export function CloseProfile(): $CancellablePromise<void> {
-    return $Call.ByID(3865186613);
+    return $Call.ByID(2792077521);
 }
 
 /**
  * Copy puts text in the clipboard.
  */
 export function Copy(text: string): $CancellablePromise<void> {
-    return $Call.ByID(1123328113, text);
+    return $Call.ByID(1796983069, text);
 }
 
 /**
  * GetProfile returns the profile of the current configuration.
  */
 export function GetProfile(): $CancellablePromise<$models.ProfileDTO> {
-    return $Call.ByID(3475515869);
+    return $Call.ByID(1035780649);
 }
 
 /**
  * GetState returns the current modal state.
  */
 export function GetState(): $CancellablePromise<$models.State> {
-    return $Call.ByID(1833121917);
+    return $Call.ByID(2164222177);
 }
 
 /**
@@ -64,7 +64,7 @@ export function GetState(): $CancellablePromise<$models.State> {
  * installed ones), sorted. Errors are PT-BR and user-facing.
  */
 export function ListModels(): $CancellablePromise<string[] | null> {
-    return $Call.ByID(1437161750);
+    return $Call.ByID(506572978);
 }
 
 /**
@@ -74,7 +74,7 @@ export function ListModels(): $CancellablePromise<string[] | null> {
  * shown again and text is left on the clipboard for a manual paste.
  */
 export function Replace(text: string): $CancellablePromise<void> {
-    return $Call.ByID(1682521732, text);
+    return $Call.ByID(604214936, text);
 }
 
 /**
@@ -83,7 +83,7 @@ export function Replace(text: string): $CancellablePromise<void> {
  * configuration. Errors are PT-BR and user-facing.
  */
 export function SaveProfile(p: $models.ProfileDTO): $CancellablePromise<void> {
-    return $Call.ByID(1063210010, p);
+    return $Call.ByID(3851164678, p);
 }
 
 /**
@@ -92,7 +92,7 @@ export function SaveProfile(p: $models.ProfileDTO): $CancellablePromise<void> {
  * the previous model.
  */
 export function SetModel(model: string): $CancellablePromise<void> {
-    return $Call.ByID(1639218321, model);
+    return $Call.ByID(3845971453, model);
 }
 
 /**
@@ -101,5 +101,5 @@ export function SetModel(model: string): $CancellablePromise<void> {
  * improve:chunk / improve:done / improve:error events carrying this id.
  */
 export function Start(req: $models.StartRequest): $CancellablePromise<string> {
-    return $Call.ByID(1166551936, req);
+    return $Call.ByID(1612880508, req);
 }

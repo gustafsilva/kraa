@@ -14,7 +14,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - 8 ações padrão e ações customizadas no `config.yaml`.
 - Seletor de modelo no topo do modal, que grava `provider.model` no `config.yaml`.
 - "Iniciar com o sistema" pela bandeja e pela CLI.
-- Pacote npm `prompt-improve` (instalador + CLI com `start`, `stop`, `trigger`, `config`,
+- Pacote npm `kraa` (instalador + CLI com `start`, `stop`, `trigger`, `config`,
   `autostart`, `doctor`, `install`) e scripts `install.sh`/`install.ps1`.
 - Workflow de release com binários para macOS (universal), Windows x64 e Linux x64/arm64 e
   `checksums.txt`.
@@ -33,8 +33,11 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Alterado
 
+- O app passa a se chamar **Kraa** (antes Prompt Improve), mesmo nome do mascote: comando e
+  pacote npm `kraa`, variáveis de ambiente `KRAA_*`, pastas de configuração e de dados `kraa`,
+  id do app `dev.matrixia.kraa` e repositório `gustafsilva/kraa`.
 - System prompt e instruções das ações de Prompt revisados: usam só o que está no texto, na
   instrução e no perfil, com placeholders (`[público-alvo]`) em vez de suposições, e formato
   adaptado à complexidade do pedido.
 
-[Não lançado]: https://github.com/gustafsilva/prompt-improve-beta/commits/main
+[Não lançado]: https://github.com/gustafsilva/kraa/commits/main

@@ -2,17 +2,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import CopyCommand from "./CopyCommand"
 
 const METHODS = [
-  { value: "npm", label: "npm", command: "npm i -g prompt-improve && prompt-improve start", note: "macOS, Windows e Linux · Node 18+" },
+  { value: "npm", label: "npm", command: "npm i -g kraa && kraa start", note: "macOS, Windows e Linux · Node 18+" },
   {
     value: "sh",
     label: "macOS / Linux",
-    command: "curl -fsSL https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.sh | sh",
+    command: "curl -fsSL https://raw.githubusercontent.com/gustafsilva/kraa/main/scripts/install.sh | sh",
     note: "Sem Node · baixa o último release e confere o SHA-256",
   },
   {
     value: "ps",
     label: "Windows",
-    command: "irm https://raw.githubusercontent.com/gustafsilva/prompt-improve-beta/main/scripts/install.ps1 | iex",
+    command: "irm https://raw.githubusercontent.com/gustafsilva/kraa/main/scripts/install.ps1 | iex",
     note: "PowerShell · sem Node",
   },
 ]

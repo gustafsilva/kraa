@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gustavofreitas/prompt-improve/internal/platform"
+	"github.com/gustavofreitas/kraa/internal/platform"
 )
 
 // fakeClipboard is an in-memory Clipboard. ok=false models a clipboard whose

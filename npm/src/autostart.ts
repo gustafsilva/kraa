@@ -7,7 +7,7 @@ import type { Exec } from "./exec";
 import { APP_ID, APP_NAME, BIN_NAME, binaryPath, configDir, installDir, type Env } from "./platform";
 
 export const REG_RUN_KEY = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-export const REG_VALUE = "PromptImprove";
+export const REG_VALUE = "Kraa";
 
 const xmlEscape = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

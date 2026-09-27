@@ -1,9 +1,9 @@
-# Contribuindo com o Prompt Improve
+# Contribuindo com o Kraa
 
 Obrigado pelo interesse! Correções, documentação, novas ações padrão e melhorias de suporte a
 plataformas são bem-vindas.
 
-O guia completo está no site: **[Contribuir](https://gustafsilva.github.io/prompt-improve-beta/docs/contribuir/ambiente/)**
+O guia completo está no site: **[Contribuir](https://gustafsilva.github.io/kraa/docs/contribuir/ambiente/)**
 (ambiente, arquitetura, testes e release). O resumo:
 
 ## Ambiente

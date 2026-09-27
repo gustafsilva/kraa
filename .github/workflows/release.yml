@@ -59,25 +59,29 @@ jobs:
         working-directory: frontend
 
       # build/darwin/Taskfile.yml: `package:universal` builda arm64 + amd64,
-      # junta com lipo e monta bin/prompt-improve.app (com codesign ad-hoc).
+      # junta com lipo e monta bin/kraa.app (com codesign ad-hoc).
       - name: Empacota o .app universal
         run: wails3 task darwin:package:universal
 
-      # O bundle é renomeado para "Prompt Improve.app" (o nome que os
+      # O bundle é renomeado para "Kraa.app" (o nome que os
       # instaladores usam em ~/Applications); renomear a pasta do bundle não
       # invalida a assinatura ad-hoc. `--keepParent` põe o .app na raiz do zip.
+      # A troca só de maiúscula/minúscula passa por um nome temporário: no APFS
+      # do runner (case-insensitive) `mv kraa.app Kraa.app` acharia que o destino
+      # já existe e moveria o bundle para dentro de si mesmo.
       - name: Compacta o .app
         run: |
-          mv "bin/prompt-improve.app" "bin/Prompt Improve.app"
-          lipo -info "bin/Prompt Improve.app/Contents/MacOS/prompt-improve"
-          codesign --verify --deep --strict "bin/Prompt Improve.app"
+          mv "bin/kraa.app" "bin/kraa.app.tmp"
+          mv "bin/kraa.app.tmp" "bin/Kraa.app"
+          lipo -info "bin/Kraa.app/Contents/MacOS/kraa"
+          codesign --verify --deep --strict "bin/Kraa.app"
           mkdir -p dist
-          ditto -c -k --keepParent "bin/Prompt Improve.app" dist/prompt-improve-darwin-universal.app.zip
+          ditto -c -k --keepParent "bin/Kraa.app" dist/kraa-darwin-universal.app.zip
 
       - uses: actions/upload-artifact@v4
         with:
           name: asset-darwin-universal
-          path: dist/prompt-improve-darwin-universal.app.zip
+          path: dist/kraa-darwin-universal.app.zip
           if-no-files-found: error
 
   build-windows:
@@ -112,12 +116,12 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp bin/prompt-improve.exe dist/prompt-improve-windows-amd64.exe
+          cp bin/kraa.exe dist/kraa-windows-amd64.exe
 
       - uses: actions/upload-artifact@v4
         with:
           name: asset-windows-amd64
-          path: dist/prompt-improve-windows-amd64.exe
+          path: dist/kraa-windows-amd64.exe
           if-no-files-found: error
 
   build-linux:
@@ -168,13 +172,13 @@ jobs:
       - name: Renomeia o binário
         run: |
           mkdir -p dist
-          cp bin/prompt-improve "dist/prompt-improve-linux-${{ matrix.arch }}"
-          file "dist/prompt-improve-linux-${{ matrix.arch }}"
+          cp bin/kraa "dist/kraa-linux-${{ matrix.arch }}"
+          file "dist/kraa-linux-${{ matrix.arch }}"
 
       - uses: actions/upload-artifact@v4
         with:
           name: asset-linux-${{ matrix.arch }}
-          path: dist/prompt-improve-linux-${{ matrix.arch }}
+          path: dist/kraa-linux-${{ matrix.arch }}
           if-no-files-found: error
 
   release:
@@ -195,7 +199,7 @@ jobs:
       - name: Gera checksums.txt
         working-directory: dist
         run: |
-          assets="prompt-improve-darwin-universal.app.zip prompt-improve-linux-amd64 prompt-improve-linux-arm64 prompt-improve-windows-amd64.exe"
+          assets="kraa-darwin-universal.app.zip kraa-linux-amd64 kraa-linux-arm64 kraa-windows-amd64.exe"
           for f in $assets; do
             [ -f "$f" ] || { echo "::error::Asset ausente: $f"; exit 1; }
           done

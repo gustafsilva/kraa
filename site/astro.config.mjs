@@ -9,7 +9,7 @@ import { rehypeBaseLinks } from "./src/lib/rehype-base-links.mjs";
 // Publicado no GitHub Pages do repositório: https://<dono>.github.io/<repo>/.
 // SITE_URL/BASE_PATH permitem publicar em outro lugar (ou num fork) sem editar o arquivo.
 const site = process.env.SITE_URL ?? "https://gustafsilva.github.io";
-const base = process.env.BASE_PATH ?? "/prompt-improve-beta";
+const base = process.env.BASE_PATH ?? "/kraa";
 
 export default defineConfig({
   site,

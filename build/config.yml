@@ -6,8 +6,8 @@ version: '3'
 # This information is used to generate the build assets.
 info:
   companyName: "Matrix IA" # The name of the company
-  productName: "Prompt Improve" # The name of the application
-  productIdentifier: "dev.matrixia.prompt-improve" # The unique product identifier
+  productName: "Kraa" # The name of the application
+  productIdentifier: "dev.matrixia.kraa" # The unique product identifier
   description: "Melhore prompts e mensagens com IA a partir de qualquer app" # The application description
   copyright: "(c) 2026, Matrix IA" # Copyright text
   comments: "App de bandeja que melhora o texto selecionado via LLM compatível com OpenAI" # Comments

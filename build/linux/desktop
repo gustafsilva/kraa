@@ -1,13 +1,13 @@
 [Desktop Entry]
 Version=1.0
-Name=Prompt Improve
+Name=Kraa
 Comment=Melhore prompts e mensagens com IA a partir de qualquer app
 # The Exec line includes %u to pass the URL to the application
-Exec=/usr/local/bin/prompt-improve %u
+Exec=/usr/local/bin/kraa %u
 Terminal=false
 Type=Application
-Icon=prompt-improve
+Icon=kraa
 Categories=Utility;
-StartupWMClass=prompt-improve
+StartupWMClass=kraa
 
  

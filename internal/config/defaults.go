@@ -4,7 +4,7 @@ package config
 // disk the first time Load runs and no config file exists yet. Default()
 // parses this same template, so the two are always in sync (see
 // TestDefault_MatchesTemplateYAML).
-const defaultConfigYAML = `# Configuração do Prompt Improve.
+const defaultConfigYAML = `# Configuração do Kraa.
 #
 # hotkey: atalho global que abre o modal (sintaxe "CmdOrCtrl+Shift+Y":
 # CmdOrCtrl vira Cmd no macOS e Ctrl no Windows/Linux).
@@ -14,7 +14,7 @@ hotkey: "CmdOrCtrl+Shift+Y"
 # Padrão: Ollama local, sem necessidade de api_key.
 provider:
   base_url: "http://localhost:11434/v1"
-  api_key: "" # a env PROMPT_IMPROVE_API_KEY tem precedência se definida
+  api_key: "" # a env KRAA_API_KEY tem precedência se definida
   model: "llama3.2" # também pode ser trocado pelo seletor no topo do modal
   timeout_seconds: 60
   # temperature: quanto menor, mais fiel ao texto original (menos

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/gustavofreitas/prompt-improve/internal/config"
+	"github.com/gustavofreitas/kraa/internal/config"
 )
 
 // EventProfile is emitted with the current ProfileDTO right before the

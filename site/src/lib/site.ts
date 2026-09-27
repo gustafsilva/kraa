@@ -1,7 +1,7 @@
-export const REPO = "gustafsilva/prompt-improve-beta";
+export const REPO = "gustafsilva/kraa";
 export const REPO_URL = `https://github.com/${REPO}`;
-export const NPM_URL = "https://www.npmjs.com/package/prompt-improve";
-export const INSTALL_CMD = "npm i -g prompt-improve && prompt-improve start";
+export const NPM_URL = "https://www.npmjs.com/package/kraa";
+export const INSTALL_CMD = "npm i -g kraa && kraa start";
 
 /** Caminho interno com o `base` do site (GitHub Pages serve em /<repo>/). */
 export function href(path: string): string {
@@ -72,7 +72,7 @@ export const NAV: NavSection[] = [
   },
   {
     title: "Referência",
-    items: [{ title: "CLI prompt-improve", slug: "referencia/cli" }],
+    items: [{ title: "CLI kraa", slug: "referencia/cli" }],
   },
   {
     title: "Plataformas",
