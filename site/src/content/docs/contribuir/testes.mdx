@@ -55,7 +55,7 @@ O workflow `.github/workflows/ci.yml` roda em todo push e PR:
 | Job | O que verifica |
 |---|---|
 | Lint | `gofmt`, `go vet -tags gtk3` e `go vet -tags server` |
-| Build e testes | `go test -race` com cobertura mínima de **87%** (macOS), typecheck, ESLint e Vitest com thresholds do frontend, `wails3 build` em macOS, Windows e Ubuntu |
+| Build e testes | `go test -race` (macOS e Linux) com cobertura mínima de **87%** (macOS); no Windows, `go test` sem `-race` (CGO exige um compilador C funcional, ausente nesses runners); typecheck, ESLint e Vitest com thresholds do frontend; `wails3 build` em macOS, Windows e Ubuntu |
 | Wrapper npm | testes com thresholds de cobertura, typecheck e build |
 | E2E | Playwright (Chromium e WebKit) contra o binário server mode no Ubuntu |
 
@@ -78,7 +78,8 @@ unitários nem pelo E2E. Eles ficam no checklist manual abaixo:
 
 | Comportamento | Por que não é automatizado |
 |---|---|
-| Captura real da seleção (`⌘C`/`Ctrl+C` simulado noutro app) e colagem real no app de origem | Exige outro app com foco e teclas do SO. `keys_darwin.go` usa CGEvent (cgo) e Acessibilidade; no Linux, `xdotool` num X11 real. O E2E simula a captura com `/__e2e/trigger` (fakes em memória, sem app nem SO reais), e os unitários cobrem `Capture`/`Paste` com fakes. |
+| Captura real da seleção (`⌘C`/`Ctrl+C` simulado noutro app) e colagem real no app de origem | Exige outro app com foco e teclas do SO. `keys_darwin.go` usa CGEvent (cgo) e Acessibilidade; `keys_windows.go` usa `SendInput`; no Linux, `xdotool` num X11 real. O E2E simula a captura com `/__e2e/trigger` (fakes em memória, sem app nem SO reais), e os unitários cobrem `Capture`/`Paste` com fakes. |
+| Sentinela da captura deixado num clipboard vazio ou não textual | Limitação documentada (ruling R9, `internal/platform/capture.go`; veja [privacidade](/docs/plataformas/privacidade/)): sem conteúdo textual para restaurar, o sentinela da captura permanece na área de transferência. Pinada pelo teste `TestTriggerWithoutSelectionOnEmptyClipboardLeavesSentinel` (`internal/e2e`); mudar o comportamento é decisão de produto. |
 | Atalho global (`⌘⇧Y`) e registro pelo SO | No server mode o Wails não tem atalhos globais. A lógica de troca e rollback é coberta em `reloader_test.go` com um fake, mas a rejeição real pelo SO não é. |
 | Bandeja (menu, "Iniciar com o sistema", "Editar configuração") | Não existe bandeja no server mode nem no CI. Os artefatos de autostart são testados em `internal/autostart`. |
 | Single-instance e `kraa --trigger` numa segunda instância | Precisa de dois processos desktop. A fila é testada em `launch_test.go`. |
@@ -97,6 +98,8 @@ Antes de um PR que toque captura, colagem, atalho ou janela, confira nos SOs afe
 - [ ] Selecionar texto em outro app e apertar o atalho: o modal abre com o texto capturado.
 - [ ] Escolher uma ação: o preview aparece em stream.
 - [ ] `⌘Enter` substitui o texto no app de origem e a área de transferência volta ao valor anterior.
+- [ ] Só teclado: digitar, `↑`/`↓`, `Enter`; quando o resultado termina o foco vai para "Substituir";
+      `←`/`→` alterna com "Copiar"; `Enter` aplica; `↑` volta às ações.
 - [ ] Sem permissão de Acessibilidade: aviso no modal, "Substituir" some, só "Copiar" funciona.
 - [ ] Sem seleção: o modal abre vazio e editável.
 - [ ] `Esc` durante o stream fecha sem erro no log.
@@ -119,6 +122,12 @@ Antes de um PR que toque captura, colagem, atalho ou janela, confira nos SOs afe
 - [ ] Bandeja → "Recarregar configuração" com um `hotkey` inválido: aviso "Mantido …" e o
       atalho anterior continua funcionando.
 - [ ] Segunda instância com `kraa --trigger` logo após abrir o app: o modal abre com a seleção.
+- [ ] Bandeja → "Perfil do usuário…": abre a janela com o perfil atual; salvar com "Usar perfil"
+      marcado grava `profile` no `config.yaml` (resto intacto) e a próxima melhoria de prompt
+      reflete o perfil; "Mais formal" não recebe o perfil.
+- [ ] Ativar o perfil com o texto vazio: mensagem "Escreva o perfil antes de ativá-lo." e a
+      janela continua aberta.
+- [ ] Fechar a janela do perfil (X ou `Esc`) só a oculta; reabrir descarta edições não salvas.
 
 <Callout type="tip">
   Descreva no PR em quais SOs o checklist foi feito.
