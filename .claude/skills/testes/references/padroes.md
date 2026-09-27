@@ -339,8 +339,9 @@ loopback fora do `exec.test.ts` (o único com processo real, via `process.execPa
   para o app em foco. O binário `-tags server` e `/__e2e/*` nunca entram em release.
 - Fake de clipboard "vazio" (`has=false` depois do reset) muda a semântica do restore do
   `Capture`: sem semear o clipboard antes, o restore vira no-op e o teste não percebe — foi
-  assim que a Task 8 achou um bug real de produto. Semeie sempre (ver `setClipboard` na spec
-  abaixo, antes do `trigger`).
+  assim que a Task 8 esbarrou na ruling **R9** (limitação documentada, não bug novo; ver
+  `internal/platform/capture.go` e `privacidade.mdx`). Semeie sempre (ver `setClipboard` na
+  spec abaixo, antes do `trigger`).
 - `/__e2e/reset` cancela o stream em andamento (`Close`) **antes** de limpar os fakes
   (`internal/e2e/e2e.go`), senão o próximo teste herda eventos do anterior. Para provar essa
   ordem, use um efeito que só fica no estado esperado se o cancelamento rodou primeiro (ex.:

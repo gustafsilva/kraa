@@ -208,10 +208,11 @@ func TestResetClosesBeforeClearingFakes(t *testing.T) {
 	}
 }
 
-// Pins current behavior: with an empty clipboard, platform.saveClipboard has
-// nothing to restore, so the capture sentinel stays on the clipboard. This
-// mirrors a known product bug (tracked separately; internal/platform is not
-// changed here). Update this test when that bug is fixed.
+// Pins the documented ruling R9 limitation (internal/platform/capture.go's
+// Capture doc comment; site/src/content/docs/plataformas/privacidade.mdx):
+// with an empty/non-text clipboard, platform.saveClipboard has nothing to
+// restore, so the capture sentinel stays on the clipboard. This is not a
+// newly found bug; changing it is a product decision, not a test fix.
 func TestTriggerWithoutSelectionOnEmptyClipboardLeavesSentinel(t *testing.T) {
 	h, _, hd, _ := setup(t)
 	do(t, hd, "POST", "/__e2e/trigger", `{}`)

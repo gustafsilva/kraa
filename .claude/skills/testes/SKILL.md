@@ -187,9 +187,12 @@ teste configurou. Mudança de comportamento atualiza o teste no mesmo commit.
 linha na tabela "O que não tem teste automatizado" e o item no checklist manual de
 `site/src/content/docs/contribuir/testes.mdx`, dizendo qual parte os unitários cobrem.
 
-**Bug de produto já pego por teste**: `platform.saveClipboard` deixa o sentinela da captura
-num clipboard vazio; pino: `TestTriggerWithoutSelectionOnEmptyClipboardLeavesSentinel`
-(`internal/e2e/e2e_test.go`). Quem corrigir o bug atualiza esse teste, não o apaga.
+**Limitação documentada, não bug novo**: `platform.saveClipboard` deixa o sentinela da
+captura num clipboard vazio ou não textual — é a ruling **R9** (comentário de `Capture` em
+`internal/platform/capture.go`; `site/src/content/docs/plataformas/privacidade.mdx`), não
+algo que este teste descobriu. Pino: `TestTriggerWithoutSelectionOnEmptyClipboardLeavesSentinel`
+(`internal/e2e/e2e_test.go`). Mudar esse comportamento é decisão de produto, não conserto de
+teste; quem mudar a ruling atualiza o teste junto.
 
 **Regra repetida em vários docs** (CLAUDE.md, CONTRIBUTING.md, site de docs): mudou uma
 cópia? Faça grep e alinhe todas; texto de doc sobre endpoint de teste se confere contra o
