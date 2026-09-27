@@ -42,10 +42,14 @@ func (e *fakeEmitter) snapshot() []event {
 	return append([]event(nil), e.events...)
 }
 
-// waitFor polls until pred matches some event or the timeout elapses.
+// waitFor polls until pred matches some event or the timeout elapses. The
+// deadline is generous (10s) because it only slows down a failing test: it
+// returns as soon as the event arrives. On Windows, connecting to a closed
+// loopback port (TestIntegrationServerDownSuggestsOllamaServe) can take
+// 1-2s, which a tighter deadline flagged as a timeout.
 func (e *fakeEmitter) waitFor(t *testing.T, pred func(event) bool) event {
 	t.Helper()
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
 		for _, ev := range e.snapshot() {
 			if pred(ev) {
