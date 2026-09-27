@@ -74,3 +74,7 @@ Veja o [guia de contribuição](CONTRIBUTING.md), a
 [arquitetura](https://gustafsilva.github.io/kraa/docs/contribuir/arquitetura/) e o
 [`CLAUDE.md`](CLAUDE.md). Mudanças ficam no [CHANGELOG](CHANGELOG.md); vulnerabilidades, pelo
 [SECURITY.md](SECURITY.md).
+
+## Licença
+
+[MIT](LICENSE)
