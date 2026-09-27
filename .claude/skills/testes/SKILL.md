@@ -42,7 +42,7 @@ com interface pequena que o tipo do Wails já satisfaz (ex.: `Shortcuts`), sem a
 
 ```bash
 go test -race ./...                 # Linux: go test -race -tags gtk3 ./...
-go test ./... -coverprofile=/tmp/kraa-cover.out && go tool cover -func=/tmp/kraa-cover.out | tail -1   # gate da CI: >= 87% (medido: 90.3%)
+go test ./internal/... -coverprofile=/tmp/kraa-cover.out && go tool cover -func=/tmp/kraa-cover.out | tail -1   # gate da CI: >= 87% (medido: 90.4%); nunca ./..., que conta a 0% o main, o cmd/ e o Go de frontend/node_modules
 npm --prefix frontend run typecheck && npm --prefix frontend run lint && npm --prefix frontend run coverage
 npm --prefix npm run typecheck && npm --prefix npm run coverage
 npm --prefix e2e run build:server && npm --prefix e2e test      # se tocou fluxo coberto por E2E

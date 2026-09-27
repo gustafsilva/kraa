@@ -103,13 +103,17 @@ jobs:
 
       # Gate de cobertura do backend (só no macOS: arquivos por SO mudam o
       # total entre plataformas). Mínimo em sincronia com a doc de testes.
-      # `./...` inclui `main.go`/adapters Wails a 0%; medido localmente em
-      # 90.3% com esse comando (acima do mínimo), por isso não é preciso
-      # trocar para a variante `./internal/...` + `.` separada.
+      # O gate mede só `./internal/...`: no runner, `go test ./... -coverprofile`
+      # conta a 0% os pacotes sem teste (`main`, `cmd/llmfake`) e até o pacote
+      # Go que vem em `frontend/node_modules/flatted/golang` (dependência do
+      # ESLint, instalada pelo `npm ci` acima), o que derrubou o total para
+      # 73.8% no primeiro run. O pacote raiz e o `cmd/` continuam compilados e
+      # testados no segundo comando.
       - name: Testes Go (com -race e cobertura, macOS)
         if: runner.os == 'macOS'
         run: |
-          go test ./... -race -coverprofile=coverage.out
+          go test . ./cmd/... -race
+          go test ./internal/... -race -coverprofile=coverage.out
           total=$(go tool cover -func=coverage.out | awk '/^total:/ {sub("%","",$3); print $3}')
           echo "Cobertura Go: ${total}%"
           awk -v t="$total" -v min=87 'BEGIN { if (t+0 < min) { print "Cobertura abaixo de " min "%"; exit 1 } }'
