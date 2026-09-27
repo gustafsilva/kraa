@@ -1,3 +1,4 @@
+import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Mascot, type MascotPose } from "@/components/Mascot";
@@ -24,22 +25,33 @@ export function PreviewPane({
 }: PreviewPaneProps) {
   const hasResult = value.trim().length > 0;
   return (
-    <div className="group/preview relative -ml-3 flex min-h-0 flex-1 flex-col gap-1 pl-3">
+    <div
+      data-slot="preview-card"
+      className={cn(
+        "group/preview relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden rounded-xl border bg-card/60 py-2.5 pr-3 pl-4 transition-colors",
+        (streaming || hasResult) && "border-pencil/25",
+      )}
+    >
       {/* Blue-pencil rule: marks the revised text, mirroring the graphite rule of the source. */}
       <span
         aria-hidden="true"
         className={cn(
-          "absolute inset-y-0 left-0 w-0.5 rounded-full transition-all group-focus-within/preview:w-[3px]",
+          "absolute inset-y-3 left-1.5 w-0.5 rounded-full transition-all group-focus-within/preview:w-[3px]",
           streaming || hasResult ? "bg-pencil" : "bg-graphite",
           streaming && "pencil-writing",
         )}
       />
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-medium text-muted-foreground">Resultado</span>
-        {streaming && <span className="text-[11px] text-pencil">Escrevendo…</span>}
+        {streaming && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-pencil/30 px-1.5 py-px text-[10px] text-pencil">
+            <Sparkles className="size-3" aria-hidden="true" />
+            Escrevendo…
+          </span>
+        )}
       </div>
       <Textarea
-        className="min-h-0 flex-1 resize-none rounded-none border-0 bg-transparent p-0 text-[15px] leading-relaxed shadow-none focus-visible:ring-0 md:text-[15px] dark:bg-transparent [--wails-draggable:no-drag]"
+        className="min-h-0 flex-1 resize-none rounded-none border-0 bg-transparent p-0 text-[14px] leading-relaxed shadow-none focus-visible:ring-0 md:text-[14px] dark:bg-transparent [--wails-draggable:no-drag]"
         value={value}
         readOnly={!editable}
         onChange={(event) => onChange(event.target.value)}
@@ -47,7 +59,7 @@ export function PreviewPane({
         aria-label="Pré-visualização"
       />
       {mascot && value.length === 0 && (
-        <Mascot key={mascot} pose={mascot} size={52} className="absolute right-0 bottom-0 opacity-90" />
+        <Mascot key={mascot} pose={mascot} size={52} className="absolute right-2 bottom-2 opacity-90" />
       )}
     </div>
   );
