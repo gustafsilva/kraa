@@ -42,7 +42,7 @@ com interface pequena que o tipo do Wails já satisfaz (ex.: `Shortcuts`), sem a
 
 ```bash
 go test -race ./...                 # Linux: go test -race -tags gtk3 ./...
-go test -coverprofile=/tmp/kraa-cover.out ./internal/... && go tool cover -func=/tmp/kraa-cover.out | tail -1   # >= 87%
+go test ./... -coverprofile=/tmp/kraa-cover.out && go tool cover -func=/tmp/kraa-cover.out | tail -1   # gate da CI: >= 87% (medido: 90.3%)
 npm --prefix frontend run typecheck && npm --prefix frontend run lint && npm --prefix frontend run coverage
 npm --prefix npm run typecheck && npm --prefix npm run coverage
 npm --prefix e2e run build:server && npm --prefix e2e test      # se tocou fluxo coberto por E2E
@@ -135,7 +135,7 @@ Teste novo que envolve concorrência ou tempo: rode `-count=5` (Go) ou
 
 **E2E (Playwright)**
 - Alvo: `bin/kraa-e2e` (`main_server.go`, `-tags server`) + `cmd/llmfake`, dirigidos por
-  `/__e2e/*` (`trigger`, `state`, `session`, `clipboard`, `reset`) e `/__control/*`. Nova tag
+  `/__e2e/*` (`trigger`, `hotkey`, `state`, `session`, `clipboard`, `reset`) e `/__control/*`. Nova tag
   de build para um seam de teste: confira o Taskfile/Docker antes de escolher — `server` já
   é usada em `build:server`/`build:docker`.
 - `workers: 1` (um backend e um `config.yaml`); toda spec usa o fixture `openModal`, que
@@ -205,7 +205,7 @@ Marque cada item; qualquer "não" bloqueia.
 - [ ] Existe teste que falhava antes da mudança (TDD) e ele afirma o comportamento, não a implementação.
 - [ ] Nada de `time.Sleep`/`setTimeout`/`waitForTimeout` **fixo** para "dar tempo" ou provar
   que nada aconteceu. OK: `time.Sleep` dentro de um loop de polling com prazo
-  (`fakeEmitter.waitFor`, `internal/app/service_test.go:55`) ou simulando demora real de um
+  (`fakeEmitter.waitFor`, `internal/app/service_test.go:59`) ou simulando demora real de um
   fake fora do synctest (`fakeManager.Enable`/`Disable`, `internal/autostart/toggle_test.go`,
   comentário perto de `TestToggleBurstFinalStateMatchesLastClickByGeneration`). Só
   goroutines/canais → `synctest.Wait()`.
@@ -246,55 +246,19 @@ Marque cada item; qualquer "não" bloqueia.
 
 ## Aprendizados do projeto
 
-Sessões futuras acrescentam aqui o que descobriram (data, fato, arquivo). Não apague itens;
-marque os obsoletos como `(obsoleto: motivo)`.
+Sessões futuras acrescentam aqui o que descobriram (data/task, fato, ponteiro). Uma linha por
+item; não repita regra já capitulada acima. Não apague itens; marque os obsoletos como
+`(obsoleto: motivo)`.
 
-- 2026-09-27: medição inicial de cobertura: Go `internal/...` 86.3%, frontend
-  92.4/87.2/90.1/92.8, npm 84.7/82.6/71.2/86.1. Thresholds partem desses pisos.
-- 2026-09-27: testing-library só registra o `cleanup` automático com `globals: true` no
-  Vitest; sem isso o DOM de um teste vaza para o próximo.
-- 2026-09-27: `eslint-disable` sem ESLint rodando é comentário morto; o lint roda na CI.
-- 2026-09-27: medir cobertura numa cópia no scratchpad antes de instalar dependências no repo.
-- 2026-09-27: tarefas de teste em paralelo só com arquivos disjuntos, uma worktree por
-  tarefa, merge sequencial rodando os três comandos de teste após cada merge.
-- 2026-09-27 (Onda 1): polling com prazo é aceitável com rede/processo real; sleep fixo não.
-  Fakes HTTP quebram a integração em silêncio quando o path ou o JSON divergem do cliente real.
-- 2026-09-27 (Onda 1): plano ou brief de teste deve prescrever o mecanismo de espera
-  (synctest, canal `done`, `expect.poll`); implementação ao pé da letra herda o anti-padrão.
-- 2026-09-27 (Onda 1, Task 2): fake que recebe callback guarda e dispara ao menos um em
-  teste; teste de concorrência só sob `-race` sem contador/ordem é vácuo; erro de setup
-  sempre em `t.Fatal`; enum comparado em asserção ganha `String()`.
-- 2026-09-27 (Onda 1, Task 3): `synctest.Wait` não cobre contenção de `sync.Mutex`
-  (deadlock reproduzido); `os.IsNotExist` não cobre `ENOTDIR`; `_linux_test.go` desenvolvido
-  no macOS precisa do job Ubuntu acompanhando o PR.
-- 2026-09-27 (Onda 1, Task 4): gate de tipo `satisfies` só vale com o typecheck cobrindo os
-  arquivos de teste (prove removendo um método); `mockClear` x `mockReset` depende de a
-  implementação do mock ser fixa ou definida por teste.
-- 2026-09-27 (Onda 1, Task 6): npm sem rede externa nunca (loopback só para o transporte);
-  `path.win32` em host POSIX exige espiar `fs`; asserção de fiação compara o valor real;
-  divergência entre brief e código real cita o `file:line` que prova o comportamento.
-- 2026-09-27 (Onda 1, Task 7): payload de evento com type assertion + igualdade exata, nunca
-  `fmt.Sprint` + `Contains`; erro de chamada de setup nunca descartado com `_`.
-- 2026-09-27 (Onda 1, Task 8): fake de E2E também não descarta callback; clipboard fake vazio
-  muda a semântica do restore do `Capture` (bug real de produto); `reset` cancela o stream em
-  andamento antes de limpar os fakes; `trigger` sem seleção espera o `CaptureWait` inteiro;
-  tag de build nova para um seam de teste checa colisão com tasks de deploy antes de escolher.
-- 2026-09-27 (Onda 2, Task 3 — revisão): teste de `chmod` (`TestLoad_CannotCreateDefaultFile`)
-  só pula no Windows hoje; falta pular também com `os.Geteuid() == 0` (root ignora permissões).
-- 2026-09-27 (Onda 2, Task 5): warnings de `act()` só aparecem com
-  `--reporter=verbose --silent=false` (medir a base antes de fixar meta). Workaround de foco
-  para calar warning (`blurActiveElement`) pode colapsar o ramo testado — manter um teste no
-  caminho real com o warning contido por spy escopado. Cleanup se prova por `listenerCount`
-  no mock; `waitFor(toHaveBeenCalled)` ≠ processado; threshold de linha 100% pede
-  `/* v8 ignore */` documentado; filtro que reseta destaque precisa de ≥2 itens.
-- 2026-09-27 (Onda 2, Task 9): colagem registra antes do restore (`poll` dos dois juntos); sem
-  teclas simuladas o trigger lê o clipboard; nova spec prova que pega regressão quebrando a
-  fiação de propósito; `tsc` do e2e usa o binário de `e2e/node_modules`; duas fontes de dado
-  exigem valores distintos; efeito no nome do teste vira contador de `/__e2e/state`;
-  `toHaveCount(0)` recém-ação passa por acaso; reset depende de cada spec chamar `openModal`;
-  constantes do fake deveriam ficar em `e2e/support/`, hoje duplicadas entre specs.
-- 2026-09-27 (Onda 2, Task 10): regra repetida em vários docs exige grep e alinhamento de
-  todas as cópias; texto de doc sobre endpoint de teste se confere contra o código.
-- 2026-09-27 (Onda 2 — lapidação final): trocadas afirmações genéricas por referências reais
-  do código mesclado; contraexemplos vivos (`reloader_test.go:26`/`:226`) marcados "exemplo a
-  corrigir", com o padrão correto (`e2e.go`'s `Shortcuts.Fire`) citado primeiro.
+- 2026-09-27: piso de cobertura — Go 86.3%, frontend 92.4/87.2/90.1/92.8, npm 84.7/82.6/71.2/86.1.
+- 2026-09-27: `cleanup` do Testing Library só é automático com `globals: true` no Vitest.
+- 2026-09-27: `eslint-disable` sem lint rodando é comentário morto; o lint roda na CI.
+- 2026-09-27: medir cobertura numa cópia no scratchpad antes de instalar deps no repo.
+- 2026-09-27: task de teste em paralelo exige arquivos disjuntos, worktree por task, merge sequencial rodando os testes.
+- 2026-09-27 (Onda 1, Task 3): `_linux_test.go` feito no macOS precisa do job Ubuntu acompanhando o PR.
+- 2026-09-27 (Onda 1, Task 4): gate `satisfies` só vale com o typecheck cobrindo os arquivos de teste — prove removendo um método.
+- 2026-09-27 (Onda 1, Task 8): tag de build nova para um seam de teste checa colisão com deploy antes de escolher (`references/padroes.md#e2e`).
+- 2026-09-27 (Onda 2, Task 9): `tsc` do e2e usa o binário de `e2e/node_modules`, não o da raiz; constantes do fake E2E deveriam ir para `e2e/support/env.ts` (ainda duplicadas).
+- 2026-09-27 (Onda 2, Task 10): regra repetida em vários docs exige grep e alinhamento de todas as cópias.
+- 2026-09-27 (lapidação final): contraexemplo vivo no repo — `reloader_test.go`'s `fakeShortcuts.Register` descarta o callback; padrão correto primeiro (`e2e.go`'s `Shortcuts.Fire`).
+- 2026-09-27 (revisão final): sentinela do clipboard vazio/não textual é a ruling R9 já documentada (`internal/platform/capture.go`, `privacidade.mdx`), não bug achado pelo teste E2E.

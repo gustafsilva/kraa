@@ -39,7 +39,7 @@ O mesmo vale para processos externos: `xdotoolKeyWith(run, combo)` recebe o cons
 
 ### Harness do `internal/app`
 
-Referência: `newHarness(t, runner, session)` em `internal/app/service_test.go:166`. Agrega
+Referência: a função `newHarness(t, runner, session)` em `internal/app/service_test.go`. Agrega
 `fakeEmitter` (com `waitFor`), `fakeClipboard`, `fakeKeys`, `fakeWindow` e `recorder`, e
 injeta `Sleep`, `CaptureWait` e `PasteSettle` para a sequência ficar determinística. Teste
 novo do pacote usa o harness; se faltar um fake, acrescente-o ao harness.
@@ -115,7 +115,7 @@ teste desse fake prova que o hotkey certo dispara o efeito certo. Ao tocar esse 
 troque o fake pelo padrão de `e2e.Shortcuts` acima.
 
 Teste "de concorrência" que só roda goroutines sob `-race` sem afirmar nada é vácuo, outro
-exemplo a corrigir: `TestReloadsAreSerialized` (`internal/app/reloader_test.go:226`) dispara
+exemplo a corrigir: `TestReloadsAreSerialized` (`internal/app/reloader_test.go:239`) dispara
 8 `Reload()` e só espera o `WaitGroup` — não prova exclusão nem ordem. Para provar de
 verdade, acrescente um contador ou lista protegida por um segundo mutex e afirme sobre ela
 (ex.: nenhum reload viu config parcialmente escrita, ou a ordem de aplicação bate com a
