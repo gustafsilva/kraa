@@ -2,7 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import CopyCommand from "./CopyCommand"
 
 const METHODS = [
-  { value: "npm", label: "npm", command: "npm i -g kraa && kraa start", note: "macOS, Windows e Linux · Node 18+" },
+  { value: "npm", label: "npm", command: "npm i -g @gustavofsilva/kraa && kraa start", note: "macOS, Windows e Linux · Node 18+" },
   {
     value: "sh",
     label: "macOS / Linux",

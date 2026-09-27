@@ -1,9 +1,16 @@
 {
-  "name": "kraa",
+  "name": "@gustavofsilva/kraa",
   "version": "0.1.0",
   "description": "Instalador e CLI do Kraa: app de bandeja que melhora o texto selecionado via LLM compatível com OpenAI.",
-  "repository": "github:gustafsilva/kraa",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gustafsilva/kraa.git",
+    "directory": "npm"
+  },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "commonjs",
   "bin": {
     "kraa": "dist/cli.js"

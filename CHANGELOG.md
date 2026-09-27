@@ -7,6 +7,12 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não lançado]
 
+### Alterado
+
+- O pacote npm passa a se chamar `@gustavofsilva/kraa` (o npm recusou o nome `kraa` por ser
+  parecido demais com pacotes existentes). O comando continua `kraa`:
+  `npm i -g @gustavofsilva/kraa && kraa start`.
+
 ## [0.1.0] - 2026-09-26
 
 ### Adicionado

@@ -1,7 +1,7 @@
 export const REPO = "gustafsilva/kraa";
 export const REPO_URL = `https://github.com/${REPO}`;
-export const NPM_URL = "https://www.npmjs.com/package/kraa";
-export const INSTALL_CMD = "npm i -g kraa && kraa start";
+export const NPM_URL = "https://www.npmjs.com/package/@gustavofsilva/kraa";
+export const INSTALL_CMD = "npm i -g @gustavofsilva/kraa && kraa start";
 
 /** Caminho interno com o `base` do site (GitHub Pages serve em /<repo>/). */
 export function href(path: string): string {

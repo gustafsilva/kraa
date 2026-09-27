@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/gustafsilva/kraa/actions/workflows/ci.yml/badge.svg)](https://github.com/gustafsilva/kraa/actions/workflows/ci.yml)
 [![Docs](https://github.com/gustafsilva/kraa/actions/workflows/docs.yml/badge.svg)](https://gustafsilva.github.io/kraa/)
-[![npm](https://img.shields.io/npm/v/kraa)](https://www.npmjs.com/package/kraa)
+[![npm](https://img.shields.io/npm/v/@gustavofsilva/kraa)](https://www.npmjs.com/package/@gustavofsilva/kraa)
 [![Licença MIT](https://img.shields.io/github/license/gustafsilva/kraa)](LICENSE)
 [![PRs bem-vindos](https://img.shields.io/badge/PRs-bem--vindos-brightgreen)](CONTRIBUTING.md)
 
@@ -37,7 +37,7 @@ graça com o [Ollama](https://ollama.com).**
 2. **Instale e inicie o Kraa** (requer Node.js 18+):
 
    ```bash
-   npm i -g kraa && kraa start
+   npm i -g @gustavofsilva/kraa && kraa start
    ```
 
    O ícone do Kraa aparece na bandeja do sistema.
