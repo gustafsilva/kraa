@@ -162,8 +162,11 @@ func TestControlEndpointsDriveTheFake(t *testing.T) {
 		t.Fatalf("scenario status = %d", scenarioResp.StatusCode)
 	}
 	resp := postChat(t, srv.URL, "fake-a")
-	raw, _ := io.ReadAll(resp.Body)
+	raw, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(string(raw), `"content":"x"`) {
 		t.Fatalf("cenário não aplicado: %s", raw)
 	}
@@ -173,7 +176,9 @@ func TestControlEndpointsDriveTheFake(t *testing.T) {
 		t.Fatal(err)
 	}
 	var reqs []llmfake.Request
-	json.NewDecoder(r.Body).Decode(&reqs)
+	if err := json.NewDecoder(r.Body).Decode(&reqs); err != nil {
+		t.Fatal(err)
+	}
 	r.Body.Close()
 	if len(reqs) != 1 {
 		t.Fatalf("requests = %+v", reqs)
@@ -186,8 +191,11 @@ func TestControlEndpointsDriveTheFake(t *testing.T) {
 		t.Fatal("reset não limpou os pedidos")
 	}
 	resp = postChat(t, srv.URL, "fake-a")
-	raw, _ = io.ReadAll(resp.Body)
+	raw, err = io.ReadAll(resp.Body)
 	resp.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(string(raw), `"content":"Texto "`) {
 		t.Fatalf("reset não voltou ao cenário padrão: %s", raw)
 	}
@@ -203,8 +211,11 @@ func TestControlEndpointsDriveTheFake(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, _ = io.ReadAll(mr.Body)
+	raw, err = io.ReadAll(mr.Body)
 	mr.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(string(raw), `"id":"z"`) {
 		t.Fatalf("models não trocados: %s", raw)
 	}

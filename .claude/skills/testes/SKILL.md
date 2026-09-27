@@ -73,9 +73,11 @@ Teste novo que envolve concorrência ou tempo: rode `-count=5` (Go) ou
   Enum comparado em asserção (`StartupAction`, `internal/app/launch.go:13`) ganha `String()`.
   Falha de criação por "pai é um arquivo" não é `os.IsNotExist` (é `ENOTDIR`): use um
   diretório existente somente leitura, não um caminho inexistente.
-- Teste de `chmod`/permissão pula no Windows **e** com `os.Geteuid() == 0` (root ignora
-  permissões em contêiner). `TestLoad_CannotCreateDefaultFile` só pula no Windows hoje
-  (`references/padroes.md`).
+- Teste de `chmod`/permissão vai num arquivo `//go:build !windows` (ex.:
+  `internal/config/config_perm_test.go`) — não `if runtime.GOOS == "windows" { t.Skip(...) }`
+  solto no meio de um arquivo sem a tag — e pula também com `os.Geteuid() == 0` (root ignora
+  permissões em contêiner). Exemplo de referência: `TestLoad_CannotCreateDefaultFile` e
+  `TestSaveModel_FailsWhenDirIsReadOnly` (`references/padroes.md`).
 - Payload de evento: type assertion + igualdade exata (`ev.data.(DoneEvent)`,
   `internal/app/integration_test.go:62`), nunca `fmt.Sprint(x)` + `strings.Contains` (falso
   positivo por substring).

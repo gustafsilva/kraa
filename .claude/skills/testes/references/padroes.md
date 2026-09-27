@@ -142,22 +142,24 @@ simplesmente não existe.
 
 ### Teste de permissão (chmod) pula em dois casos, não só um
 
-`internal/config/config_test.go`'s `TestLoad_CannotCreateDefaultFile` faz `os.Chmod(dir, 0o500)`
-para provar a falha de "não foi possível criar" e hoje só tem `if runtime.GOOS == "windows" { t.Skip(...) }`.
-Falta o segundo skip: quando `os.Geteuid() == 0` (root, comum em container/devcontainer) o
-kernel ignora permissões POSIX e o teste falha por motivo errado (cria o arquivo em vez de
-falhar). Todo teste novo de `chmod`/permissão pula nos dois casos:
+Teste de `chmod`/permissão vai num arquivo com `//go:build !windows` — a tag substitui o
+`if runtime.GOOS == "windows" { t.Skip(...) }` solto, que ainda deixa o arquivo compilar (e
+falhar de outro jeito) num host Windows — e pula também quando `os.Geteuid() == 0` (root,
+comum em container/devcontainer): o kernel ignora permissões POSIX e o teste falhava por
+motivo errado (cria o arquivo em vez de falhar).
+
+Exemplo de referência: `internal/config/config_perm_test.go` (`//go:build !windows`) tem
+`TestLoad_CannotCreateDefaultFile` (prova a falha de "não foi possível criar" com
+`os.Chmod(dir, 0o500)`) e `TestSaveModel_FailsWhenDirIsReadOnly` (mesmo padrão para
+`SaveModel`), cada um com:
 
 ```go
-if runtime.GOOS == "windows" {
-	t.Skip("permissões POSIX")
-}
 if os.Geteuid() == 0 {
 	t.Skip("root ignora permissões")
 }
 ```
 
-Ao tocar `TestLoad_CannotCreateDefaultFile`, acrescente o skip de root que falta hoje.
+Todo `os.Chmod`/`os.WriteFile` de setup nesses testes checa o erro com `t.Fatal`, nunca `_`.
 
 ### HTTP/SSE
 
