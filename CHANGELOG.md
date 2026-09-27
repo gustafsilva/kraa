@@ -7,6 +7,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não lançado]
 
+## [0.1.0] - 2026-09-26
+
 ### Adicionado
 
 - App de bandeja para macOS, Windows e Linux que melhora o texto selecionado via LLM
@@ -51,4 +53,5 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
   publicação no npm por trusted publishing (OIDC, sem token) em modo staging, que só vai ao ar
   com a aprovação do mantenedor com 2FA.
 
-[Não lançado]: https://github.com/gustafsilva/kraa/commits/main
+[Não lançado]: https://github.com/gustafsilva/kraa/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/gustafsilva/kraa/releases/tag/v0.1.0

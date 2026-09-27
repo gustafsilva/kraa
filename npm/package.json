@@ -1,6 +1,6 @@
 {
   "name": "kraa",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Instalador e CLI do Kraa: app de bandeja que melhora o texto selecionado via LLM compatível com OpenAI.",
   "repository": "github:gustafsilva/kraa",
   "license": "MIT",
