@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -24,26 +23,6 @@ func TestLoad_ReadErrorOtherThanNotExist(t *testing.T) {
 	dir := t.TempDir() // um diretório no lugar do arquivo: ReadFile falha com EISDIR
 	_, err := Load(dir)
 	if err == nil || !strings.Contains(err.Error(), "não foi possível ler") {
-		t.Fatalf("err = %v", err)
-	}
-}
-
-func TestLoad_CannotCreateDefaultFile(t *testing.T) {
-	// NOTA: o cenário original do brief (diretório pai substituído por um
-	// arquivo) faz os.ReadFile falhar com ENOTDIR, não ENOENT — e
-	// os.IsNotExist(ENOTDIR) é false no Go, então o código nunca chega em
-	// writeDefaultFile; cai em "não foi possível ler" (config.go:97-99).
-	// Para exercitar de fato o caminho de "não foi possível criar" (o
-	// arquivo não existe, mas o diretório não permite criação) usamos um
-	// diretório existente e somente leitura.
-	if runtime.GOOS == "windows" {
-		t.Skip("permissões POSIX")
-	}
-	dir := t.TempDir()
-	os.Chmod(dir, 0o500)
-	t.Cleanup(func() { os.Chmod(dir, 0o700) })
-	_, err := Load(filepath.Join(dir, "config.yaml"))
-	if err == nil || !strings.Contains(err.Error(), "não foi possível criar") {
 		t.Fatalf("err = %v", err)
 	}
 }

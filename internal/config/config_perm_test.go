@@ -5,6 +5,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -32,5 +33,53 @@ func TestLoad_CreatesDefaultFileWithPrivatePerms(t *testing.T) {
 	}
 	if perm := dirInfo.Mode().Perm(); perm != 0o755 {
 		t.Errorf("dir perm = %o, want 0755", perm)
+	}
+}
+
+func TestLoad_CannotCreateDefaultFile(t *testing.T) {
+	// NOTA: o cenário original do brief (diretório pai substituído por um
+	// arquivo) faz os.ReadFile falhar com ENOTDIR, não ENOENT — e
+	// os.IsNotExist(ENOTDIR) é false no Go, então o código nunca chega em
+	// writeDefaultFile; cai em "não foi possível ler" (config.go:97-99).
+	// Para exercitar de fato o caminho de "não foi possível criar" (o
+	// arquivo não existe, mas o diretório não permite criação) usamos um
+	// diretório existente e somente leitura.
+	if os.Geteuid() == 0 {
+		t.Skip("root ignora permissões")
+	}
+	dir := t.TempDir()
+	if err := os.Chmod(dir, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chmod(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	})
+	_, err := Load(filepath.Join(dir, "config.yaml"))
+	if err == nil || !strings.Contains(err.Error(), "não foi possível criar") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestSaveModel_FailsWhenDirIsReadOnly(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root ignora permissões")
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	if _, err := Load(path); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(dir, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chmod(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if err := SaveModel(path, "x"); err == nil {
+		t.Fatal("esperava erro ao gravar em diretório somente leitura")
 	}
 }
