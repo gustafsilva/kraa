@@ -14,7 +14,6 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
-	"github.com/wailsapp/wails/v3/pkg/icons"
 
 	"github.com/gustavofreitas/kraa/internal/app"
 	"github.com/gustavofreitas/kraa/internal/autostart"
@@ -22,6 +21,7 @@ import (
 	"github.com/gustavofreitas/kraa/internal/improver"
 	"github.com/gustavofreitas/kraa/internal/llm"
 	"github.com/gustavofreitas/kraa/internal/platform"
+	"github.com/gustavofreitas/kraa/internal/trayicon"
 )
 
 // Wails uses Go's `embed` package to embed the frontend files into the binary.
@@ -287,10 +287,10 @@ func main() {
 	tray.SetTooltip("Kraa")
 
 	if runtime.GOOS == "darwin" {
-		tray.SetTemplateIcon(icons.SystrayMacTemplate)
+		tray.SetTemplateIcon(trayicon.MacTemplate)
 	} else {
-		tray.SetDarkModeIcon(icons.SystrayDark)
-		tray.SetIcon(icons.SystrayLight)
+		tray.SetDarkModeIcon(trayicon.Dark)
+		tray.SetIcon(trayicon.Light)
 	}
 
 	trayMenu := wailsApp.Menu.New()

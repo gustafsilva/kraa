@@ -13,6 +13,11 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
   parecido demais com pacotes existentes). O comando continua `kraa`:
   `npm i -g @gustavofsilva/kraa && kraa start`.
 
+### Corrigido
+
+- A bandeja mostra o corvo do Kraa em vez do ícone padrão do Wails, adaptado ao tema claro e
+  escuro em macOS, Windows e Linux.
+
 ## [0.1.0] - 2026-09-26
 
 ### Adicionado

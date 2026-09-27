@@ -22,8 +22,10 @@
 
 ## Enviar o prompt
 
-- Clique no compositor (`find` "campo de mensagem" → `computer` `left_click`), digite o prompt
-  com `computer` `type` e envie com `key` `Return`.
+- Clique no compositor (`find` "campo de mensagem" → `computer` `left_click`) e digite o prompt
+  com `computer` `type`. O `key` `Return` pode não enviar: clique no botão azul de enviar
+  (seta, à direita do compositor) e confirme por screenshot que apareceu "Criando imagem".
+- Continuar no chat "Generate macOS icon" (URL no README) dispensa anexar a referência de novo.
 - **Uma imagem por mensagem.**
 
 ## Aguardar

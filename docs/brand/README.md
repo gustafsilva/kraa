@@ -33,6 +33,7 @@ docs/brand/
 ├── kraa-mark.png          cabeça do corvo, fundo transparente, 1024×1024 (logo principal)
 ├── kraa-banner.png        logo horizontal "kraa", 1600px (README)
 ├── kraa-app-icon.png      ícone do app (squircle), 1024×1024, transparência real
+├── kraa-glyph.png         glifo monocromático (preto + alfa), 1024×1024, base da bandeja
 ├── kraa-hero.png          hero da home do site, 1672×941 (logo do Gmail removido)
 ├── mascot/                poses do mascote, 768px, fundo transparente
 │   ├── wave.png  typing.png  success.png  error.png  empty.png  profile.png
@@ -51,6 +52,7 @@ ser regenerado com os comandos de [Pós-processamento](#pós-processamento).
 | `kraa-mark.png` | `source/chatgpt-mark.png` | Logo do header do site (`site/public/kraa-mark.png`), favicons, camada do `build/appicon.icon` |
 | `kraa-banner.png` | `source/chatgpt-banner.png` | Topo do `README.md`, `site/public/brand/banner.webp`, `site/public/brand/og.png` (preview de links) |
 | `kraa-app-icon.png` | montado a partir de `kraa-mark.png` (ver abaixo) | `build/appicon.png` → `build/darwin/icons.icns`, `build/windows/icon.ico` |
+| `kraa-glyph.png` | `source/chatgpt-tray-glyph.png` | Bandeja: `internal/trayicon/{mac-template,light,dark}.png` |
 | `kraa-hero.png` | `source/chatgpt-hero.png` | Seção "Conheça o Kraa" da home (`site/public/brand/hero.webp`) |
 | `mascot/wave.png` | `source/chatgpt-mascot-wave.png` | Modal: preview vazio com texto, aguardando ação. Docs: "Primeiros passos" |
 | `mascot/typing.png` | `source/chatgpt-mascot-typing.png` | Modal: gerando, antes do primeiro trecho do stream |
@@ -86,6 +88,9 @@ o seletor de modelo em "Instantânea". Foram dois chats, que só abrem na conta 
 2. **"Generate macOS icon"**
    (<https://chatgpt.com/c/6ab82a1f-8c80-83e9-9287-ca1b18254e39>): todas as outras imagens,
    usando a cabeça aprovada como referência de personagem.
+
+A skill de projeto `/brand-image` automatiza este processo pelo Claude in Chrome (abrir o chat,
+enviar o prompt, baixar, comparar os candidatos nos tamanhos de uso e pedir a aprovação).
 
 ### Passo a passo para gerar uma imagem nova
 
@@ -191,6 +196,17 @@ Next image (same Kraa crow and style, no sparkle in the beak): Kraa the crow pee
 Next image (same Kraa crow and style, no sparkle in the beak): Kraa the crow wearing small round glasses, reading a profile / ID card held in one wing, thoughtful pose with the other wing on chin, transparent background, sticker style with thin white outline. Square 1:1.
 ```
 
+### Glifo da bandeja (`chatgpt-tray-glyph.png`)
+
+Pedido no chat "Generate macOS icon". Veio com transparência real (alfa), não com o xadrez.
+
+```
+Next image (same Kraa crow head as the approved reference, no sparkle in the beak): a MENU BAR GLYPH of the crow head. A single solid black (#000000) silhouette of the same crow head in profile facing right, with a LARGE round eye as a cutout showing the white background, no inner feather lines, no gradients, no outline, no amber, nothing in the beak. Bold simplified shapes that stay readable at 16px, like an SF Symbol. Centered with generous padding, pure flat white background (#FFFFFF), no checkerboard. Square 1:1.
+```
+
+Uma segunda tentativa, bem mais simples (bico reto, olho grande sem pupila), lia melhor em
+16 px, mas a escolhida foi esta primeira, mais fiel ao estilo do mascote.
+
 ### Hero (`kraa-hero.png`)
 
 ```
@@ -277,6 +293,26 @@ cd build && wails3 generate icons -input appicon.png -macfilename darwin/icons.i
 O `Assets.car` do macOS depende do `actool` do Xcode. Se o `wails3` pular esse passo sem
 avisar, rode `xcrun actool --version`. Se aparecer "A required plugin failed to load", rode
 `sudo xcodebuild -runFirstLaunch` e gere de novo.
+
+**Glifo da bandeja.** Achatar sobre branco antes do threshold funciona tanto com alfa real
+quanto com fundo branco. Depois do glifo mestre, os três PNG de 64 px da bandeja:
+```bash
+magick docs/brand/source/chatgpt-tray-glyph.png -background white -flatten -colorspace Gray \
+  -threshold 50% -negate -trim +repage -resize 960x960 -background black -gravity center \
+  -extent 1024x1024 -write mpr:mask +delete \
+  -size 1024x1024 xc:black mpr:mask -alpha off -compose CopyOpacity -composite \
+  -strip docs/brand/kraa-glyph.png
+magick docs/brand/kraa-glyph.png -resize 64x64 -strip internal/trayicon/mac-template.png
+magick docs/brand/kraa-glyph.png -fill "#18181B" -colorize 100 -resize 64x64 -strip internal/trayicon/light.png
+magick docs/brand/kraa-glyph.png -fill "#FAFAFA" -colorize 100 -resize 64x64 -strip internal/trayicon/dark.png
+go test ./internal/trayicon/
+```
+Sem uma imagem gerada, dá para derivar a máscara do próprio `kraa-mark.png` (os detalhes
+âmbar viram recortes; ajuste o `-fuzz` olhando o resultado) e seguir com ela no lugar do original:
+```bash
+magick docs/brand/kraa-mark.png -fuzz 25% -fill none -opaque "#F5B324" \
+  -alpha extract -threshold 50% -negate "$TMPDIR/kraa-mask.png"
+```
 
 **Favicons e logo do site:**
 ```bash

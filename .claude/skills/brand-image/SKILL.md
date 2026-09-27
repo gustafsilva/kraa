@@ -22,11 +22,41 @@ qualquer imagem.** Esta skill cobre só o "como operar o gerador".
    e gere o alfa localmente com o ImageMagick. Para stickers, o fundo transparente dele costuma
    servir; confira.
 4. **Escolha o provider.** Padrão: `chatgpt` → siga `providers/chatgpt.md`.
-5. **Mostre o resultado ao usuário antes de aceitar.** Se vier estrela no bico, texto legível ou
-   logo de terceiros, peça o ajuste no mesmo chat.
-6. **Salve o original sem editar** em `docs/brand/source/`, gere os derivados com os comandos do
-   README e atualize a tabela "Imagens e onde são usadas" do README (e os prompts usados, se
-   forem novos).
+5. **Salve cada tentativa sem editar** em `docs/brand/source/<provider>-<nome>-v<N>.png` assim
+   que baixar. **Nunca sobrescreva** uma tentativa anterior: o usuário pode preferir uma
+   versão antiga depois de comparar. Com a aprovação, renomeie a escolhida para
+   `<provider>-<nome>.png` e apague as outras.
+6. **Compare e mostre antes de confirmar** (ver [Comparar e aprovar](#comparar-e-aprovar)). Se
+   vier estrela no bico, texto legível ou logo de terceiros, peça o ajuste no mesmo chat.
+7. Com a aprovação, gere os derivados com os comandos do README e atualize a tabela "Imagens e
+   onde são usadas" do README (e os prompts usados, se forem novos).
+
+## Comparar e aprovar
+
+Vale para qualquer provider. O usuário decide olhando a imagem, não a descrição dela.
+
+1. Monte uma **folha de comparação** em `$TMPDIR` (ou no scratchpad da sessão) com o candidato
+   novo ao lado do que existe hoje e das alternativas já geradas, **nos tamanhos em que a
+   imagem será usada**, sobre fundo claro (`#ECECEC`) e escuro (`#1E1E1E`). Uma linha por
+   candidato. Ex.: ícones e glifos em 16/22/32/64/128 px ampliados com `-filter point`
+   (mostra o pixel real); ilustrações em 256/512 px.
+   ```bash
+   row=(); for bg in "#ECECEC" "#1E1E1E"; do for s in 16 32 64 128; do
+     magick cand.png -resize ${s}x${s} -background "$bg" -gravity center -extent 136x136 "p-${#row[@]}.png"
+     row+=("p-${#row[@]}.png"); done; done
+   magick "${row[@]}" +append row-cand.png   # repita por candidato e junte com -append
+   ```
+2. Olhe a folha você mesmo (`Read`) e forme uma recomendação.
+3. **Abra para o usuário:** `open <folha.png> <original.png>` (abre no Preview do macOS).
+4. Pergunte com `AskUserQuestion`: uma opção por candidato + "nova tentativa", com a sua
+   recomendação primeiro e o porquê em uma linha. Nunca aceite uma imagem sem essa resposta.
+
+## Pós-processamento: cuidados
+
+- Alguns geradores entregam **alfa real**, outros desenham o xadrez. Confira com
+  `magick identify -format "%[channels] opaque=%[opaque]\n" arquivo.png`. Para gerar máscara a
+  partir de qualquer um dos dois, achate sobre branco antes do threshold:
+  `-background white -flatten -colorspace Gray -threshold 50% -negate`.
 
 ## Providers
 
