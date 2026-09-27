@@ -1,0 +1,184 @@
+# Padrões por camada (snippets no estilo do repo)
+
+Prefira copiar o arquivo de referência citado a partir destes trechos.
+
+## Go
+
+### Função pura + wrapper fino por SO
+
+Referência: `internal/platform/session.go:14` (sem build tag, testada em todos os SOs);
+`session_linux.go` só liga `os.Getenv`/`exec.LookPath`.
+
+```go
+func TestDetectLinuxSession(t *testing.T) {
+	found := func(string) (string, error) { return "/usr/bin/xdotool", nil }
+	missing := func(string) (string, error) { return "", exec.ErrNotFound }
+	cases := []struct {
+		name     string
+		env      map[string]string
+		lookPath func(string) (string, error)
+		want     Session
+	}{
+		{"wayland", map[string]string{"XDG_SESSION_TYPE": "wayland"}, found, Session{Reason: reasonWayland}},
+		{"x11 sem xdotool", map[string]string{"XDG_SESSION_TYPE": "x11"}, missing, Session{Reason: reasonXdotool}},
+		{"x11 com xdotool", map[string]string{"XDG_SESSION_TYPE": "x11"}, found, Session{CanSimulateKeys: true}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := detectLinuxSession(func(k string) string { return tc.env[k] }, tc.lookPath)
+			if got != tc.want {
+				t.Fatalf("got %+v, want %+v", got, tc.want)
+			}
+		})
+	}
+}
+```
+
+O mesmo vale para processos externos: `xdotoolKeyWith(run, combo)` recebe o construtor de
+`*exec.Cmd` e o teste `_linux_test.go` confere os argumentos sem rodar `xdotool`.
+
+### Harness do `internal/app`
+
+Referência: `newHarness(t, runner, session)` em `internal/app/service_test.go:166`. Agrega
+`fakeEmitter` (com `waitFor`), `fakeClipboard`, `fakeKeys`, `fakeWindow` e `recorder`, e
+injeta `Sleep`, `CaptureWait` e `PasteSettle` para a sequência ficar determinística. Teste
+novo do pacote usa o harness; se faltar um fake, acrescente-o ao harness.
+
+```go
+h := newHarness(t, fakeRunner{run: func(ctx context.Context, r improver.Request, onChunk func(string)) error {
+	onChunk("Olá")
+	return nil
+}}, canSimulate)
+id, _ := h.svc.Start(StartRequest{Text: "oi", ActionID: "fix"})
+ev := h.em.waitFor(t, isEvent(EventDone, id))
+```
+
+### Ausência de evento com `testing/synctest` (Go 1.25)
+
+```go
+func TestCancelStopsRequestWithoutFurtherEvents(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := newHarness(t, blockingRunner(), canSimulate)
+		id, _ := h.svc.Start(StartRequest{Text: "x", ActionID: "fix"})
+		h.svc.Cancel(id)
+		synctest.Wait() // todas as goroutines da bolha bloqueadas: nada mais vai emitir
+		for _, ev := range h.em.snapshot() {
+			if eventID(ev) == id && ev.name != EventStarted {
+				t.Fatalf("evento depois do Cancel: %+v", ev)
+			}
+		}
+	})
+}
+```
+
+Dentro da bolha o relógio é virtual (o `waitFor` com polling continua funcionando).
+`httptest`/rede real não entra na bolha: nesses testes, o fake fecha um canal `done` e o
+teste espera nele com `select` + prazo.
+
+### HTTP/SSE
+
+- Unitário do cliente: `httptest.NewServer` + `writeSSE(w, r, lines)`
+  (`internal/llm/client_test.go:20`), que para quando o contexto da requisição cancela.
+- Integração: `srv := httptest.NewServer(llmfake.New("fake-a"))`, `fake.SetScenario(...)`,
+  `fake.Requests()` para ver modelo, mensagens e `Canceled`. "Ollama parado" = servidor
+  fechado (`srv.Close()` antes do `Start`).
+
+### Cobertura
+
+```bash
+go test -coverprofile=/tmp/kraa-cover.out ./internal/... && go tool cover -func=/tmp/kraa-cover.out | tail -1
+go tool cover -html=/tmp/kraa-cover.out   # ver linhas descobertas
+```
+
+## Frontend
+
+### Mocks globais (não repetir por arquivo)
+
+- `vitest.config.ts` faz alias de `@wailsio/runtime` → `src/test/wailsRuntimeMock.ts` e do
+  barrel `@bindings/.../internal/app` → `src/test/improveServiceMock.ts`.
+- `improveServiceMock.ts`: um `vi.fn` por método, `satisfies Record<keyof typeof RealService, unknown>`,
+  defaults em `applyDefaults()`, `resetImproveServiceMock()` faz `mockReset` + defaults.
+- `setup.ts`: `afterEach(() => { resetWailsMock(); resetImproveServiceMock(); })`.
+
+### Teste de componente com evento do Go
+
+```tsx
+import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { emit } from "../test/wailsRuntimeMock";
+import { ImproveService } from "../test/improveServiceMock";
+
+it("mostra os chunks no preview conforme chegam", async () => {
+  const user = userEvent.setup();
+  ImproveService.Start.mockResolvedValueOnce("req-1");
+  render(<App />);
+  act(() => emit("selection:new", { text: "Texto capturado", canReplace: true, warning: "" }));
+
+  await user.type(screen.getByRole("combobox", { name: /buscar ação/i }), "melhore{Enter}");
+  await waitFor(() => expect(ImproveService.Start).toHaveBeenCalled());
+
+  act(() => emit("improve:chunk", { id: "req-1", delta: "Olá" }));
+  expect(await screen.findByText("Olá")).toBeInTheDocument();
+});
+```
+
+`userEvent` dentro de `act()` gera "environment not configured to support act"; `emit()`
+fora de `act()` gera "not wrapped in act". Foco ou `fireEvent` soltos em teste de teclado
+também geram warning: use `user.keyboard("{ArrowDown}{Enter}")`
+(`frontend/src/components/ActionList.test.tsx`).
+
+## CLI npm
+
+Referência: `deps(over)` e `fakeInstalled(platform)` em `npm/test/cli.test.ts`.
+
+```ts
+it("start (macOS) usa open -a", async () => {
+  fakeInstalled("darwin");
+  const { d } = deps({ platform: "darwin", arch: "arm64" });
+  await expect(run(["start"], d)).resolves.toBe(0);
+  expect(d.spawnDetached).toHaveBeenCalledWith("open", ["-a", path.join(home, "Applications/Kraa.app")]);
+});
+```
+
+Aqui o `toHaveBeenCalledWith` é a saída observável (o comando que a CLI dispara), não um
+eco do que o teste configurou. Mensagens ao usuário se conferem por `out()`.
+
+HOME é `fs.mkdtempSync` no `beforeEach` e apagado no `afterEach`.
+
+## E2E
+
+### Fatos do Wails server mode (beta.26, verificados rodando)
+
+- `go build -tags server .` compila; no Linux sem cgo (`CGO_ENABLED=0`), sem GTK/Xvfb no CI.
+- O frontend precisa estar buildado antes (`//go:embed all:frontend/dist`); senão a página
+  vem vazia. `npm --prefix e2e run build:server` faz os dois.
+- Config isolado por `HOME` + `XDG_CONFIG_HOME` + `APPDATA` (`os.UserConfigDir` por SO).
+- No-ops: clipboard (Copiar falha), janelas, bandeja; `GlobalShortcut.Register` sempre
+  erra (daí o `Shortcuts` fake em `internal/e2e`); single-instance erra;
+  `ApplicationStarted` não dispara.
+- Eventos vão por WebSocket `/wails/events`: espere o console
+  `Event WebSocket connected` antes do `/__e2e/trigger`, senão `selection:new` se perde.
+- Nunca clique "Substituir" num backend com `KeySender` real no macOS: manda ⌘V de verdade
+  para o app em foco. O binário `-tags server` e `/__e2e/*` nunca entram em release.
+
+### Spec
+
+```ts
+import { e2eState, setClipboard, trigger } from "../support/api";
+import { expect, test } from "../support/fixtures";
+
+test("Enter em Substituir cola o resultado e restaura o clipboard", async ({ page, request, openModal }) => {
+  await openModal(); // resetAll() + espera o WebSocket
+  await setClipboard(request, "clipboard do usuário");
+  await trigger(request, "abc");
+  await page.getByRole("option", { name: "Melhorar prompt" }).click();
+  await expect(page.getByText("Texto melhorado pelo fake.")).toBeVisible();
+  await page.keyboard.press("Enter");
+
+  await expect.poll(async () => (await e2eState(request)).pasted).toEqual(["Texto melhorado pelo fake."]);
+  expect((await e2eState(request)).clipboard).toBe("clipboard do usuário");
+});
+```
+
+Depuração: `npx playwright test x.spec.ts --project=chromium --trace on` e
+`npx playwright show-report` (ou `show-trace` no zip de `test-results/`).
