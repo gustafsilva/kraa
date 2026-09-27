@@ -19,8 +19,8 @@ Próximos passos do projeto, organizados por categoria.
 
 ## UI
 
-- [ ] Modal: trocar o ícone de lápis à esquerda de "Kraa" (topo esquerdo) pelo ícone do Kraa
-  - [ ] Se necessário, criar uma imagem específica para esse tamanho (glifo pequeno, legível no tema escuro)
+- [x] Modal: trocar o ícone de lápis à esquerda de "Kraa" (topo esquerdo) pelo ícone do Kraa
+  - [x] Se necessário, criar uma imagem específica para esse tamanho (glifo pequeno, legível no tema escuro) — não foi necessário: o glifo da bandeja (64 px) lê bem a 16 px nos dois temas
 
 ## Documentação
 
