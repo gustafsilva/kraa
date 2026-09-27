@@ -50,7 +50,7 @@ func main() {
 
 	reloader := app.NewReloader(app.ReloaderOptions{
 		Host:          host,
-		Shortcuts:     &e2e.Shortcuts{},
+		Shortcuts:     hooks.Shortcuts,
 		Load:          app.LoadConfig,
 		NewRunner:     app.NewRunner,
 		DetectSession: hooks.Session,
@@ -60,6 +60,7 @@ func main() {
 	})
 	reloader.RegisterHotkey()
 	hooks.Reload = reloader.Reload
+	hooks.Close = svc.Close
 	host.SetModelSaver(reloader.SaveModel)
 	host.SetProfileSaver(reloader.SaveProfile)
 

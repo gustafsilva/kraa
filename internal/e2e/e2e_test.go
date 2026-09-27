@@ -154,11 +154,69 @@ func TestWrongMethodAndUnknownPath(t *testing.T) {
 
 func TestShortcutsAlwaysAccept(t *testing.T) {
 	var s e2e.Shortcuts
-	if err := s.Register("CmdOrCtrl+Shift+Y", func() {}); err != nil || !s.IsRegistered("CmdOrCtrl+Shift+Y") {
+	fired := 0
+	if err := s.Register("CmdOrCtrl+Shift+Y", func() { fired++ }); err != nil || !s.IsRegistered("CmdOrCtrl+Shift+Y") {
 		t.Fatal("Register/IsRegistered")
+	}
+	if n := s.Fire(); n != 1 || fired != 1 {
+		t.Fatalf("Fire() = %d, callback chamado %d vez(es); want 1 e 1", n, fired)
 	}
 	s.Unregister("CmdOrCtrl+Shift+Y")
 	if s.IsRegistered("CmdOrCtrl+Shift+Y") {
 		t.Fatal("Unregister")
+	}
+}
+
+func TestHotkeyFiresRegisteredCallback(t *testing.T) {
+	h, _, hd, _ := setup(t)
+	if rec := do(t, hd, "POST", "/__e2e/hotkey", ""); rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "nenhum atalho registrado") {
+		t.Fatalf("sem atalho: code = %d body = %q; want 404 com \"nenhum atalho registrado\"", rec.Code, rec.Body.String())
+	}
+
+	fired := 0
+	h.Shortcuts.Register("CmdOrCtrl+Shift+Y", func() { fired++ })
+	if rec := do(t, hd, "POST", "/__e2e/hotkey", ""); rec.Code != http.StatusNoContent {
+		t.Fatalf("code = %d; want 204", rec.Code)
+	}
+	if fired != 1 {
+		t.Fatalf("callback chamado %d vez(es); want 1", fired)
+	}
+
+	h.Shortcuts.Unregister("CmdOrCtrl+Shift+Y")
+	if rec := do(t, hd, "POST", "/__e2e/hotkey", ""); rec.Code != http.StatusNotFound {
+		t.Fatalf("após Unregister: code = %d; want 404", rec.Code)
+	}
+	if fired != 1 {
+		t.Fatalf("callback desregistrado chamado: %d", fired)
+	}
+}
+
+func TestResetClosesBeforeClearingFakes(t *testing.T) {
+	h, _, hd, _ := setup(t)
+	closes := 0
+	// Mirrors ImproveService.Close: cancels the stream and hides the window.
+	h.Close = func() { closes++; h.Window.Hide() }
+	h.Window.Show()
+
+	do(t, hd, "POST", "/__e2e/reset", "")
+	if closes != 1 {
+		t.Fatalf("closes = %d; want 1", closes)
+	}
+	// Close ran first, so its Hide was wiped by the fake reset.
+	if got := do(t, hd, "GET", "/__e2e/state", "").Body.String(); !strings.Contains(got, `"window":{"visible":false,"shows":0,"hides":0}`) {
+		t.Fatalf("state = %s; want window zerada", got)
+	}
+}
+
+// Pins current behavior: with an empty clipboard, platform.saveClipboard has
+// nothing to restore, so the capture sentinel stays on the clipboard. This
+// mirrors a known product bug (tracked separately; internal/platform is not
+// changed here). Update this test when that bug is fixed.
+func TestTriggerWithoutSelectionOnEmptyClipboardLeavesSentinel(t *testing.T) {
+	h, _, hd, _ := setup(t)
+	do(t, hd, "POST", "/__e2e/trigger", `{}`)
+	text, ok := h.Clipboard.Text()
+	if !ok || !strings.HasPrefix(text, "kraa-sentinel-") {
+		t.Fatalf("clipboard = %q (ok=%v); want prefixo kraa-sentinel-", text, ok)
 	}
 }

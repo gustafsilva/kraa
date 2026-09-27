@@ -106,19 +106,20 @@ func (w *Window) state() windowState {
 func (w *Window) reset() { w.mu.Lock(); w.visible, w.shows, w.hides = false, 0, 0; w.mu.Unlock() }
 
 // Shortcuts is an app.Shortcuts that always accepts (server mode has no
-// global hotkeys; Wails' own registry would always reject).
+// global hotkeys; Wails' own registry would always reject). It keeps the
+// callbacks so Fire (POST /__e2e/hotkey) runs whatever the Reloader wired.
 type Shortcuts struct {
 	mu         sync.Mutex
-	registered map[string]bool
+	registered map[string]func()
 }
 
-func (s *Shortcuts) Register(a string, _ func()) error {
+func (s *Shortcuts) Register(a string, callback func()) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.registered == nil {
-		s.registered = map[string]bool{}
+		s.registered = map[string]func(){}
 	}
-	s.registered[a] = true
+	s.registered[a] = callback
 	return nil
 }
 
@@ -132,7 +133,24 @@ func (s *Shortcuts) Unregister(a string) error {
 func (s *Shortcuts) IsRegistered(a string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.registered[a]
+	_, ok := s.registered[a]
+	return ok
+}
+
+// Fire runs the callback of every registered accelerator, as if its hotkey
+// had been pressed, and returns how many ran. Callbacks run outside the lock:
+// the hotkey flow may reload the config, which re-registers shortcuts.
+func (s *Shortcuts) Fire() int {
+	s.mu.Lock()
+	callbacks := make([]func(), 0, len(s.registered))
+	for _, cb := range s.registered {
+		callbacks = append(callbacks, cb)
+	}
+	s.mu.Unlock()
+	for _, cb := range callbacks {
+		cb()
+	}
+	return len(callbacks)
 }
 
 // Host is the part of *app.Host the hooks drive.
@@ -146,8 +164,10 @@ type Hooks struct {
 	Keys          *Keys
 	Window        *Window
 	ProfileWindow *Window
-	Host          Host   // set after app.New, before Run
-	Reload        func() // re-reads config.yaml; set after the Reloader exists
+	Shortcuts     *Shortcuts // pass to app.ReloaderOptions.Shortcuts
+	Host          Host       // set after app.New, before Run
+	Reload        func()     // re-reads config.yaml; set after the Reloader exists
+	Close         func()     // cancels the in-flight stream (ImproveService.Close)
 
 	mu      sync.Mutex
 	session platform.Session
@@ -160,6 +180,7 @@ func NewHooks() *Hooks {
 		Keys:          &Keys{cb: cb},
 		Window:        &Window{},
 		ProfileWindow: &Window{},
+		Shortcuts:     &Shortcuts{},
 		session:       platform.Session{CanSimulateKeys: true},
 	}
 }
@@ -193,6 +214,7 @@ func (h *Hooks) Middleware(next http.Handler) http.Handler {
 func (h *Hooks) serve(w http.ResponseWriter, r *http.Request) {
 	route := map[string]string{
 		"/__e2e/trigger":   http.MethodPost,
+		"/__e2e/hotkey":    http.MethodPost,
 		"/__e2e/session":   http.MethodPost,
 		"/__e2e/clipboard": http.MethodPost,
 		"/__e2e/reset":     http.MethodPost,
@@ -218,6 +240,20 @@ func (h *Hooks) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		h.Keys.setSelection(body.Selection)
 		h.Host.Trigger()
+	case "/__e2e/hotkey":
+		// Same optional {"selection": …} body as trigger, but goes through
+		// the callback the Reloader registered (proves the OnHotkey wiring).
+		var body struct {
+			Selection *string `json:"selection"`
+		}
+		if !decode(w, r, &body) {
+			return
+		}
+		h.Keys.setSelection(body.Selection)
+		if h.Shortcuts.Fire() == 0 {
+			http.Error(w, "nenhum atalho registrado", http.StatusNotFound)
+			return
+		}
 	case "/__e2e/session":
 		var body struct {
 			CanReplace bool   `json:"canReplace"`
@@ -236,6 +272,11 @@ func (h *Hooks) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		h.Clipboard.SetText(body.Text)
 	case "/__e2e/reset":
+		// Close first: it cancels a stream left by the previous test, and
+		// its Hide must not survive in the window counters reset below.
+		if h.Close != nil {
+			h.Close()
+		}
 		h.Clipboard.clear()
 		h.Keys.reset()
 		h.Window.reset()
