@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { PreviewPane } from "./PreviewPane";
 
@@ -28,5 +29,15 @@ describe("<PreviewPane />", () => {
     expect(container.querySelector('[data-slot="mascot"]')).not.toBeNull();
     rerender(<PreviewPane value="texto" onChange={vi.fn()} editable mascot="wave" />);
     expect(container.querySelector('[data-slot="mascot"]')).toBeNull();
+  });
+
+  it("editar o campo editável chama onChange com o texto digitado", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<PreviewPane value="" onChange={onChange} editable />);
+
+    await user.type(screen.getByRole("textbox", { name: /pré-visualização/i }), "a");
+
+    expect(onChange).toHaveBeenCalledWith("a");
   });
 });

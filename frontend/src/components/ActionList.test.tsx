@@ -9,14 +9,33 @@ const actions = [
   { id: "b1", category: "Gramática", label: "Corrigir erros" },
 ];
 
-function setup() {
+function setup(focusToken = 1) {
   const onSelectAction = vi.fn();
   const onFreeInstruction = vi.fn();
-  render(
-    <ActionList actions={actions} onSelectAction={onSelectAction} onFreeInstruction={onFreeInstruction} focusToken={1} />,
+  const view = render(
+    <ActionList
+      actions={actions}
+      onSelectAction={onSelectAction}
+      onFreeInstruction={onFreeInstruction}
+      focusToken={focusToken}
+    />,
   );
   const search = screen.getByRole("combobox", { name: /buscar ação/i });
-  return { onSelectAction, onFreeInstruction, search, user: userEvent.setup() };
+  return {
+    onSelectAction,
+    onFreeInstruction,
+    search,
+    user: userEvent.setup(),
+    rerender: (token: number) =>
+      view.rerender(
+        <ActionList
+          actions={actions}
+          onSelectAction={onSelectAction}
+          onFreeInstruction={onFreeInstruction}
+          focusToken={token}
+        />,
+      ),
+  };
 }
 
 describe("<ActionList />", () => {
@@ -84,5 +103,23 @@ describe("<ActionList />", () => {
   it("sem ações e sem texto mostra a dica de instrução livre", () => {
     render(<ActionList actions={[]} onSelectAction={vi.fn()} onFreeInstruction={vi.fn()} />);
     expect(screen.getByText(/digite o que deseja e aperte enter/i)).toBeInTheDocument();
+  });
+
+  it("mudar focusToken refoca a busca", async () => {
+    const { search, user, rerender } = setup();
+    await user.keyboard("GRAMATICA");
+    search.blur();
+    expect(search).not.toHaveFocus();
+
+    rerender(2);
+    expect(search).toHaveFocus();
+  });
+
+  it("mudar o filtro volta o destaque ao primeiro item", async () => {
+    const { user, onSelectAction } = setup();
+    await user.keyboard("{ArrowDown}");
+    await user.keyboard("gramatica");
+    await user.keyboard("{Enter}");
+    expect(onSelectAction).toHaveBeenCalledWith("b1");
   });
 });
