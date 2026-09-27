@@ -9,6 +9,7 @@ import http from "node:http";
 import type { AddressInfo } from "node:net";
 import {
   DOWNLOAD_TIMEOUT_MS,
+  defaultInstallDeps,
   install,
   parseChecksums,
   postinstall,
@@ -90,6 +91,55 @@ describe("install", () => {
     expect(lsRecursive(path.join(home, ".local/share/kraa"))).toEqual([
       "kraa",
     ]);
+  });
+
+  it.each(["0", "false"])("KRAA_SKIP_DOWNLOAD=%s não pula o download", async (v) => {
+    const bin = Buffer.from("#!/bin/sh\necho oi\n");
+    const asset = "kraa-linux-amd64";
+    const fetch = fakeFetch({ [asset]: bin, "checksums.txt": `${sha(bin)}  ${asset}\n` });
+    await expect(install(deps({ fetch, env: { KRAA_SKIP_DOWNLOAD: v } }))).resolves.toBe("installed");
+    expect(fetch).toHaveBeenCalled();
+    const target = path.join(home, ".local/share/kraa/kraa");
+    expect(fs.readFileSync(target)).toEqual(bin);
+  });
+
+  it("Windows: baixa e instala o .exe (sem checar bits de permissão Unix)", async () => {
+    // installDir/binaryPath usam path.win32 (separador "\"), que não é um
+    // caminho utilizável pelo fs real de um host POSIX rodando os testes;
+    // as chamadas de fs são espionadas para não tocar o disco de verdade,
+    // exceto o renameSync final, que já é injetável via `d.fs`. O código
+    // (install.ts:146-149) chama fs.chmodSync também no Windows (ramo
+    // genérico "não-darwin"); ao contrário do teste Linux, não faz sentido
+    // conferir bits de permissão Unix aqui, então só espiamos a chamada.
+    const bin = Buffer.from("MZ...fake exe");
+    const asset = "kraa-windows-amd64.exe";
+    const fetch = fakeFetch({ [asset]: bin, "checksums.txt": `${sha(bin)}  ${asset}\n` });
+    const mkdirSync = vi.spyOn(fs, "mkdirSync").mockImplementation(() => undefined);
+    const mkdtempSync = vi
+      .spyOn(fs, "mkdtempSync")
+      .mockImplementation((prefix) => `${prefix}XXXXXX`);
+    const writeFileSync = vi.spyOn(fs, "writeFileSync").mockImplementation(() => undefined);
+    const readFileSync = vi.spyOn(fs, "readFileSync").mockReturnValue(bin);
+    const rmSync = vi.spyOn(fs, "rmSync").mockImplementation(() => undefined);
+    const chmodSync = vi.spyOn(fs, "chmodSync").mockImplementation(() => undefined);
+    const renameSync = vi.fn();
+    try {
+      const env = { LOCALAPPDATA: "C:\\Users\\Ana\\AppData\\Local" };
+      await expect(
+        install(deps({ platform: "win32", fetch, env, fs: { renameSync } })),
+      ).resolves.toBe("installed");
+      expect(writeFileSync).toHaveBeenCalledWith(expect.any(String), bin);
+      expect(chmodSync).toHaveBeenCalledWith(expect.any(String), 0o755);
+      expect(renameSync).toHaveBeenCalledOnce();
+      expect(renameSync.mock.calls[0][1]).toBe("C:\\Users\\Ana\\AppData\\Local\\kraa\\kraa.exe");
+    } finally {
+      mkdirSync.mockRestore();
+      mkdtempSync.mockRestore();
+      writeFileSync.mockRestore();
+      readFileSync.mockRestore();
+      rmSync.mockRestore();
+      chmodSync.mockRestore();
+    }
   });
 
   it.each(["EPERM", "EBUSY"])(
@@ -248,5 +298,40 @@ describe("postinstall", () => {
     const d = deps({ env: { KRAA_SKIP_DOWNLOAD: "1" } });
     await expect(postinstall(d)).resolves.toBe(0);
     expect(d.fetch).not.toHaveBeenCalled();
+  });
+
+  it("erro síncrono sem `log` explícito usa o padrão (console.log)", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const code = await runPostinstall(() => {
+        throw new Error("package.json ilegível");
+      });
+      expect(code).toBe(0);
+      const out = logSpy.mock.calls.map((c) => c[0]).join("\n");
+      expect(out).toMatch(/Não foi possível/);
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
+});
+
+describe("defaultInstallDeps", () => {
+  it("monta as dependências reais (version/repo/log/fetch)", async () => {
+    const d = defaultInstallDeps();
+    expect(typeof d.version).toBe("string");
+    expect(typeof d.repo).toBe("string");
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    d.log("teste");
+    expect(logSpy).toHaveBeenCalledWith("teste");
+    logSpy.mockRestore();
+
+    // Porta local fechada: erro imediato (ECONNREFUSED), sem download real.
+    const closed = http.createServer();
+    const port = await new Promise<number>((r) =>
+      closed.listen(0, "127.0.0.1", () => r((closed.address() as AddressInfo).port)),
+    );
+    await new Promise((r) => closed.close(r));
+    await expect(d.fetch(`http://127.0.0.1:${port}/`)).rejects.toThrow();
   });
 });

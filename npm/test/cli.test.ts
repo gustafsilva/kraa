@@ -1,8 +1,10 @@
 import fs from "node:fs";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { run, type CliDeps } from "../src/cli";
+import { defaultCliDeps, run, type CliDeps } from "../src/cli";
+import { binaryPath } from "../src/platform";
 
 let home: string;
 beforeEach(() => {
@@ -49,6 +51,14 @@ describe("cli", () => {
     await expect(run([], d)).resolves.toBe(0);
   });
 
+  it("version e -v imprimem a versão", async () => {
+    for (const arg of ["version", "-v"]) {
+      const { d, out } = deps();
+      await expect(run([arg], d)).resolves.toBe(0);
+      expect(out()).toContain("1.2.3");
+    }
+  });
+
   it("subcomando desconhecido sai com 2", async () => {
     const { d, out } = deps();
     await expect(run(["xyz"], d)).resolves.toBe(2);
@@ -72,12 +82,32 @@ describe("cli", () => {
     ]);
   });
 
+  it("start (Windows) inicia o binário destacado", async () => {
+    const env = { LOCALAPPDATA: "C:\\L" };
+    const bin = binaryPath("win32", env, home);
+    const existsSync = vi.spyOn(fs, "existsSync").mockReturnValue(true);
+    try {
+      const { d } = deps({ platform: "win32", env });
+      await expect(run(["start"], d)).resolves.toBe(0);
+      expect(d.spawnDetached).toHaveBeenCalledWith(bin, []);
+    } finally {
+      existsSync.mockRestore();
+    }
+  });
+
   it("start sem binário tenta instalar e falha com mensagem", async () => {
     const { d, out } = deps();
     await expect(run(["start"], d)).resolves.toBe(1);
     expect(d.fetch).toHaveBeenCalled();
     expect(d.spawnDetached).not.toHaveBeenCalled();
     expect(out()).toMatch(/404/);
+  });
+
+  it("start com binário ainda ausente após o install (KRAA_SKIP_DOWNLOAD) falha com dica de instalar", async () => {
+    const { d, out } = deps({ env: { KRAA_SKIP_DOWNLOAD: "1" } });
+    await expect(run(["start"], d)).resolves.toBe(1);
+    expect(d.spawnDetached).not.toHaveBeenCalled();
+    expect(out()).toMatch(/Rode `kraa install`/);
   });
 
   it.each([
@@ -96,6 +126,12 @@ describe("cli", () => {
     expect(out()).toMatch(/não parece estar em execução/);
   });
 
+  it("stop com sucesso encerra e avisa", async () => {
+    const { d, out } = deps();
+    await expect(run(["stop"], d)).resolves.toBe(0);
+    expect(out()).toMatch(/encerrado/);
+  });
+
   it("trigger (Linux) repassa --trigger; aceita também `--trigger`", async () => {
     const bin = fakeInstalled("linux");
     const { d } = deps();
@@ -103,6 +139,12 @@ describe("cli", () => {
     await expect(run(["--trigger"], d)).resolves.toBe(0);
     expect(d.spawnDetached).toHaveBeenCalledTimes(2);
     expect(d.spawnDetached).toHaveBeenCalledWith(bin, ["--trigger"]);
+  });
+
+  it("trigger sem binário instalado falha com dica de instalar", async () => {
+    const { d, out } = deps();
+    await expect(run(["trigger"], d)).resolves.not.toBe(0);
+    expect(out()).toMatch(/install/i);
   });
 
   it("trigger (macOS) usa open -n -a … --args --trigger", async () => {
@@ -135,6 +177,22 @@ describe("cli", () => {
     expect(d.spawnDetached).not.toHaveBeenCalled();
   });
 
+  it("config abre o arquivo no macOS e no Windows", async () => {
+    // No Windows, configPath usa path.win32 (separador "\"), incompatível com o
+    // fs real de um host POSIX rodando os testes; simula a existência do
+    // arquivo em vez de escrevê-lo de verdade.
+    const existsSync = vi.spyOn(fs, "existsSync").mockReturnValue(true);
+    try {
+      for (const platform of ["darwin", "win32"] as const) {
+        const { d } = deps({ platform, env: { APPDATA: "C:\\Users\\Ana\\AppData\\Roaming" } });
+        await run(["config"], d);
+        expect(d.spawnDetached).toHaveBeenCalled();
+      }
+    } finally {
+      existsSync.mockRestore();
+    }
+  });
+
   it("autostart on/off (Linux) escreve e remove o .desktop no HOME temporário", async () => {
     const file = path.join(home, ".config/autostart/kraa.desktop");
     const { d } = deps();
@@ -148,6 +206,22 @@ describe("cli", () => {
     const { d, out } = deps();
     await expect(run(["autostart"], d)).resolves.toBe(2);
     expect(out()).toMatch(/on\|off/);
+  });
+
+  it("autostart com erro ao alterar sai com 1", async () => {
+    const { d, out } = deps({
+      platform: "win32",
+      env: { LOCALAPPDATA: "C:\\L" },
+      exec: vi.fn(async () => Promise.reject(new Error("acesso negado"))),
+    });
+    await expect(run(["autostart", "on"], d)).resolves.toBe(1);
+    expect(out()).toMatch(/\[erro\].*Não foi possível alterar o início automático.*acesso negado/);
+  });
+
+  it("autostart on sem binário instalado avisa para rodar `kraa install`", async () => {
+    const { d, out } = deps();
+    await expect(run(["autostart", "on"], d)).resolves.toBe(0);
+    expect(out()).toMatch(/\[aviso\].*binário ainda não está instalado/);
   });
 
   it("install com KRAA_SKIP_DOWNLOAD=1 pula", async () => {
@@ -167,5 +241,28 @@ describe("cli", () => {
     const { d, out } = deps({ fetch: vi.fn(async () => Promise.reject(new TypeError("fetch failed"))) });
     await expect(run(["doctor"], d)).resolves.toBe(1);
     expect(out()).toContain("ollama serve");
+  });
+});
+
+describe("defaultCliDeps", () => {
+  it("monta as dependências reais (version/repo/log/commandExists)", async () => {
+    const d = defaultCliDeps();
+    expect(typeof d.version).toBe("string");
+    expect(typeof d.repo).toBe("string");
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    d.log("teste");
+    expect(logSpy).toHaveBeenCalledWith("teste");
+    logSpy.mockRestore();
+
+    await expect(d.commandExists("kraa-comando-que-nao-existe-xyz")).resolves.toBe(false);
+
+    // Porta local fechada: erro imediato (ECONNREFUSED), sem chamada de rede real.
+    const closed = net.createServer();
+    const port = await new Promise<number>((r) =>
+      closed.listen(0, "127.0.0.1", () => r((closed.address() as net.AddressInfo).port)),
+    );
+    await new Promise((r) => closed.close(r));
+    await expect(d.fetch(`http://127.0.0.1:${port}/`)).rejects.toThrow();
   });
 });
