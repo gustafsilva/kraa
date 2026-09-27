@@ -65,12 +65,17 @@ func writeConfig(t *testing.T, hotkey string) (string, func() (*config.Config, s
 
 func setHotkey(t *testing.T, path, hotkey string) {
 	t.Helper()
-	raw, _ := os.ReadFile(path)
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
 	out := strings.Replace(string(raw), `hotkey: "CmdOrCtrl+Shift+Y"`, `hotkey: "`+hotkey+`"`, 1)
 	if hotkey != "CmdOrCtrl+Shift+Y" && out == string(raw) {
 		t.Fatal("template sem a linha de hotkey esperada")
 	}
-	os.WriteFile(path, []byte(out), 0o600)
+	if err := os.WriteFile(path, []byte(out), 0o600); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func newTestReloader(t *testing.T, hotkey string) (*Reloader, *fakeShortcuts, *harness, string) {
@@ -171,7 +176,9 @@ func TestReloadBothHotkeysRejected(t *testing.T) {
 func TestReloadLoadErrorKeepsConfigAndShowsWindow(t *testing.T) {
 	r, _, h, path := newTestReloader(t, "CmdOrCtrl+Shift+Y")
 	before := h.svc.GetState().Model
-	os.WriteFile(path, []byte("hotkey: [\n"), 0o600)
+	if err := os.WriteFile(path, []byte("hotkey: [\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	r.Reload()
 	st := h.svc.GetState()
 	if !strings.HasPrefix(st.Error, "Erro ao recarregar a configuração: ") || !strings.HasSuffix(st.Error, "A configuração anterior foi mantida.") {
@@ -190,7 +197,10 @@ func TestSaveModelWritesFileAndReloads(t *testing.T) {
 	if err := r.SaveModel("outro-modelo"); err != nil {
 		t.Fatal(err)
 	}
-	raw, _ := os.ReadFile(path)
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(string(raw), `model: "outro-modelo"`) || h.svc.GetState().Model != "outro-modelo" {
 		t.Fatalf("arquivo/estado não atualizados: model=%q\n%s", h.svc.GetState().Model, raw)
 	}
@@ -201,7 +211,10 @@ func TestSaveProfileWritesFileAndReloads(t *testing.T) {
 	if err := r.SaveProfile(config.Profile{Enabled: true, Text: "Sou tester"}); err != nil {
 		t.Fatal(err)
 	}
-	raw, _ := os.ReadFile(path)
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(string(raw), "Sou tester") {
 		t.Fatalf("perfil não gravado:\n%s", raw)
 	}

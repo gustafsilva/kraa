@@ -150,9 +150,16 @@ func TestControlEndpointsDriveTheFake(t *testing.T) {
 	srv := httptest.NewServer(fake)
 	defer srv.Close()
 
-	sc, _ := json.Marshal(llmfake.Scenario{Chunks: []string{"x"}})
-	if resp, _ := http.Post(srv.URL+"/__control/scenario", "application/json", bytes.NewReader(sc)); resp.StatusCode != http.StatusNoContent {
-		t.Fatalf("scenario status = %d", resp.StatusCode)
+	sc, err := json.Marshal(llmfake.Scenario{Chunks: []string{"x"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	scenarioResp, err := http.Post(srv.URL+"/__control/scenario", "application/json", bytes.NewReader(sc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if scenarioResp.StatusCode != http.StatusNoContent {
+		t.Fatalf("scenario status = %d", scenarioResp.StatusCode)
 	}
 	resp := postChat(t, srv.URL, "fake-a")
 	raw, _ := io.ReadAll(resp.Body)
@@ -161,7 +168,10 @@ func TestControlEndpointsDriveTheFake(t *testing.T) {
 		t.Fatalf("cenário não aplicado: %s", raw)
 	}
 
-	r, _ := http.Get(srv.URL + "/__control/requests")
+	r, err := http.Get(srv.URL + "/__control/requests")
+	if err != nil {
+		t.Fatal(err)
+	}
 	var reqs []llmfake.Request
 	json.NewDecoder(r.Body).Decode(&reqs)
 	r.Body.Close()
@@ -169,7 +179,9 @@ func TestControlEndpointsDriveTheFake(t *testing.T) {
 		t.Fatalf("requests = %+v", reqs)
 	}
 
-	http.Post(srv.URL+"/__control/reset", "application/json", nil)
+	if _, err := http.Post(srv.URL+"/__control/reset", "application/json", nil); err != nil {
+		t.Fatal(err)
+	}
 	if len(fake.Requests()) != 0 {
 		t.Fatal("reset não limpou os pedidos")
 	}
@@ -180,9 +192,17 @@ func TestControlEndpointsDriveTheFake(t *testing.T) {
 		t.Fatalf("reset não voltou ao cenário padrão: %s", raw)
 	}
 
-	models, _ := json.Marshal([]string{"z"})
-	http.Post(srv.URL+"/__control/models", "application/json", bytes.NewReader(models))
-	mr, _ := http.Get(srv.URL + "/v1/models")
+	models, err := json.Marshal([]string{"z"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := http.Post(srv.URL+"/__control/models", "application/json", bytes.NewReader(models)); err != nil {
+		t.Fatal(err)
+	}
+	mr, err := http.Get(srv.URL + "/v1/models")
+	if err != nil {
+		t.Fatal(err)
+	}
 	raw, _ = io.ReadAll(mr.Body)
 	mr.Body.Close()
 	if !strings.Contains(string(raw), `"id":"z"`) {

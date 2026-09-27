@@ -49,7 +49,9 @@ func TestLoadStartupConfigReturnsLoadedConfig(t *testing.T) {
 func TestLoadStartupConfigFallsBackOnInvalidYAML(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")
-	os.WriteFile(path, []byte("hotkey: [\n"), 0o600)
+	if err := os.WriteFile(path, []byte("hotkey: [\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	t.Setenv(config.EnvAPIKey, "sk-env")
 
 	cfg, gotPath, msg := LoadStartupConfig(func() (*config.Config, string, error) {
