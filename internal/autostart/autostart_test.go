@@ -35,12 +35,14 @@ func TestNewManagerPerOS(t *testing.T) {
 		name, goos, exe string
 		wantErr         string
 		wantFile        string // expected m.autostartFile(); empty skips the check (windows doesn't use it)
+		wantExePath     string // expected m.exePath after newManager's per-OS mapping
 	}{
 		{
-			name:     "darwin dentro do .app",
-			goos:     "darwin",
-			exe:      "/Applications/Kraa.app/Contents/MacOS/kraa",
-			wantFile: "/home/u/Library/LaunchAgents/" + AppID + ".plist",
+			name:        "darwin dentro do .app",
+			goos:        "darwin",
+			exe:         "/Applications/Kraa.app/Contents/MacOS/kraa",
+			wantFile:    "/home/u/Library/LaunchAgents/" + AppID + ".plist",
+			wantExePath: "/Applications/Kraa.app",
 		},
 		{
 			name:    "darwin fora do .app",
@@ -49,15 +51,17 @@ func TestNewManagerPerOS(t *testing.T) {
 			wantErr: "não está dentro de um pacote .app",
 		},
 		{
-			name:     "linux",
-			goos:     "linux",
-			exe:      "/home/u/.local/share/kraa/kraa",
-			wantFile: "/home/u/.config/autostart/" + BinName + ".desktop",
+			name:        "linux",
+			goos:        "linux",
+			exe:         "/home/u/.local/share/kraa/kraa",
+			wantFile:    "/home/u/.config/autostart/" + BinName + ".desktop",
+			wantExePath: "/home/u/.local/share/kraa/kraa",
 		},
 		{
-			name: "windows",
-			goos: "windows",
-			exe:  `C:\Users\u\AppData\Local\kraa\kraa.exe`,
+			name:        "windows",
+			goos:        "windows",
+			exe:         `C:\Users\u\AppData\Local\kraa\kraa.exe`,
+			wantExePath: `C:\Users\u\AppData\Local\kraa\kraa.exe`,
 		},
 	}
 	for _, c := range cases {
@@ -71,6 +75,9 @@ func TestNewManagerPerOS(t *testing.T) {
 			}
 			if err != nil || m == nil {
 				t.Fatalf("m=%v err=%v", m, err)
+			}
+			if m.exePath != c.wantExePath {
+				t.Fatalf("exePath = %q, want %q", m.exePath, c.wantExePath)
 			}
 			if c.goos == "windows" {
 				if m.runReg == nil {
