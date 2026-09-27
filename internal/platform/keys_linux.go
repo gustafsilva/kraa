@@ -25,11 +25,15 @@ func (linuxKeySender) Copy() error  { return xdotoolKey("ctrl+c") }
 func (linuxKeySender) Paste() error { return xdotoolKey("ctrl+v") }
 
 func xdotoolKey(combo string) error {
+	return xdotoolKeyWith(exec.CommandContext, combo)
+}
+
+func xdotoolKeyWith(run func(ctx context.Context, name string, args ...string) *exec.Cmd, combo string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), xdotoolTimeout)
 	defer cancel()
 	// --clearmodifiers releases the hotkey modifiers the user is still
 	// holding (e.g. Ctrl+Shift) and restores them afterwards.
-	cmd := exec.CommandContext(ctx, "xdotool", "key", "--clearmodifiers", combo)
+	cmd := run(ctx, "xdotool", "key", "--clearmodifiers", combo)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {

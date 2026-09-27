@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -23,6 +24,64 @@ func TestAppBundlePathMapsExecutableToBundle(t *testing.T) {
 func TestAppBundlePathErrorsOutsideABundle(t *testing.T) {
 	if _, err := appBundlePath("/tmp/go-build123/b001/exe/autostart.test"); err == nil {
 		t.Fatal("expected an error for a binary outside a .app bundle")
+	}
+}
+
+// TestNewManagerPerOS exercises newManager's per-OS branches (darwin bundle
+// validation, linux, windows) from fake home/configDir/exe, independent of
+// the host OS running the test.
+func TestNewManagerPerOS(t *testing.T) {
+	cases := []struct {
+		name, goos, exe string
+		wantErr         string
+		wantFile        string // expected m.autostartFile(); empty skips the check (windows doesn't use it)
+	}{
+		{
+			name:     "darwin dentro do .app",
+			goos:     "darwin",
+			exe:      "/Applications/Kraa.app/Contents/MacOS/kraa",
+			wantFile: "/home/u/Library/LaunchAgents/" + AppID + ".plist",
+		},
+		{
+			name:    "darwin fora do .app",
+			goos:    "darwin",
+			exe:     "/tmp/kraa",
+			wantErr: "não está dentro de um pacote .app",
+		},
+		{
+			name:     "linux",
+			goos:     "linux",
+			exe:      "/home/u/.local/share/kraa/kraa",
+			wantFile: "/home/u/.config/autostart/" + BinName + ".desktop",
+		},
+		{
+			name: "windows",
+			goos: "windows",
+			exe:  `C:\Users\u\AppData\Local\kraa\kraa.exe`,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m, err := newManager(c.goos, "/home/u", "/home/u/.config", c.exe)
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("err = %v", err)
+				}
+				return
+			}
+			if err != nil || m == nil {
+				t.Fatalf("m=%v err=%v", m, err)
+			}
+			if c.goos == "windows" {
+				if m.runReg == nil {
+					t.Fatal("runReg is nil")
+				}
+				return
+			}
+			if got := m.autostartFile(); got != c.wantFile {
+				t.Fatalf("autostartFile() = %q, want %q", got, c.wantFile)
+			}
+		})
 	}
 }
 

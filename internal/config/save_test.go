@@ -159,3 +159,19 @@ func TestSaveModel_KeepsPermissions(t *testing.T) {
 		t.Errorf("perm = %o, want 600", info.Mode().Perm())
 	}
 }
+
+func TestSaveModel_FailsWhenDirIsReadOnly(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("permissões POSIX")
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	if _, err := Load(path); err != nil {
+		t.Fatal(err)
+	}
+	os.Chmod(dir, 0o500)
+	t.Cleanup(func() { os.Chmod(dir, 0o700) })
+	if err := SaveModel(path, "x"); err == nil {
+		t.Fatal("esperava erro ao gravar em diretório somente leitura")
+	}
+}

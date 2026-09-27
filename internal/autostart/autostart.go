@@ -47,7 +47,16 @@ func New() (*Manager, error) {
 	if real, err := filepath.EvalSymlinks(exePath); err == nil {
 		exePath = real
 	}
-	if runtime.GOOS == "darwin" {
+	return newManager(runtime.GOOS, home, configDir, exePath)
+}
+
+// newManager builds a Manager from already-resolved inputs, without touching
+// the real OS/environment: goos instead of runtime.GOOS, and home/configDir/exe
+// instead of os.UserHomeDir/os.UserConfigDir/os.Executable. This lets tests
+// exercise every OS branch (darwin/linux/windows) from any host.
+func newManager(goos, home, configDir, exe string) (*Manager, error) {
+	exePath := exe
+	if goos == "darwin" {
 		appPath, err := appBundlePath(exePath)
 		if err != nil {
 			return nil, err
@@ -55,7 +64,7 @@ func New() (*Manager, error) {
 		exePath = appPath
 	}
 	return &Manager{
-		goos:      runtime.GOOS,
+		goos:      goos,
 		home:      home,
 		configDir: configDir,
 		exePath:   exePath,
