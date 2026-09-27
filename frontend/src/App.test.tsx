@@ -91,8 +91,8 @@ describe("<App />", () => {
     const user = userEvent.setup();
     await renderAppHydrated();
 
-    const freeInput = screen.getByRole("textbox", { name: /instrução livre/i });
-    await user.type(freeInput, "deixe mais direto{Enter}");
+    const search = screen.getByRole("combobox", { name: /buscar ação/i });
+    await user.type(search, "deixe mais direto{Enter}");
 
     await waitFor(() =>
       expect(ImproveService.Start).toHaveBeenCalledWith({
@@ -113,8 +113,8 @@ describe("<App />", () => {
 
     await act(async () => {
       const user = userEvent.setup();
-      const freeInput = screen.getByRole("textbox", { name: /instrução livre/i });
-      await user.type(freeInput, "melhore{Enter}");
+      const search = screen.getByRole("combobox", { name: /buscar ação/i });
+      await user.type(search, "melhore{Enter}");
     });
 
     await waitFor(() => expect(ImproveService.Start).toHaveBeenCalled());
@@ -134,6 +134,11 @@ describe("<App />", () => {
 
     expect(preview.value).toBe("Olá mundo, limpo.");
     expect(preview).not.toHaveAttribute("readonly");
+  });
+
+  it("não existe mais o campo separado de instrução livre", async () => {
+    await renderAppHydrated();
+    expect(screen.queryByRole("textbox", { name: /instrução livre/i })).not.toBeInTheDocument();
   });
 
   it("canReplace=false esconde o botão Substituir e mostra o aviso", async () => {
@@ -345,26 +350,26 @@ describe("<App />", () => {
       expect(ImproveService.Start).toHaveBeenCalledTimes(1);
     });
 
-    it("no campo de instrução livre chama Replace uma vez e não chama Start", async () => {
+    it("na busca com instrução livre digitada chama Replace uma vez e não chama Start", async () => {
       await renderAppHydrated();
       await produceOutput("Resultado final.");
       expect(ImproveService.Start).toHaveBeenCalledTimes(1);
 
-      const freeInput = screen.getByRole("textbox", { name: /instrução livre/i });
-      await userEvent.setup().type(freeInput, "outra instrução");
-      fireEvent.keyDown(freeInput, { key: "Enter", metaKey: true });
+      const search = screen.getByRole("combobox", { name: /buscar ação/i });
+      await userEvent.setup().type(search, "outra instrução");
+      fireEvent.keyDown(search, { key: "Enter", metaKey: true });
 
       await waitFor(() => expect(ImproveService.Replace).toHaveBeenCalledTimes(1));
       expect(ImproveService.Replace).toHaveBeenCalledWith("Resultado final.");
       expect(ImproveService.Start).toHaveBeenCalledTimes(1);
     });
 
-    it("Enter sem modificador no campo de instrução livre continua chamando Start (não Replace)", async () => {
+    it("Enter sem modificador na busca com instrução livre continua chamando Start (não Replace)", async () => {
       await renderAppHydrated();
 
-      const freeInput = screen.getByRole("textbox", { name: /instrução livre/i });
-      await userEvent.setup().type(freeInput, "outra instrução");
-      fireEvent.keyDown(freeInput, { key: "Enter" });
+      const search = screen.getByRole("combobox", { name: /buscar ação/i });
+      await userEvent.setup().type(search, "outra instrução");
+      fireEvent.keyDown(search, { key: "Enter" });
 
       await waitFor(() =>
         expect(ImproveService.Start).toHaveBeenCalledWith({
@@ -398,6 +403,77 @@ describe("<App />", () => {
 
     expect(await screen.findByText("Não foi possível copiar.")).toBeInTheDocument();
     expect(ImproveService.Close).not.toHaveBeenCalled();
+  });
+
+  describe("fluxo só com teclado", () => {
+    async function runToDone(text = "Final limpo.") {
+      ImproveService.Start.mockResolvedValueOnce("req-1");
+      const user = userEvent.setup();
+      await renderAppHydrated();
+      const search = screen.getByRole("combobox", { name: /buscar ação/i });
+      await user.type(search, "Corrigir{Enter}");
+      await waitFor(() => expect(ImproveService.Start).toHaveBeenCalled());
+      act(() => {
+        emit("improve:chunk", { id: "req-1", delta: "parcial" });
+        emit("improve:done", { id: "req-1", text });
+      });
+      return { user, search };
+    }
+
+    it("quando termina, o foco vai para Substituir e Enter substitui", async () => {
+      const { user } = await runToDone();
+      await waitFor(() => expect(screen.getByRole("button", { name: /substituir/i })).toHaveFocus());
+      await user.keyboard("{Enter}");
+      await waitFor(() => expect(ImproveService.Replace).toHaveBeenCalledTimes(1));
+      expect(ImproveService.Replace).toHaveBeenCalledWith("Final limpo.");
+      expect(ImproveService.Start).toHaveBeenCalledTimes(1);
+    });
+
+    it("← e Enter copiam", async () => {
+      const { user } = await runToDone();
+      await waitFor(() => expect(screen.getByRole("button", { name: /substituir/i })).toHaveFocus());
+      await user.keyboard("{ArrowLeft}{Enter}");
+      await waitFor(() => expect(ImproveService.Copy).toHaveBeenCalledTimes(1));
+      expect(ImproveService.Replace).not.toHaveBeenCalled();
+    });
+
+    it("↑ volta para a busca e Enter roda outra ação", async () => {
+      const { user, search } = await runToDone();
+      await waitFor(() => expect(screen.getByRole("button", { name: /substituir/i })).toHaveFocus());
+      await user.keyboard("{ArrowUp}");
+      await waitFor(() => expect(search).toHaveFocus());
+      ImproveService.Start.mockResolvedValueOnce("req-2");
+      await user.keyboard("{Enter}");
+      await waitFor(() => expect(ImproveService.Start).toHaveBeenCalledTimes(2));
+      expect(ImproveService.Replace).not.toHaveBeenCalled();
+    });
+
+    it("não rouba o foco de quem está editando o texto", async () => {
+      ImproveService.Start.mockResolvedValueOnce("req-1");
+      const user = userEvent.setup();
+      await renderAppHydrated();
+      await user.type(screen.getByRole("combobox", { name: /buscar ação/i }), "Corrigir{Enter}");
+      await waitFor(() => expect(ImproveService.Start).toHaveBeenCalled());
+      const source = screen.getByRole("textbox", { name: /texto a melhorar/i });
+      await user.click(source);
+      act(() => {
+        emit("improve:done", { id: "req-1", text: "Final limpo." });
+      });
+      await screen.findByDisplayValue("Final limpo.");
+      expect(source).toHaveFocus();
+    });
+
+    it("sem canReplace, o foco vai para Copiar", async () => {
+      ImproveService.Start.mockResolvedValueOnce("req-1");
+      const user = userEvent.setup();
+      await renderAppHydrated(mockState({ canReplace: false, warning: "Sem permissão." }));
+      await user.type(screen.getByRole("combobox", { name: /buscar ação/i }), "Corrigir{Enter}");
+      await waitFor(() => expect(ImproveService.Start).toHaveBeenCalled());
+      act(() => {
+        emit("improve:done", { id: "req-1", text: "Final limpo." });
+      });
+      await waitFor(() => expect(screen.getByRole("button", { name: /copiar/i })).toHaveFocus());
+    });
   });
 
   describe("seletor de modelo", () => {

@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
-import { CornerDownLeft, PenLine, RotateCcw, Sparkles, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { PenLine, RotateCcw, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ActionList } from "@/components/ActionList";
 import { PreviewPane } from "@/components/PreviewPane";
@@ -37,8 +36,6 @@ function App() {
     setModel,
   } = useImprove();
 
-  const [freeInstruction, setFreeInstruction] = useState("");
-
   // Substituir/Copiar (buttons and shortcuts) only act on the cleaned result:
   // never on partial stream output, and not after an error (retry instead).
   const resultReady = status === "done" && output.trim().length > 0;
@@ -47,16 +44,15 @@ function App() {
     return (event.metaKey || event.ctrlKey) && event.key === "Enter";
   }
 
-  // Plain Enter in the action search / free-instruction field starts a
-  // request; ⌘/Ctrl+Enter must never do that — it's reserved for Substituir.
-  // cmdk's own root handler treats *any* Enter (modified or not) as "select
-  // the highlighted action", and the free-instruction field's own handler
-  // doesn't look at modifiers either, so both would fire Start() alongside
-  // this shortcut without this interception. We steal the event in the
-  // capture phase (before cmdk / the field's onKeyDown ever see it) and stop
-  // it from propagating any further, so the *global* keydown listener below
-  // never gets it either — this handler is the single place that calls
-  // replace() for ⌘/Ctrl+Enter raised from these two fields.
+  // Plain Enter in the action search starts a request (the highlighted action
+  // or "Usar como instrução"); ⌘/Ctrl+Enter must never do that — it's
+  // reserved for Substituir. cmdk's own root handler treats *any* Enter
+  // (modified or not) as "select the highlighted item", so it would fire
+  // Start() alongside this shortcut without this interception. We steal the
+  // event in the capture phase (before cmdk ever sees it) and stop it from
+  // propagating any further, so the *global* keydown listener below never
+  // gets it either — this handler is the single place that calls replace()
+  // for ⌘/Ctrl+Enter raised from the action search.
   function handleReplaceShortcutCapture(event: React.KeyboardEvent) {
     if (!isReplaceShortcut(event)) return;
     event.preventDefault();
@@ -66,8 +62,7 @@ function App() {
 
   // ⌘/Ctrl+Enter → Substituir · ⌘/Ctrl+Shift+C → Copiar, as a global
   // fallback for when focus is anywhere else (preview textarea, buttons, no
-  // focus at all). The action search and free-instruction fields intercept
-  // ⌘/Ctrl+Enter themselves before it can bubble here (see
+  // focus at all). The action search intercepts ⌘/Ctrl+Enter itself before it can bubble here (see
   // handleReplaceShortcutCapture), so this never double-fires for them.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -91,15 +86,23 @@ function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [canReplace, resultReady, replace, copy]);
 
-  function handleFreeInstructionKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (isReplaceShortcut(event)) return;
-    if (event.key === "Enter" && !event.metaKey && !event.ctrlKey && freeInstruction.trim()) {
-      event.preventDefault();
-      start({ freeInstruction: freeInstruction.trim() });
-    }
-  }
-
   const isStreaming = status === "streaming";
+
+  // Keyboard-only flow: when a result lands and the user is still in the
+  // action list (or nowhere), hand focus to the result bar so ←/→ + Enter
+  // apply it. Never steal focus from someone editing the source/result.
+  const [resultFocusSeq, setResultFocusSeq] = useState(0);
+  const [backSeq, setBackSeq] = useState(0);
+  const prevStatus = useRef(status);
+  useEffect(() => {
+    const becameDone = prevStatus.current !== "done" && status === "done";
+    prevStatus.current = status;
+    if (!becameDone || !output.trim()) return;
+    const active = document.activeElement;
+    if (!active || active === document.body || active.closest('[data-slot="action-list"]')) {
+      setResultFocusSeq((n) => n + 1);
+    }
+  }, [status, output]);
 
   // Kraa in the empty preview: typing before the first token, waving when
   // there is text ready for an action, "empty" when there is nothing to
@@ -161,47 +164,28 @@ function App() {
             value={text}
             onChange={(event) => setText(event.target.value)}
             placeholder="Cole ou digite o texto aqui"
-            className="max-h-20 min-h-10 resize-none rounded-none border-0 bg-transparent p-0 text-[13px] leading-relaxed text-foreground/85 shadow-none focus-visible:ring-0 md:text-[13px] dark:bg-transparent [--wails-draggable:no-drag]"
+            className="max-h-16 min-h-10 resize-none rounded-none border-0 bg-transparent p-0 text-[13px] leading-relaxed text-foreground/85 shadow-none focus-visible:ring-0 md:text-[13px] dark:bg-transparent [--wails-draggable:no-drag]"
           />
         </div>
 
-        <ActionList
-          actions={actions}
-          onSelectAction={(actionId) => start({ actionId })}
-          focusToken={selectionSeq}
-          onKeyDownCapture={handleReplaceShortcutCapture}
-        />
-
-        <div className="relative shrink-0 [--wails-draggable:no-drag]">
-          <Sparkles
-            className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            value={freeInstruction}
-            onChange={(event) => setFreeInstruction(event.target.value)}
-            onKeyDown={handleFreeInstructionKeyDown}
+        <div className="grid min-h-0 flex-1 grid-cols-[12.5rem_1fr] gap-3">
+          <ActionList
+            actions={actions}
+            onSelectAction={(actionId) => start({ actionId })}
+            onFreeInstruction={(instruction) => start({ freeInstruction: instruction })}
+            focusToken={selectionSeq + backSeq}
             onKeyDownCapture={handleReplaceShortcutCapture}
-            placeholder="Ou descreva o que deseja (instrução livre)…"
-            aria-label="Instrução livre"
-            className="h-9 rounded-full bg-card pr-10 pl-8.5 text-[13px] md:text-[13px]"
+            className="rounded-xl border bg-card/40 p-1.5"
           />
-          <CornerDownLeft
-            className={`pointer-events-none absolute top-1/2 right-3.5 size-3.5 -translate-y-1/2 transition-opacity ${
-              freeInstruction.trim() ? "text-pencil opacity-100" : "text-muted-foreground opacity-40"
-            }`}
-            aria-hidden="true"
+          <PreviewPane
+            value={output}
+            onChange={setOutput}
+            editable={status === "done"}
+            streaming={isStreaming}
+            placeholder={isStreaming ? "Gerando…" : "Escolha uma ação ou digite uma instrução."}
+            mascot={previewMascot}
           />
         </div>
-
-        <PreviewPane
-          value={output}
-          onChange={setOutput}
-          editable={status === "done"}
-          streaming={isStreaming}
-          placeholder={isStreaming ? "Gerando…" : "O resultado aparece aqui."}
-          mascot={previewMascot}
-        />
 
         {status === "error" && requestError && (
           <Alert variant="destructive" className="grid-cols-[auto_1fr] gap-x-2.5">
@@ -235,6 +219,8 @@ function App() {
         resultReady={resultReady}
         onReplace={() => void replace()}
         onCopy={() => void copy()}
+        focusToken={resultFocusSeq}
+        onBack={() => setBackSeq((n) => n + 1)}
       />
     </div>
   );
