@@ -19,3 +19,13 @@ var Light []byte
 //
 //go:embed dark.png
 var Dark []byte
+
+// ForOS devolve os ícones da bandeja (tema claro, tema escuro) para Windows e Linux.
+// No Linux o Wails ignora o ícone de modo escuro e o painel do GNOME é escuro nos dois temas
+// do Ubuntu, então o glifo claro vale para ambos.
+func ForOS(goos string) (light, dark []byte) {
+	if goos == "linux" {
+		return Dark, Dark
+	}
+	return Light, Dark
+}

@@ -84,3 +84,20 @@ func TestDarkIconIsLightGlyph(t *testing.T) {
 		t.Errorf("dark: luminância média %.2f, esperado glifo claro (>= 0.65)", s.meanLum)
 	}
 }
+
+func TestForOSLinuxUsesLightGlyphForBoth(t *testing.T) {
+	// No Linux o Wails ignora o ícone de modo escuro e o painel do GNOME é escuro por padrão.
+	light, dark := ForOS("linux")
+	for name, data := range map[string][]byte{"light": light, "dark": dark} {
+		if s := statsOf(t, "linux "+name, data); s.meanLum < 0.65 {
+			t.Errorf("linux %s: luminância média %.2f, esperado glifo claro (>= 0.65)", name, s.meanLum)
+		}
+	}
+}
+
+func TestForOSWindowsFollowsTheme(t *testing.T) {
+	light, dark := ForOS("windows")
+	if !bytes.Equal(light, Light) || !bytes.Equal(dark, Dark) {
+		t.Error("windows: esperado Light no tema claro e Dark no tema escuro")
+	}
+}

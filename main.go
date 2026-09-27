@@ -289,8 +289,9 @@ func main() {
 	if runtime.GOOS == "darwin" {
 		tray.SetTemplateIcon(trayicon.MacTemplate)
 	} else {
-		tray.SetDarkModeIcon(trayicon.Dark)
-		tray.SetIcon(trayicon.Light)
+		light, dark := trayicon.ForOS(runtime.GOOS)
+		tray.SetDarkModeIcon(dark)
+		tray.SetIcon(light)
 	}
 
 	trayMenu := wailsApp.Menu.New()

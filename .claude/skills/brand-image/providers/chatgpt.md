@@ -35,19 +35,25 @@
 
 ## Baixar
 
-1. Passe o mouse sobre a imagem (ou clique para abrir em tela cheia) e clique no botão de
-   download (ícone de seta para baixo).
-2. O arquivo vai para `~/Downloads/` com nome parecido com `ChatGPT Image <data>.png`. Pegue o
-   mais recente e mova para o destino:
+1. Antes de clicar, crie um marcador de tempo: `touch "$TMPDIR/brand-dl-marker"`.
+2. Clique na imagem para abrir o editor em tela cheia e clique no botão de download (seta
+   para baixo, no topo à direita). A barra lateral do editor lista as imagens do chat: clique
+   na miniatura certa antes de baixar se quiser uma anterior.
+3. O arquivo vai para `~/Downloads/` com nome parecido com `Imagem do ChatGPT <data>.png`
+   (`ChatGPT Image <data>.png` com a interface em inglês). Pegue só o que chegou depois do
+   marcador e salve como **nova tentativa** (`-v<N>`, sem sobrescrever; ver o SKILL.md):
    ```bash
-   f=$(ls -t ~/Downloads/*.png | head -1) && echo "$f" && \
-     mv "$f" docs/brand/source/chatgpt-<nome>.png
+   f=$(find ~/Downloads -maxdepth 1 \( -name 'Imagem do ChatGPT*.png' -o -name 'ChatGPT Image*.png' \) \
+     -newer "$TMPDIR/brand-dl-marker" | head -1) && echo "$f" && \
+     mv "$f" docs/brand/source/chatgpt-<nome>-v<N>.png
    ```
-3. Mostre a imagem ao usuário (`Read` no PNG) antes de seguir para o pós-processamento.
+4. Siga para "Comparar e aprovar" do SKILL.md antes de qualquer pós-processamento.
 
 ## Limitações conhecidas
 
-- Transparência vira xadrez desenhado nos pixels: peça fundo branco puro e recorte localmente.
+- Transparência varia: às vezes vem alfa real, às vezes o xadrez desenhado nos pixels (e às vezes
+  ignora o pedido de fundo branco). Confira o arquivo e recorte localmente (ver SKILL.md).
+- Imagem preta com fundo transparente fica invisível na página escura do chat: não é erro, baixe.
 - Às vezes volta a desenhar estrela no bico ou texto/logos: peça a correção no mesmo chat.
 - Resolução típica: 1024×1024 (quadrado) ou 1536×1024 (paisagem).
 - Os chats ficam na conta do usuário; registre a URL do chat no README se ele virar referência.
