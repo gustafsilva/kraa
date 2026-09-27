@@ -46,6 +46,7 @@ go test -coverprofile=/tmp/kraa-cover.out ./internal/... && go tool cover -func=
 npm --prefix frontend run typecheck && npm --prefix frontend run lint && npm --prefix frontend run coverage
 npm --prefix npm run typecheck && npm --prefix npm run coverage
 npm --prefix e2e run build:server && npm --prefix e2e test      # se tocou fluxo coberto por E2E
+e2e/node_modules/.bin/tsc -p e2e --noEmit   # typecheck do e2e/ (não o tsc da raiz)
 ```
 
 Teste novo que envolve concorrência ou tempo: rode `-count=5` (Go) ou
@@ -56,7 +57,7 @@ Teste novo que envolve concorrência ou tempo: rode `-count=5` (Go) ou
 
 **Go**
 - Table-driven com `t.Run(tc.name, …)` para variações (modelo: `TestRunnerErrorsBecomePTBRErrorEvents`
-  em `internal/app/service_test.go:355`). Mensagem de falha diz `got` e `want`.
+  em `internal/app/service_test.go`). Mensagem de falha diz `got` e `want`.
 - Dependências do SO atrás de interface ou função injetada: `Clipboard`, `KeySender`,
   `Window`, `Shortcuts`, `Runner`, `getenv`/`lookPath` (`internal/platform/session.go:14`).
   No pacote `app`, reuse `newHarness` e seus fakes; não crie fakes paralelos.
@@ -72,6 +73,9 @@ Teste novo que envolve concorrência ou tempo: rode `-count=5` (Go) ou
   Enum comparado em asserção (`StartupAction`, `internal/app/launch.go:13`) ganha `String()`.
   Falha de criação por "pai é um arquivo" não é `os.IsNotExist` (é `ENOTDIR`): use um
   diretório existente somente leitura, não um caminho inexistente.
+- Teste de `chmod`/permissão pula no Windows **e** com `os.Geteuid() == 0` (root ignora
+  permissões em contêiner). `TestLoad_CannotCreateDefaultFile` só pula no Windows hoje
+  (`references/padroes.md`).
 - Payload de evento: type assertion + igualdade exata (`ev.data.(DoneEvent)`,
   `internal/app/integration_test.go:62`), nunca `fmt.Sprint(x)` + `strings.Contains` (falso
   positivo por substring).
@@ -101,9 +105,19 @@ Teste novo que envolve concorrência ou tempo: rode `-count=5` (Go) ou
   para mock de implementação fixa (registro de listener em `Events.On`); mock cuja resposta
   cada teste define (`mockResolvedValueOnce`) exige `mockReset` + defaults, como
   `resetImproveServiceMock` faz.
-- Zero warnings de `act()` na saída: warning é bug do teste (estado mudando depois da
-  asserção), não ruído. Esperas assíncronas com `findBy…`/`waitFor`, nunca `setTimeout`.
-- Um arquivo por `describe` grande; helpers compartilhados num `helpers.tsx`.
+- Zero warnings de `act()` na saída: warning é bug do teste, não ruído. `npm --prefix frontend
+  test` não mostra os warnings — use `npx vitest run --reporter=verbose --silent=false` e meça
+  a base antes de fixar meta. Esperas assíncronas com `findBy…`/`waitFor`, nunca `setTimeout`.
+- Um arquivo por `describe` grande; helpers compartilhados num `helpers.tsx`. Workaround que
+  muda foco/estado (`blurActiveElement`, `helpers.tsx`) para calar um warning de `act()` pode
+  colapsar o ramo testado: mantenha um teste no caminho real, com o warning contido por um
+  spy de `console.error` escopado (`keyboard.test.tsx`; detalhe em `references/padroes.md`).
+- Cleanup ao desmontar conta `listenerCount(name)` do mock, não o componente
+  (`useImprove.test.ts`). `waitFor(toHaveBeenCalled)` só prova que a chamada começou; para
+  provar que foi processada (`?? []`, `.catch`), semeie um valor diferente antes.
+- Threshold de linha em 100% (`frontend/vitest.config.ts`): linha defensiva intestável ganha
+  `/* v8 ignore next */` documentado, nunca teste oco. Filtro que "reseta o destaque" precisa
+  de ≥2 itens sobreviventes (`ActionList.test.tsx`), senão qualquer `Enter` passa.
 
 **CLI npm**
 - Tudo por injeção: `run(args, deps)` com `CliDeps` falso via `deps(over)` e HOME temporário
@@ -133,6 +147,17 @@ Teste novo que envolve concorrência ou tempo: rode `-count=5` (Go) ou
   `internal/app/service.go:34`, 400 ms — considere no timeout). Clipboard fake vazio muda a
   semântica do restore (bug real encontrado); `reset` cancela o stream em andamento antes de
   limpar os fakes. Fatos do server mode e armadilhas: `references/padroes.md#e2e`.
+- `Keys.Paste` registra a colagem antes do restore do clipboard: afirme os dois num só
+  `expect.poll` (`replace-copy.spec.ts`). Sem teclas simuladas, o trigger lê o clipboard em
+  vez da seleção (`service.go:493`); semeie-o nesse cenário. Duas fontes de dado (seleção vs.
+  clipboard, perfil vs. sem perfil) exigem valores distintos nas specs.
+- Nova spec: prove que pega regressão quebrando a fiação de propósito e vendo-a falhar antes
+  de restaurar. Efeito que o nome promete no backend vira contador de `/__e2e/state`
+  (`window.hides`/`shows`), não só o DOM; `toHaveCount(0)` logo após a ação pode passar por
+  acaso — ancore num sinal positivo antes.
+- Reset roda porque toda spec chama `openModal()` (considere fixture `{ auto: true }` para
+  não depender disso). Constantes do fake (URL, resultado) deveriam ficar em
+  `e2e/support/env.ts` — hoje `"Texto melhorado pelo fake."` está duplicado entre specs.
 
 ## Manutenção
 
@@ -162,15 +187,24 @@ teste configurou. Mudança de comportamento atualiza o teste no mesmo commit.
 linha na tabela "O que não tem teste automatizado" e o item no checklist manual de
 `site/src/content/docs/contribuir/testes.mdx`, dizendo qual parte os unitários cobrem.
 
+**Bug de produto já pego por teste**: `platform.saveClipboard` deixa o sentinela da captura
+num clipboard vazio; pino: `TestTriggerWithoutSelectionOnEmptyClipboardLeavesSentinel`
+(`internal/e2e/e2e_test.go`). Quem corrigir o bug atualiza esse teste, não o apaga.
+
+**Regra repetida em vários docs** (CLAUDE.md, CONTRIBUTING.md, site de docs): mudou uma
+cópia? Faça grep e alinhe todas; texto de doc sobre endpoint de teste se confere contra o
+código, não contra a intenção.
+
 ## Checklist de revisão de testes
 
 Marque cada item; qualquer "não" bloqueia.
 
 - [ ] Existe teste que falhava antes da mudança (TDD) e ele afirma o comportamento, não a implementação.
 - [ ] Nada de `time.Sleep`/`setTimeout`/`waitForTimeout` **fixo** para "dar tempo" ou provar
-  que nada aconteceu (ex. real: `internal/app/service_test.go:277/308/345/396`,
-  `internal/autostart/toggle_test.go:90/104`). OK: polling até uma condição com prazo
-  (`waitFor`, `expect.poll`, loop com deadline) quando há rede ou processo real no meio. Só
+  que nada aconteceu. OK: `time.Sleep` dentro de um loop de polling com prazo
+  (`fakeEmitter.waitFor`, `internal/app/service_test.go:55`) ou simulando demora real de um
+  fake fora do synctest (`fakeManager.Enable`/`Disable`, `internal/autostart/toggle_test.go`,
+  comentário perto de `TestToggleBurstFinalStateMatchesLastClickByGeneration`). Só
   goroutines/canais → `synctest.Wait()`.
 - [ ] Fake HTTP compartilhado (`internal/llmfake`, fakes de `/__e2e/*`) confere paths e formato
   do JSON com o cliente real que o consome (`internal/llm/client.go`, `models.go`).
@@ -181,8 +215,9 @@ Marque cada item; qualquer "não" bloqueia.
   implementação fixa, `mockReset` + defaults em mock cuja resposta cada teste define
   (`vi.restoreAllMocks` não reseta `vi.fn`).
 - [ ] Sem estado vazando: HOME/`t.TempDir`, listeners, `config.yaml` do E2E via `resetAll()`.
-- [ ] `await user.…` fora de `act()` (ex. real a corrigir: `frontend/src/App.test.tsx:114`);
-  saída do Vitest sem warning de `act()`.
+- [ ] `await user.…` fora de `act()`, `emit()`/mudança de estado síncrona dentro (padrão:
+  `act(blurActiveElement)` em `frontend/src/app/*.test.tsx`); saída do Vitest sem warning de
+  `act()` (confira com `--reporter=verbose --silent=false`, não com o `npm test` padrão).
 - [ ] Fakes reusados do harness do pacote; nenhum `fakeClipboard`/`fakeKeys` novo duplicado.
 - [ ] Código por SO testado via função pura sem tag + teste com build tag; nada de `runtime.GOOS`.
 - [ ] npm: nenhuma rede/processo real fora do teste de `exec.ts`.
@@ -241,3 +276,22 @@ marque os obsoletos como `(obsoleto: motivo)`.
   muda a semântica do restore do `Capture` (bug real de produto); `reset` cancela o stream em
   andamento antes de limpar os fakes; `trigger` sem seleção espera o `CaptureWait` inteiro;
   tag de build nova para um seam de teste checa colisão com tasks de deploy antes de escolher.
+- 2026-09-27 (Onda 2, Task 3 — revisão): teste de `chmod` (`TestLoad_CannotCreateDefaultFile`)
+  só pula no Windows hoje; falta pular também com `os.Geteuid() == 0` (root ignora permissões).
+- 2026-09-27 (Onda 2, Task 5): warnings de `act()` só aparecem com
+  `--reporter=verbose --silent=false` (medir a base antes de fixar meta). Workaround de foco
+  para calar warning (`blurActiveElement`) pode colapsar o ramo testado — manter um teste no
+  caminho real com o warning contido por spy escopado. Cleanup se prova por `listenerCount`
+  no mock; `waitFor(toHaveBeenCalled)` ≠ processado; threshold de linha 100% pede
+  `/* v8 ignore */` documentado; filtro que reseta destaque precisa de ≥2 itens.
+- 2026-09-27 (Onda 2, Task 9): colagem registra antes do restore (`poll` dos dois juntos); sem
+  teclas simuladas o trigger lê o clipboard; nova spec prova que pega regressão quebrando a
+  fiação de propósito; `tsc` do e2e usa o binário de `e2e/node_modules`; duas fontes de dado
+  exigem valores distintos; efeito no nome do teste vira contador de `/__e2e/state`;
+  `toHaveCount(0)` recém-ação passa por acaso; reset depende de cada spec chamar `openModal`;
+  constantes do fake deveriam ficar em `e2e/support/`, hoje duplicadas entre specs.
+- 2026-09-27 (Onda 2, Task 10): regra repetida em vários docs exige grep e alinhamento de
+  todas as cópias; texto de doc sobre endpoint de teste se confere contra o código.
+- 2026-09-27 (Onda 2 — lapidação final): trocadas afirmações genéricas por referências reais
+  do código mesclado; contraexemplos vivos (`reloader_test.go:26`/`:226`) marcados "exemplo a
+  corrigir", com o padrão correto (`e2e.go`'s `Shortcuts.Fire`) citado primeiro.
