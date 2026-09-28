@@ -77,7 +77,7 @@ func (i *Improver) Run(ctx context.Context, r Request, onChunk func(string)) err
 		return err
 	}
 
-	streamErr := i.llm.Stream(ctx, msgs, func(chunk string) {
+	streamErr := i.llm.Stream(ctx, msgs, llm.StreamOptions{}, func(chunk string) {
 		if ctx.Err() != nil {
 			return
 		}

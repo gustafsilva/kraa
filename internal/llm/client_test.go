@@ -49,7 +49,7 @@ func TestStream_ConcatenatesChunksInOrder(t *testing.T) {
 
 	var mu sync.Mutex
 	var got strings.Builder
-	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, func(chunk string) {
+	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, StreamOptions{}, func(chunk string) {
 		mu.Lock()
 		defer mu.Unlock()
 		got.WriteString(chunk)
@@ -82,7 +82,7 @@ func TestStream_AuthorizationHeader(t *testing.T) {
 			defer server.Close()
 
 			client := NewOpenAIClient(server.URL, tt.apiKey, "model-x", 5*time.Second)
-			if err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, func(string) {}); err != nil {
+			if err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, StreamOptions{}, func(string) {}); err != nil {
 				t.Fatalf("Stream() error = %v", err)
 			}
 			if gotAuth != tt.want {
@@ -111,7 +111,7 @@ func TestStream_RequestBody(t *testing.T) {
 
 	client := NewOpenAIClient(server.URL, "", "model-x", 5*time.Second)
 	msgs := []Message{{Role: "system", Content: "seja conciso"}, {Role: "user", Content: "oi"}}
-	if err := client.Stream(context.Background(), msgs, func(string) {}); err != nil {
+	if err := client.Stream(context.Background(), msgs, StreamOptions{}, func(string) {}); err != nil {
 		t.Fatalf("Stream() error = %v", err)
 	}
 
@@ -140,7 +140,7 @@ func TestStream_HTTPErrorReturnsAPIError(t *testing.T) {
 	defer server.Close()
 
 	client := NewOpenAIClient(server.URL, "bad-key", "model-x", 5*time.Second)
-	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, func(string) {})
+	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, StreamOptions{}, func(string) {})
 	if err == nil {
 		t.Fatal("Stream() error = nil, want *APIError")
 	}
@@ -165,7 +165,7 @@ func TestStream_HTTPErrorNonJSONBody(t *testing.T) {
 	defer server.Close()
 
 	client := NewOpenAIClient(server.URL, "", "model-x", 5*time.Second)
-	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, func(string) {})
+	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, StreamOptions{}, func(string) {})
 
 	var apiErr *APIError
 	if !errors.As(err, &apiErr) {
@@ -189,7 +189,7 @@ func TestStream_StreamErrorObject(t *testing.T) {
 	defer server.Close()
 
 	client := NewOpenAIClient(server.URL, "", "model-x", 5*time.Second)
-	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, func(string) {})
+	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, StreamOptions{}, func(string) {})
 
 	var apiErr *APIError
 	if !errors.As(err, &apiErr) {
@@ -212,7 +212,7 @@ func TestStream_ClosedPortReturnsErrUnreachable(t *testing.T) {
 
 	baseURL := "http://" + addr
 	client := NewOpenAIClient(baseURL, "", "model-x", 5*time.Second)
-	err = client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, func(string) {})
+	err = client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, StreamOptions{}, func(string) {})
 
 	if !errors.Is(err, ErrUnreachable) {
 		t.Fatalf("errors.Is(%v, ErrUnreachable) = false", err)
@@ -244,7 +244,7 @@ func TestStream_ContextCancellation(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- client.Stream(ctx, []Message{{Role: "user", Content: "oi"}}, func(string) {
+		done <- client.Stream(ctx, []Message{{Role: "user", Content: "oi"}}, StreamOptions{}, func(string) {
 			mu.Lock()
 			defer mu.Unlock()
 			if canceled {
@@ -295,7 +295,7 @@ func TestStream_IgnoresKeepAliveAndEmptyLines(t *testing.T) {
 
 	client := NewOpenAIClient(server.URL, "", "model-x", 5*time.Second)
 	var got strings.Builder
-	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, func(chunk string) {
+	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, StreamOptions{}, func(chunk string) {
 		got.WriteString(chunk)
 	})
 	if err != nil {
@@ -319,7 +319,7 @@ func TestStream_DeadlineExceeded(t *testing.T) {
 	defer server.Close()
 
 	client := NewOpenAIClient(server.URL, "", "model-x", 50*time.Millisecond)
-	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, func(string) {})
+	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, StreamOptions{}, func(string) {})
 
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("errors.Is(%v, context.DeadlineExceeded) = false", err)
@@ -335,7 +335,7 @@ func TestStream_BaseURLTrailingSlash(t *testing.T) {
 	defer server.Close()
 
 	client := NewOpenAIClient(server.URL+"/", "", "model-x", 5*time.Second)
-	if err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, func(string) {}); err != nil {
+	if err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, StreamOptions{}, func(string) {}); err != nil {
 		t.Fatalf("Stream() error = %v", err)
 	}
 	if gotPath != "/chat/completions" {
@@ -353,7 +353,7 @@ func TestStream_EndsWithoutDoneReturnsNil(t *testing.T) {
 
 	client := NewOpenAIClient(server.URL, "", "model-x", 5*time.Second)
 	var got strings.Builder
-	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, func(chunk string) {
+	err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, StreamOptions{}, func(chunk string) {
 		got.WriteString(chunk)
 	})
 	if err != nil {
@@ -366,6 +366,11 @@ func TestStream_EndsWithoutDoneReturnsNil(t *testing.T) {
 
 func captureBody(t *testing.T, opts ...Option) map[string]any {
 	t.Helper()
+	return captureBodyWith(t, StreamOptions{}, opts...)
+}
+
+func captureBodyWith(t *testing.T, call StreamOptions, opts ...Option) map[string]any {
+	t.Helper()
 	var gotBody map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		raw, _ := io.ReadAll(r.Body)
@@ -377,10 +382,33 @@ func captureBody(t *testing.T, opts ...Option) map[string]any {
 	defer server.Close()
 
 	client := NewOpenAIClient(server.URL, "", "m", 5*time.Second, opts...)
-	if err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, func(string) {}); err != nil {
+	if err := client.Stream(context.Background(), []Message{{Role: "user", Content: "oi"}}, call, func(string) {}); err != nil {
 		t.Fatalf("Stream() error = %v", err)
 	}
 	return gotBody
+}
+
+func ptr(v float64) *float64 { return &v }
+
+func TestStream_CallTemperatureOverridesClientTemperature(t *testing.T) {
+	body := captureBodyWith(t, StreamOptions{Temperature: ptr(0.8)}, WithTemperature(0.2))
+	if body["temperature"] != 0.8 {
+		t.Errorf("temperature = %v, want 0.8", body["temperature"])
+	}
+}
+
+func TestStream_CallTemperatureSentWithoutClientTemperature(t *testing.T) {
+	body := captureBodyWith(t, StreamOptions{Temperature: ptr(0.9)})
+	if body["temperature"] != 0.9 {
+		t.Errorf("temperature = %v, want 0.9", body["temperature"])
+	}
+}
+
+func TestStream_EmptyCallOptionsKeepClientTemperature(t *testing.T) {
+	body := captureBodyWith(t, StreamOptions{}, WithTemperature(0.2))
+	if body["temperature"] != 0.2 {
+		t.Errorf("temperature = %v, want 0.2", body["temperature"])
+	}
 }
 
 func TestStream_SendsTemperatureWhenSet(t *testing.T) {
@@ -421,7 +449,7 @@ func TestStream_IgnoresCommentsNonDataInvalidJSONAndEmptyChoices(t *testing.T) {
 
 	var got strings.Builder
 	c := NewOpenAIClient(server.URL, "", "m", 5*time.Second)
-	if err := c.Stream(context.Background(), []Message{{Role: "user", Content: "x"}}, func(s string) { got.WriteString(s) }); err != nil {
+	if err := c.Stream(context.Background(), []Message{{Role: "user", Content: "x"}}, StreamOptions{}, func(s string) { got.WriteString(s) }); err != nil {
 		t.Fatal(err)
 	}
 	if got.String() != "ok" {
@@ -436,7 +464,7 @@ func TestStream_LineAboveLimitReturnsReadError(t *testing.T) {
 	defer server.Close()
 
 	c := NewOpenAIClient(server.URL, "", "m", 5*time.Second)
-	err := c.Stream(context.Background(), []Message{{Role: "user", Content: "x"}}, func(string) {})
+	err := c.Stream(context.Background(), []Message{{Role: "user", Content: "x"}}, StreamOptions{}, func(string) {})
 	if err == nil || !strings.Contains(err.Error(), "ler stream") {
 		t.Fatalf("err = %v", err)
 	}
@@ -444,7 +472,7 @@ func TestStream_LineAboveLimitReturnsReadError(t *testing.T) {
 
 func TestStream_InvalidBaseURLFailsBeforeRequest(t *testing.T) {
 	c := NewOpenAIClient("://sem-esquema", "", "m", time.Second)
-	if err := c.Stream(context.Background(), nil, func(string) {}); err == nil {
+	if err := c.Stream(context.Background(), nil, StreamOptions{}, func(string) {}); err == nil {
 		t.Fatal("esperava erro de URL inválida")
 	}
 }

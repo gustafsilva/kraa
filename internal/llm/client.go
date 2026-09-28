@@ -36,11 +36,19 @@ type Message struct {
 	Content string `json:"content"`
 }
 
+// StreamOptions ajusta uma única chamada de Stream.
+type StreamOptions struct {
+	// Temperature, quando não nil, substitui a temperatura do cliente
+	// (WithTemperature) nesta chamada.
+	Temperature *float64
+}
+
 // Client executa uma conversa de chat em streaming.
 type Client interface {
 	// Stream envia msgs ao endpoint de chat completions e invoca onChunk
-	// para cada pedaço de texto recebido, na ordem em que chegam.
-	Stream(ctx context.Context, msgs []Message, onChunk func(string)) error
+	// para cada pedaço de texto recebido, na ordem em que chegam. opts
+	// ajusta parâmetros só desta chamada.
+	Stream(ctx context.Context, msgs []Message, opts StreamOptions, onChunk func(string)) error
 }
 
 // APIError representa uma resposta de erro do servidor (HTTP não-2xx, ou um
@@ -115,11 +123,15 @@ type errorResponseBody struct {
 	Error sseErrorPayload `json:"error"`
 }
 
-func (c *openAIClient) Stream(ctx context.Context, msgs []Message, onChunk func(string)) error {
+func (c *openAIClient) Stream(ctx context.Context, msgs []Message, opts StreamOptions, onChunk func(string)) error {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
-	body, err := json.Marshal(chatRequest{Model: c.model, Messages: msgs, Stream: true, Temperature: c.temperature})
+	temperature := c.temperature
+	if opts.Temperature != nil {
+		temperature = opts.Temperature
+	}
+	body, err := json.Marshal(chatRequest{Model: c.model, Messages: msgs, Stream: true, Temperature: temperature})
 	if err != nil {
 		return fmt.Errorf("montar corpo da requisição: %w", err)
 	}

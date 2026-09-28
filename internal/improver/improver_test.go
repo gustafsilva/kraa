@@ -17,6 +17,7 @@ import (
 type fakeClient struct {
 	mu       sync.Mutex
 	gotMsgs  []llm.Message
+	gotOpts  llm.StreamOptions
 	chunks   []string
 	streamed []string
 
@@ -29,9 +30,10 @@ type fakeClient struct {
 	err error
 }
 
-func (f *fakeClient) Stream(ctx context.Context, msgs []llm.Message, onChunk func(string)) error {
+func (f *fakeClient) Stream(ctx context.Context, msgs []llm.Message, opts llm.StreamOptions, onChunk func(string)) error {
 	f.mu.Lock()
 	f.gotMsgs = msgs
+	f.gotOpts = opts
 	f.mu.Unlock()
 
 	for _, c := range f.chunks {
