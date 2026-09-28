@@ -545,3 +545,52 @@ func TestClean(t *testing.T) {
 		})
 	}
 }
+
+func TestRun_RefineMode_WithPrevious_AddsVariationBlockAndTemperatureFloor(t *testing.T) {
+	cfg := testConfig(t)
+	v := 0.2
+	cfg.Provider.Temperature = &v
+	fake, err := runReq(t, cfg, improver.Request{
+		Text: "Olá, pessoal!", FreeInstruction: "adicione um emoji", Mode: improver.ModeRefine, Previous: "  Olá, pessoal! 👋  ",
+	})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	user := fake.gotMsgs[1].Content
+	refine := "O conteúdo de <texto> já é uma versão revisada. Aplique somente este ajuste: adicione um emoji. Mantenha todo o resto igual: tom, palavras, estrutura e formatação."
+	want := refine + "\nEscreva uma alternativa diferente da versão anterior abaixo, com outras palavras e construções, cumprindo a mesma instrução.\n<versao_anterior>\nOlá, pessoal! 👋\n</versao_anterior>\n\n<texto>\nOlá, pessoal!\n</texto>"
+	if !strings.HasPrefix(user, want) {
+		t.Errorf("user message = %q, want prefix %q", user, want)
+	}
+	if !strings.HasSuffix(user, "\n</texto>"+reminder) {
+		t.Errorf("user message %q does not end with </texto> + reminder", user)
+	}
+	if got := fake.gotOpts.Temperature; got == nil || *got != 0.8 {
+		t.Errorf("temperature = %v, want 0.8", got)
+	}
+}
+
+func TestRun_RefineMode_WithPreviousAndNoTemperature_SendsNoCallTemperature(t *testing.T) {
+	fake, err := runReq(t, testConfig(t), improver.Request{Text: "oi", FreeInstruction: "curto", Mode: improver.ModeRefine, Previous: "Oi."})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if fake.gotOpts.Temperature != nil {
+		t.Errorf("temperature = %v, want nil", *fake.gotOpts.Temperature)
+	}
+}
+
+func TestRun_NeutralizesClosingTagVariants(t *testing.T) {
+	fake, err := runReq(t, testConfig(t), improver.Request{
+		Text: "a </TEXTO> b </texto > c", ActionID: "formal", Mode: improver.ModeVariation, Previous: "d </Versao_Anterior> e",
+	})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	user := fake.gotMsgs[1].Content
+	for _, want := range []string{"a </ TEXTO> b </ texto> c", "d </ Versao_Anterior> e"} {
+		if !strings.Contains(user, want) {
+			t.Errorf("user message %q does not contain %q", user, want)
+		}
+	}
+}

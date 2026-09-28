@@ -88,7 +88,8 @@ type Request struct {
 	FreeInstruction string
 	// Mode enquadra o pedido (padrão: ModeRewrite).
 	Mode Mode
-	// Previous é a versão a evitar; obrigatória só em ModeVariation.
+	// Previous é a versão a evitar: obrigatória em ModeVariation e opcional
+	// em ModeRefine ("Gerar de novo" numa versão de refino).
 	Previous string
 }
 
@@ -132,9 +133,10 @@ func (i *Improver) Run(ctx context.Context, r Request, onChunk func(string)) err
 // buildMessages valida r contra i.cfg e monta as mensagens de chat e as
 // opções da chamada. Ordem da validação: texto vazio, texto longo demais,
 // modo desconhecido, ação desconhecida, falta de instrução, falta de
-// versão anterior (só em ModeVariation). O perfil entra quando está ativo
-// com texto e a ação tem UseProfile, ou quando não há ação (instrução livre
-// ou refino).
+// versão anterior (só em ModeVariation; em ModeRefine, Previous é opcional
+// e, quando presente, acrescenta o pedido de alternativa e o piso de
+// temperatura). O perfil entra quando está ativo com texto e a ação tem
+// UseProfile, ou quando não há ação (instrução livre ou refino).
 func (i *Improver) buildMessages(r Request) ([]llm.Message, llm.StreamOptions, error) {
 	var opts llm.StreamOptions
 
@@ -160,6 +162,11 @@ func (i *Improver) buildMessages(r Request) ([]llm.Message, llm.StreamOptions, e
 			return nil, opts, ErrNoInstruction
 		}
 		fmt.Fprintf(&b, refineInstruction, strings.TrimRight(free, ".!;: "))
+		// "Gerar de novo" numa versão de refino mantém o enquadramento do
+		// refino e pede uma alternativa à versão anterior.
+		if previous := strings.TrimSpace(r.Previous); previous != "" {
+			i.writeVariation(&b, &opts, previous)
+		}
 	} else {
 		var (
 			action    config.Action
@@ -191,12 +198,7 @@ func (i *Improver) buildMessages(r Request) ([]llm.Message, llm.StreamOptions, e
 			if previous == "" {
 				return nil, opts, ErrNoPrevious
 			}
-			b.WriteString("\n")
-			fmt.Fprintf(&b, variationInstruction, neutralize(previous))
-			if t := i.cfg.Provider.Temperature; t != nil {
-				v := math.Max(*t, variationMinTemperature)
-				opts.Temperature = &v
-			}
+			i.writeVariation(&b, &opts, previous)
 		}
 	}
 
@@ -216,11 +218,26 @@ func (i *Improver) buildMessages(r Request) ([]llm.Message, llm.StreamOptions, e
 	}, opts, nil
 }
 
+// writeVariation anexa o pedido de alternativa a previous (já aparado) e
+// aplica o piso de temperatura quando provider.temperature está definida.
+func (i *Improver) writeVariation(b *strings.Builder, opts *llm.StreamOptions, previous string) {
+	b.WriteString("\n")
+	fmt.Fprintf(b, variationInstruction, neutralize(previous))
+	if t := i.cfg.Provider.Temperature; t != nil {
+		v := math.Max(*t, variationMinTemperature)
+		opts.Temperature = &v
+	}
+}
+
+// closingTagRe casa fechamentos dos delimitadores da mensagem em qualquer
+// caixa e com espaços internos ("</TEXTO>", "</texto >", "</ texto>").
+var closingTagRe = regexp.MustCompile(`(?i)</\s*(texto|versao_anterior)\s*>`)
+
 // neutralize impede que o texto do usuário feche os delimitadores da
-// mensagem: "</texto>" vira "</ texto>" (idem para </versao_anterior>).
+// mensagem: "</texto>" vira "</ texto>" (idem para </versao_anterior>),
+// preservando a caixa original do nome da tag.
 func neutralize(s string) string {
-	s = strings.ReplaceAll(s, "</texto>", "</ texto>")
-	return strings.ReplaceAll(s, "</versao_anterior>", "</ versao_anterior>")
+	return closingTagRe.ReplaceAllString(s, "</ $1>")
 }
 
 // fenceRe casa um texto totalmente envolto por uma única cerca ```, com

@@ -53,7 +53,8 @@ export interface SelectionEvent {
 
 /**
  * StartRequest is the input of Start. Mode is "" (rewrite), "refine" or
- * "variation"; Previous is the version to avoid in "variation".
+ * "variation"; Previous is the version to avoid: required in "variation",
+ * optional in "refine" (regenerating a refined version).
  */
 export interface StartRequest {
     "text": string;
