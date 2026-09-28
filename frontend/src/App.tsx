@@ -102,10 +102,18 @@ function App() {
       }
       // Bracket codes (physical key position) win over the key's character
       // so this still works on layouts (e.g. ABNT2) where the browser maps
-      // BracketLeft/BracketRight to characters other than "[" and "]".
+      // BracketLeft/BracketRight to characters other than "[" and "]". But
+      // on Windows, AltGr is reported as ctrlKey+altKey, and AltGr+digit (or
+      // AltGr+BracketLeft on Spanish) types a literal "[" / "]" on several
+      // layouts (German, Italian, French, Polish, Spanish) — with `mod`
+      // already true from that synthesized ctrlKey, treating those as the
+      // version shortcut would swallow the keystroke and break typing.
+      // Skipping the branch whenever Alt/AltGr is held leaves that
+      // literal-bracket path alone while plain ⌘/Ctrl+[ / ] still works.
+      const isAltGr = event.altKey || event.getModifierState?.("AltGraph");
       const key = event.key.toLowerCase();
-      const isPrevVersion = event.code === "BracketLeft" || (event.code !== "BracketRight" && key === "[");
-      const isNextVersion = event.code === "BracketRight" || (event.code !== "BracketLeft" && key === "]");
+      const isPrevVersion = !isAltGr && (event.code === "BracketLeft" || (event.code !== "BracketRight" && key === "["));
+      const isNextVersion = !isAltGr && (event.code === "BracketRight" || (event.code !== "BracketLeft" && key === "]"));
       if (isPrevVersion) {
         event.preventDefault();
         prevVersion();

@@ -53,6 +53,20 @@ describe("App — versões", () => {
     expect(screen.getByText("2/2")).toBeInTheDocument();
   });
 
+  it("AltGr+colchete (ctrlKey+altKey) não troca de versão nem bloqueia a digitação", async () => {
+    await renderWithVersion();
+    const event = new KeyboardEvent("keydown", {
+      key: "[",
+      code: "Digit8",
+      ctrlKey: true,
+      altKey: true,
+      cancelable: true,
+    });
+    window.dispatchEvent(event);
+    expect(screen.getByText("2/2")).toBeInTheDocument();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   it("⌘D alterna Mudanças e ⌘L foca Refinar", async () => {
     await renderWithVersion();
     fireEvent.keyDown(window, { key: "d", metaKey: true });
