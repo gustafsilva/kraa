@@ -2,6 +2,7 @@ import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Mascot, type MascotPose } from "@/components/Mascot";
+import { DiffView } from "@/components/DiffView";
 
 interface PreviewPaneProps {
   value: string;
@@ -12,6 +13,12 @@ interface PreviewPaneProps {
   placeholder?: string;
   /** Kraa pose shown in the corner while there is no result yet (null: none). */
   mascot?: MascotPose | null;
+  /** Rendered to the right of "Resultado" (e.g. VersionNav). */
+  header?: React.ReactNode;
+  /** Rendered at the foot of the card (e.g. RefineInput). */
+  footer?: React.ReactNode;
+  /** When present, shows a read-only DiffView instead of the textarea. */
+  diff?: { base: string; text: string } | null;
 }
 
 /** Streaming/result preview. Read-only while streaming; editable once done. */
@@ -22,6 +29,9 @@ export function PreviewPane({
   streaming = false,
   placeholder,
   mascot = null,
+  header,
+  footer,
+  diff = null,
 }: PreviewPaneProps) {
   const hasResult = value.trim().length > 0;
   return (
@@ -41,23 +51,31 @@ export function PreviewPane({
           streaming && "pencil-writing",
         )}
       />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] font-medium text-muted-foreground">Resultado</span>
-        {streaming && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-pencil/30 px-1.5 py-px text-[10px] text-pencil">
-            <Sparkles className="size-3" aria-hidden="true" />
-            Escrevendo…
-          </span>
-        )}
+        <div className="flex min-w-0 items-center gap-2">
+          {streaming && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-pencil/30 px-1.5 py-px text-[10px] text-pencil">
+              <Sparkles className="size-3" aria-hidden="true" />
+              Escrevendo…
+            </span>
+          )}
+          {header}
+        </div>
       </div>
-      <Textarea
-        className="min-h-0 flex-1 resize-none rounded-none border-0 bg-transparent p-0 text-[14px] leading-relaxed shadow-none focus-visible:ring-0 md:text-[14px] dark:bg-transparent [--wails-draggable:no-drag]"
-        value={value}
-        readOnly={!editable}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        aria-label="Pré-visualização"
-      />
+      {diff ? (
+        <DiffView base={diff.base} text={diff.text} />
+      ) : (
+        <Textarea
+          className="min-h-0 flex-1 resize-none rounded-none border-0 bg-transparent p-0 text-[14px] leading-relaxed shadow-none focus-visible:ring-0 md:text-[14px] dark:bg-transparent [--wails-draggable:no-drag]"
+          value={value}
+          readOnly={!editable}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          aria-label="Pré-visualização"
+        />
+      )}
+      {footer}
       {mascot && value.length === 0 && (
         <Mascot key={mascot} pose={mascot} size={52} className="absolute right-2 bottom-2 opacity-90" />
       )}

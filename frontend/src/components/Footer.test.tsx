@@ -85,4 +85,9 @@ describe("<Footer />", () => {
     expect(screen.getByText(/executar/i)).toBeInTheDocument();
     expect(screen.queryByText(/aplicar/i)).not.toBeInTheDocument();
   });
+
+  it("mostra a dica de versões quando há versões", () => {
+    render(<Footer canReplace resultReady={false} onReplace={vi.fn()} onCopy={vi.fn()} hasVersions />);
+    expect(screen.getByText("versões")).toBeInTheDocument();
+  });
 });

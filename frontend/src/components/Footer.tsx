@@ -12,6 +12,8 @@ export interface FooterProps {
   focusToken?: number;
   /** ↑ from the choice buttons: go back to the action list. */
   onBack?: () => void;
+  /** True once there is more than one version: shows the ⌘[ ⌘] hint. */
+  hasVersions?: boolean;
 }
 
 const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.userAgent);
@@ -28,7 +30,7 @@ function Hint({ keys, label }: { keys: string; label: string }) {
 }
 
 /** Result bar: Copiar | Substituir, chosen with ←/→ and applied with Enter. */
-export function Footer({ canReplace, resultReady, onReplace, onCopy, focusToken, onBack }: FooterProps) {
+export function Footer({ canReplace, resultReady, onReplace, onCopy, focusToken, onBack, hasVersions }: FooterProps) {
   // ui/button.tsx is a plain function component (no forwardRef in React 18),
   // so the choices are found through data-choice inside the group.
   const groupRef = useRef<HTMLDivElement>(null);
@@ -71,6 +73,7 @@ export function Footer({ canReplace, resultReady, onReplace, onCopy, focusToken,
           <>
             <Hint keys="↑↓" label="escolher" />
             <Hint keys="↵" label="executar" />
+            {hasVersions && <Hint keys={`${mod}[ ${mod}]`} label="versões" />}
             <Hint keys="esc" label="fechar" />
           </>
         )}

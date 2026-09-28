@@ -8,6 +8,8 @@ import { PreviewPane } from "@/components/PreviewPane";
 import { Footer } from "@/components/Footer";
 import { ModelPicker } from "@/components/ModelPicker";
 import { Mascot, type MascotPose } from "@/components/Mascot";
+import { VersionNav } from "@/components/VersionNav";
+import { RefineInput } from "@/components/RefineInput";
 import { useImprove } from "@/hooks/useImprove";
 
 function App() {
@@ -34,11 +36,25 @@ function App() {
     modelsError,
     modelSaving,
     setModel,
+    versions,
+    current,
+    currentVersion,
+    prevVersion,
+    nextVersion,
+    refine,
+    regenerate,
   } = useImprove();
 
-  // Substituir/Copiar (buttons and shortcuts) only act on the cleaned result:
-  // never on partial stream output, and not after an error (retry instead).
-  const resultReady = status === "done" && output.trim().length > 0;
+  // Substituir/Copiar (buttons and shortcuts) act on the cleaned result, and
+  // also on the version shown after an error (regenerate/refine failing must
+  // not strand the previous, still-good version behind disabled buttons).
+  const resultReady = (status === "done" || (status === "error" && currentVersion !== null)) && output.trim().length > 0;
+
+  // Mudanças (diff) is a per-session toggle: a new capture (selectionSeq)
+  // turns it back off so the next result always starts on the plain preview.
+  const [showDiff, setShowDiff] = useState(false);
+  const [refineFocusSeq, setRefineFocusSeq] = useState(0);
+  useEffect(() => setShowDiff(false), [selectionSeq]);
 
   function isReplaceShortcut(event: { metaKey: boolean; ctrlKey: boolean; key: string }) {
     return (event.metaKey || event.ctrlKey) && event.key === "Enter";
@@ -60,6 +76,8 @@ function App() {
     if (canReplace && resultReady) void replace();
   }
 
+  const isStreaming = status === "streaming";
+
   // ⌘/Ctrl+Enter → Substituir · ⌘/Ctrl+Shift+C → Copiar, as a global
   // fallback for when focus is anywhere else (preview textarea, buttons, no
   // focus at all). The action search intercepts ⌘/Ctrl+Enter itself before it can bubble here (see
@@ -80,13 +98,44 @@ function App() {
           event.preventDefault();
           void copy();
         }
+        return;
+      }
+      // Bracket codes (physical key position) win over the key's character
+      // so this still works on layouts (e.g. ABNT2) where the browser maps
+      // BracketLeft/BracketRight to characters other than "[" and "]".
+      const key = event.key.toLowerCase();
+      const isPrevVersion = event.code === "BracketLeft" || (event.code !== "BracketRight" && key === "[");
+      const isNextVersion = event.code === "BracketRight" || (event.code !== "BracketLeft" && key === "]");
+      if (isPrevVersion) {
+        event.preventDefault();
+        prevVersion();
+        return;
+      }
+      if (isNextVersion) {
+        event.preventDefault();
+        nextVersion();
+        return;
+      }
+      if (key === "r" && !event.shiftKey) {
+        // Always swallow ⌘/Ctrl+R: in the webview it would reload the modal.
+        event.preventDefault();
+        if (currentVersion && !isStreaming) regenerate();
+        return;
+      }
+      if (key === "d" && !event.shiftKey) {
+        event.preventDefault();
+        if (currentVersion && !isStreaming) setShowDiff((v) => !v);
+        return;
+      }
+      if (key === "l" && !event.shiftKey) {
+        event.preventDefault();
+        if (resultReady) setRefineFocusSeq((n) => n + 1);
+        return;
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [canReplace, resultReady, replace, copy]);
-
-  const isStreaming = status === "streaming";
+  }, [canReplace, resultReady, replace, copy, prevVersion, nextVersion, currentVersion, isStreaming, regenerate]);
 
   // Keyboard-only flow: when a result lands and the user is still in the
   // action list (or nowhere), hand focus to the result bar so ←/→ + Enter
@@ -184,10 +233,27 @@ function App() {
           <PreviewPane
             value={output}
             onChange={setOutput}
-            editable={status === "done"}
+            editable={status === "done" || (status === "error" && currentVersion !== null)}
             streaming={isStreaming}
             placeholder={isStreaming ? "Gerando…" : "Escolha uma ação ou digite uma instrução."}
             mascot={previewMascot}
+            header={
+              currentVersion && (
+                <VersionNav
+                  label={currentVersion.label}
+                  index={current}
+                  total={versions.length}
+                  onPrev={prevVersion}
+                  onNext={nextVersion}
+                  onRegenerate={regenerate}
+                  showDiff={showDiff}
+                  onToggleDiff={() => setShowDiff((v) => !v)}
+                  disabled={isStreaming}
+                />
+              )
+            }
+            diff={showDiff && currentVersion && !isStreaming ? { base: currentVersion.baseText, text: output } : null}
+            footer={resultReady && <RefineInput onSubmit={refine} focusToken={refineFocusSeq} />}
           />
         </div>
 
@@ -225,6 +291,7 @@ function App() {
         onCopy={() => void copy()}
         focusToken={resultFocusSeq}
         onBack={() => setBackSeq((n) => n + 1)}
+        hasVersions={versions.length > 1}
       />
     </div>
   );

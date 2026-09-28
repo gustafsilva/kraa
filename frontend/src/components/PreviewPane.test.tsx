@@ -40,4 +40,16 @@ describe("<PreviewPane />", () => {
 
     expect(onChange).toHaveBeenCalledWith("a");
   });
+
+  it("renderiza header e footer quando informados", () => {
+    render(<PreviewPane value="x" onChange={vi.fn()} editable header={<span>cabeçalho</span>} footer={<span>rodapé</span>} />);
+    expect(screen.getByText("cabeçalho")).toBeInTheDocument();
+    expect(screen.getByText("rodapé")).toBeInTheDocument();
+  });
+
+  it("mostra o diff no lugar do textarea", () => {
+    render(<PreviewPane value="Olá mundo" onChange={vi.fn()} editable diff={{ base: "Oi mundo", text: "Olá mundo" }} />);
+    expect(screen.getByRole("region", { name: "Mudanças" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: /pré-visualização/i })).not.toBeInTheDocument();
+  });
 });
