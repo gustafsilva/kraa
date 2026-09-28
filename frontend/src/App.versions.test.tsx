@@ -45,12 +45,27 @@ describe("App — versões", () => {
     expect(screen.getByText("2/2")).toBeInTheDocument();
   });
 
-  it("navega pelo code físico em teclados ABNT2", async () => {
+  it("em teclados ABNT2 segue o caractere do colchete e só cai no code sem colchete", async () => {
     await renderWithVersion();
+    // ABNT2: a tecla "[" tem code BracketRight e a "]" tem code Backslash.
+    fireEvent.keyDown(window, { key: "[", code: "BracketRight", ctrlKey: true });
+    expect(screen.getByText("1/2")).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "]", code: "Backslash", ctrlKey: true });
+    expect(screen.getByText("2/2")).toBeInTheDocument();
+    // Tecla morta ´ (code BracketLeft) não gera colchete: vale o code.
     fireEvent.keyDown(window, { key: "´", code: "BracketLeft", ctrlKey: true });
     expect(screen.getByText("1/2")).toBeInTheDocument();
-    fireEvent.keyDown(window, { key: "[", code: "BracketRight", ctrlKey: true });
-    expect(screen.getByText("2/2")).toBeInTheDocument();
+  });
+
+  it("⌘R funciona em layouts não latinos pelo code (ex.: russo, key к)", async () => {
+    await renderWithVersion();
+    ImproveService.Start.mockResolvedValueOnce("r3");
+    const event = new KeyboardEvent("keydown", { key: "к", code: "KeyR", metaKey: true, cancelable: true });
+    await act(async () => {
+      window.dispatchEvent(event);
+    });
+    expect(event.defaultPrevented).toBe(true);
+    expect(ImproveService.Start).toHaveBeenLastCalledWith(expect.objectContaining({ mode: "variation", previous: "Caros, tudo certo?" }));
   });
 
   it("AltGr+colchete (ctrlKey+altKey) não troca de versão nem bloqueia a digitação", async () => {
@@ -91,6 +106,30 @@ describe("App — versões", () => {
     const event = new KeyboardEvent("keydown", { key: "r", metaKey: true, cancelable: true });
     window.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("erro num refino volta à versão anterior, com Substituir, Copiar e Refinar disponíveis", async () => {
+    await renderWithVersion();
+    ImproveService.Start.mockResolvedValueOnce("r3");
+    await userEvent.type(screen.getByRole("textbox", { name: "Refinar" }), "mais curto{Enter}");
+    await act(async () => {
+      emit("improve:chunk", { id: "r3", delta: "parcial" });
+      emit("improve:error", { id: "r3", message: "Tempo esgotado aguardando o modelo. Tente novamente." });
+    });
+    expect(screen.getByDisplayValue("Caros, tudo certo?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Substituir/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Copiar/ })).toBeEnabled();
+    expect(screen.getByRole("textbox", { name: "Refinar" })).toBeInTheDocument();
+  });
+
+  it("selection:new desliga Mudanças", async () => {
+    await renderWithVersion();
+    fireEvent.keyDown(window, { key: "d", metaKey: true });
+    expect(screen.getByRole("region", { name: "Mudanças" })).toBeInTheDocument();
+    act(() => {
+      emit("selection:new", { text: "outro texto", canReplace: true, warning: "" });
+    });
+    expect(screen.queryByRole("region", { name: "Mudanças" })).not.toBeInTheDocument();
   });
 
   it("o botão Mudanças do VersionNav também alterna o diff", async () => {

@@ -66,14 +66,17 @@ type Request struct {
 	ActionID        string
 	FreeInstruction string
 	Mode            Mode
-	Previous        string // só em ModeVariation: a versão a evitar
+	Previous        string // a versão a evitar: obrigatória em ModeVariation, opcional em ModeRefine
 }
 ```
 
 Validação nova, antes de chamar o LLM:
 
 - `ModeRefine` exige `FreeInstruction` e ignora `ActionID`
-  (`ErrNoInstruction` se vazio);
+  (`ErrNoInstruction` se vazio); com `Previous` preenchido ("Gerar de
+  novo" numa versão de refino), acrescenta depois da instrução de refino o
+  mesmo bloco `<versao_anterior>` e o mesmo piso de temperatura do
+  `ModeVariation`;
 - `ModeVariation` exige `Previous` (erro novo `ErrNoPrevious`) e aceita
   ação e/ou instrução como no modo normal;
 - modo desconhecido → erro novo `ErrUnknownMode`.
@@ -179,7 +182,9 @@ interface Version {
   cuja base é a versão atual.
 - **Gerar de novo:** repete o `request` da versão atual com
   `mode: "variation"` e `previous = texto da versão atual`; cria uma versão
-  com o mesmo rótulo.
+  com o mesmo rótulo e a mesma base. Numa versão de refino o `mode` continua
+  `"refine"` (mesmo texto e instrução, com `previous`), para manter o
+  enquadramento do ajuste.
 - O stream escreve numa versão nova, já selecionada. Em erro, a versão
   parcial é descartada, a seleção volta à anterior e o alerta "Tentar
   novamente" repete o pedido. `Esc` segue igual.

@@ -87,7 +87,7 @@ export interface UseImproveResult extends ImproveState {
   nextVersion: () => void;
   /** Improves the current version's (possibly hand-edited) text further. No-op without a current version or during a stream. */
   refine: (instruction: string) => void;
-  /** Re-runs the current version's request as a variation. No-op without a current version or during a stream. */
+  /** Re-runs the current version's request as a variation (a refine stays a refine, with the current text as previous). No-op without a current version or during a stream. */
   regenerate: () => void;
 }
 
@@ -359,7 +359,10 @@ export function useImprove(): UseImproveResult {
     const s = stateRef.current;
     const cur = s.versions[s.current];
     if (!cur || s.status === "streaming") return;
-    startWithRequest({ ...cur.request, mode: "variation", previous: cur.text }, { baseText: cur.baseText, label: cur.label });
+    // A refined version stays a refine (the backend adds the "alternative to
+    // previous" block to it); anything else becomes a variation.
+    const mode = cur.request.mode === "refine" ? "refine" : "variation";
+    startWithRequest({ ...cur.request, mode, previous: cur.text }, { baseText: cur.baseText, label: cur.label });
   }, [startWithRequest]);
 
   const retry = useCallback(() => {

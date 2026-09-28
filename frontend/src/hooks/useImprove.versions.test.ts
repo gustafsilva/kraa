@@ -98,6 +98,26 @@ describe("useImprove — versões", () => {
     expect(result.current.versions[1]).toMatchObject({ text: "Versão B", baseText: "fala galera", label: "Mais formal" });
   });
 
+  it("regenerate numa versão de refino mantém mode refine, com a versão refinada em previous", async () => {
+    const { result } = await setup();
+    await complete(() => result.current.start({ actionId: "formal" }), "r1", "Versão A");
+    await complete(() => result.current.refine("adicione um emoji"), "r2", "Versão A 📅");
+    await complete(() => result.current.regenerate(), "r3", "Versão A ✅");
+
+    expect(ImproveService.Start).toHaveBeenLastCalledWith({
+      text: "Versão A",
+      actionId: "",
+      freeInstruction: "adicione um emoji",
+      mode: "refine",
+      previous: "Versão A 📅",
+    });
+    expect(result.current.versions[2]).toMatchObject({
+      text: "Versão A ✅",
+      baseText: "Versão A",
+      label: "Refinar: adicione um emoji",
+    });
+  });
+
   it("erro descarta a versão parcial e volta à anterior, que continua editável", async () => {
     const { result } = await setup();
     await complete(() => result.current.start({ actionId: "formal" }), "r1", "Versão A");

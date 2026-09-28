@@ -100,20 +100,23 @@ function App() {
         }
         return;
       }
-      // Bracket codes (physical key position) win over the key's character
-      // so this still works on layouts (e.g. ABNT2) where the browser maps
-      // BracketLeft/BracketRight to characters other than "[" and "]". But
-      // on Windows, AltGr is reported as ctrlKey+altKey, and AltGr+digit (or
-      // AltGr+BracketLeft on Spanish) types a literal "[" / "]" on several
-      // layouts (German, Italian, French, Polish, Spanish) — with `mod`
-      // already true from that synthesized ctrlKey, treating those as the
-      // version shortcut would swallow the keystroke and break typing.
-      // Skipping the branch whenever Alt/AltGr is held leaves that
-      // literal-bracket path alone while plain ⌘/Ctrl+[ / ] still works.
+      // Version shortcuts follow the typed "[" / "]" character, so on ABNT2
+      // (where the key labelled "[" is code BracketRight and "]" is code
+      // Backslash) they match the keycaps. Only when the key produces no
+      // bracket at all (e.g. the ABNT2 dead key ´ on BracketLeft) do we fall
+      // back to the physical BracketLeft/BracketRight code. On Windows, AltGr
+      // is reported as ctrlKey+altKey, and AltGr+digit (or AltGr+BracketLeft
+      // on Spanish) types a literal "[" / "]" on several layouts (German,
+      // Italian, French, Polish, Spanish) — with `mod` already true from
+      // that synthesized ctrlKey, treating those as the version shortcut
+      // would swallow the keystroke and break typing. Skipping the branch
+      // whenever Alt/AltGr is held leaves that literal-bracket path alone
+      // while plain ⌘/Ctrl+[ / ] still works.
       const isAltGr = event.altKey || event.getModifierState?.("AltGraph");
       const key = event.key.toLowerCase();
-      const isPrevVersion = !isAltGr && (event.code === "BracketLeft" || (event.code !== "BracketRight" && key === "["));
-      const isNextVersion = !isAltGr && (event.code === "BracketRight" || (event.code !== "BracketLeft" && key === "]"));
+      const isBracketKey = key === "[" || key === "]";
+      const isPrevVersion = !isAltGr && (key === "[" || (!isBracketKey && event.code === "BracketLeft"));
+      const isNextVersion = !isAltGr && (key === "]" || (!isBracketKey && event.code === "BracketRight"));
       if (isPrevVersion) {
         event.preventDefault();
         prevVersion();
@@ -124,18 +127,19 @@ function App() {
         nextVersion();
         return;
       }
-      if (key === "r" && !event.shiftKey) {
+      if ((key === "r" || event.code === "KeyR") && !event.shiftKey) {
         // Always swallow ⌘/Ctrl+R: in the webview it would reload the modal.
+        // The KeyR/KeyD/KeyL codes cover non-Latin layouts (e.g. Russian "к").
         event.preventDefault();
         if (currentVersion && !isStreaming) regenerate();
         return;
       }
-      if (key === "d" && !event.shiftKey) {
+      if ((key === "d" || event.code === "KeyD") && !event.shiftKey) {
         event.preventDefault();
         if (currentVersion && !isStreaming) setShowDiff((v) => !v);
         return;
       }
-      if (key === "l" && !event.shiftKey) {
+      if ((key === "l" || event.code === "KeyL") && !event.shiftKey) {
         event.preventDefault();
         if (resultReady) setRefineFocusSeq((n) => n + 1);
         return;
