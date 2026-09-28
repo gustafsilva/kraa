@@ -13,6 +13,21 @@ import type {
 
 export type ImproveStatus = "idle" | "streaming" | "done" | "error";
 
+/** Max number of versions kept per session; oldest is dropped past this. */
+const MAX_VERSIONS = 20;
+
+/** One generated result in the current session's history. */
+export interface Version {
+  /** Editable text shown when this version is selected. */
+  text: string;
+  /** Original captured text (action/instruction) or the refined base (refine). */
+  baseText: string;
+  /** e.g. "Mais formal" | "Instrução: …" | "Refinar: …". */
+  label: string;
+  /** Request that produced this version (used by regenerate()). */
+  request: StartRequest;
+}
+
 export interface ImproveState {
   /** Text sent to Start(): the captured selection, possibly edited by the user. */
   text: string;
@@ -36,6 +51,10 @@ export interface ImproveState {
   modelsError: string;
   /** True while SetModel is saving + reloading the config. */
   modelSaving: boolean;
+  /** Versions of this session, oldest first (max MAX_VERSIONS). */
+  versions: Version[];
+  /** Index of the version on screen; -1 when there is none. */
+  current: number;
 }
 
 export interface StartOptions {
@@ -58,12 +77,30 @@ export interface UseImproveResult extends ImproveState {
   close: () => Promise<void>;
   /** Persists the chosen model (config.yaml); applies to the next request. */
   setModel: (model: string) => Promise<void>;
+  /** The version at `current`, or null when there is none. */
+  currentVersion: Version | null;
+  /** Selects a version by index; a no-op while streaming or out of range. */
+  selectVersion: (index: number) => void;
+  /** Selects the previous version, if any. */
+  prevVersion: () => void;
+  /** Selects the next version, if any. */
+  nextVersion: () => void;
+  /** Improves the current version's (possibly hand-edited) text further. No-op without a current version or during a stream. */
+  refine: (instruction: string) => void;
+  /** Re-runs the current version's request as a variation. No-op without a current version or during a stream. */
+  regenerate: () => void;
 }
 
 type BufferedEvent =
   | { type: "chunk"; id: string; payload: ChunkEvent }
   | { type: "done"; id: string; payload: DoneEvent }
   | { type: "error"; id: string; payload: ImproveErrorEvent };
+
+/** Metadata for the in-flight request, used to build its Version on improve:done. */
+interface PendingMeta {
+  baseText: string;
+  label: string;
+}
 
 const initialState: ImproveState = {
   text: "",
@@ -79,6 +116,8 @@ const initialState: ImproveState = {
   models: [],
   modelsError: "",
   modelSaving: false,
+  versions: [],
+  current: -1,
 };
 
 /**
@@ -110,6 +149,7 @@ export function useImprove(): UseImproveResult {
   const pendingRef = useRef(false);
   const bufferRef = useRef<BufferedEvent[]>([]);
   const lastRequestRef = useRef<StartRequest | null>(null);
+  const lastMetaRef = useRef<PendingMeta | null>(null);
   const generationRef = useRef(0);
   // True once the user edits the text; reset by selection:new (a new
   // capture). While true, GetState must not overwrite the edit.
@@ -121,9 +161,21 @@ export function useImprove(): UseImproveResult {
     if (evt.type === "chunk") {
       setState((s) => ({ ...s, status: "streaming", output: s.output + evt.payload.delta }));
     } else if (evt.type === "done") {
-      setState((s) => ({ ...s, status: "done", output: evt.payload.text }));
+      const meta = lastMetaRef.current;
+      const request = lastRequestRef.current;
+      setState((s) => {
+        if (!meta || !request) return { ...s, status: "done", output: evt.payload.text };
+        const version: Version = { text: evt.payload.text, baseText: meta.baseText, label: meta.label, request };
+        const versions = [...s.versions, version].slice(-MAX_VERSIONS);
+        return { ...s, status: "done", output: version.text, versions, current: versions.length - 1 };
+      });
     } else {
-      setState((s) => ({ ...s, status: "error", requestError: evt.payload.message }));
+      setState((s) => ({
+        ...s,
+        status: "error",
+        requestError: evt.payload.message,
+        output: s.versions[s.current]?.text ?? "",
+      }));
     }
   }, []);
 
@@ -173,6 +225,7 @@ export function useImprove(): UseImproveResult {
       pendingRef.current = false;
       bufferRef.current = [];
       lastRequestRef.current = null;
+      lastMetaRef.current = null;
       textEditedRef.current = false;
       setState((s) => ({
         ...s,
@@ -183,6 +236,8 @@ export function useImprove(): UseImproveResult {
         output: "",
         requestError: "",
         actionError: "",
+        versions: [],
+        current: -1,
       }));
       setSelectionSeq((n) => n + 1);
       // Each modal opening refreshes the list (a model may have been pulled).
@@ -233,8 +288,9 @@ export function useImprove(): UseImproveResult {
   }, [handleEvent, loadModels]);
 
   const startWithRequest = useCallback(
-    (req: StartRequest) => {
+    (req: StartRequest, meta: PendingMeta) => {
       lastRequestRef.current = req;
+      lastMetaRef.current = meta;
       bufferRef.current = [];
       pendingRef.current = true;
       const generation = (generationRef.current += 1);
@@ -263,7 +319,7 @@ export function useImprove(): UseImproveResult {
           pendingRef.current = false;
           bufferRef.current = [];
           const message = err instanceof Error ? err.message : String(err);
-          setState((s) => ({ ...s, status: "error", requestError: message }));
+          setState((s) => ({ ...s, status: "error", requestError: message, output: s.versions[s.current]?.text ?? "" }));
         });
     },
     [applyBuffered]
@@ -271,24 +327,63 @@ export function useImprove(): UseImproveResult {
 
   const start = useCallback(
     (opts: StartOptions) => {
+      const s = stateRef.current;
       const req: StartRequest = {
-        text: stateRef.current.text,
+        text: s.text,
         actionId: opts.actionId ?? "",
         freeInstruction: opts.freeInstruction ?? "",
         mode: "",
         previous: "",
       };
-      startWithRequest(req);
+      const actionLabel = s.actions.find((a) => a.id === req.actionId)?.label;
+      const label = actionLabel ?? `Instrução: ${req.freeInstruction}`;
+      startWithRequest(req, { baseText: s.text, label });
     },
     [startWithRequest]
   );
 
-  const retry = useCallback(() => {
-    if (lastRequestRef.current) startWithRequest(lastRequestRef.current);
+  const refine = useCallback(
+    (instruction: string) => {
+      const s = stateRef.current;
+      const cur = s.versions[s.current];
+      if (!cur || s.status === "streaming") return;
+      startWithRequest(
+        { text: cur.text, actionId: "", freeInstruction: instruction, mode: "refine", previous: "" },
+        { baseText: cur.text, label: `Refinar: ${instruction}` }
+      );
+    },
+    [startWithRequest]
+  );
+
+  const regenerate = useCallback(() => {
+    const s = stateRef.current;
+    const cur = s.versions[s.current];
+    if (!cur || s.status === "streaming") return;
+    startWithRequest({ ...cur.request, mode: "variation", previous: cur.text }, { baseText: cur.baseText, label: cur.label });
   }, [startWithRequest]);
 
+  const retry = useCallback(() => {
+    if (lastRequestRef.current && lastMetaRef.current) {
+      startWithRequest(lastRequestRef.current, lastMetaRef.current);
+    }
+  }, [startWithRequest]);
+
+  const selectVersion = useCallback((index: number) => {
+    setState((s) => {
+      if (s.status === "streaming" || index < 0 || index >= s.versions.length) return s;
+      return { ...s, current: index, output: s.versions[index].text };
+    });
+  }, []);
+
+  const prevVersion = useCallback(() => selectVersion(stateRef.current.current - 1), [selectVersion]);
+  const nextVersion = useCallback(() => selectVersion(stateRef.current.current + 1), [selectVersion]);
+
   const setOutput = useCallback((value: string) => {
-    setState((s) => ({ ...s, output: value }));
+    setState((s) => {
+      if (s.current < 0) return { ...s, output: value };
+      const versions = s.versions.map((v, i) => (i === s.current ? { ...v, text: value } : v));
+      return { ...s, output: value, versions };
+    });
   }, []);
 
   const setText = useCallback((value: string) => {
@@ -347,5 +442,11 @@ export function useImprove(): UseImproveResult {
     copy,
     close,
     setModel,
+    currentVersion: state.versions[state.current] ?? null,
+    selectVersion,
+    prevVersion,
+    nextVersion,
+    refine,
+    regenerate,
   };
 }
