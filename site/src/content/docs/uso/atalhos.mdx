@@ -39,11 +39,20 @@ Dá para usar o Kraa inteiro sem o mouse:
 | <Kbd keys={["↑"]} /> | Volta para a lista de ações para tentar outra |
 | <Kbd keys={["⌘/Ctrl", "Enter"]} /> | **Substituir** direto, de qualquer lugar |
 | <Kbd keys={["⌘/Ctrl", "Shift", "C"]} /> | **Copiar** direto, de qualquer lugar |
+| <Kbd keys={["⌘/Ctrl", "["]} /> <Kbd keys={["⌘/Ctrl", "]"]} /> | Navega entre as [versões](/docs/uso/versoes-e-refino/) do resultado |
+| <Kbd keys={["⌘/Ctrl", "R"]} /> | **Gerar de novo**: outra alternativa para o mesmo pedido |
+| <Kbd keys={["⌘/Ctrl", "L"]} /> | Foca o campo **Refinar** |
+| <Kbd keys={["⌘/Ctrl", "D"]} /> | Mostra ou esconde as **Mudanças** (diff) da versão exibida |
 | <Kbd keys={["Esc"]} /> | Fecha o modal e cancela o stream em andamento |
 
 Quando o resultado termina, o foco vai sozinho para **Substituir** (ou **Copiar**, se não der para
 colar no app de origem): basta apertar <Kbd keys={["Enter"]} />. Se você estiver editando o texto,
 o foco fica onde está.
+
+<Callout type="note" title="Teclado ABNT2">
+  Nos atalhos de versão (<Kbd keys={["⌘/Ctrl", "["]} /> e <Kbd keys={["⌘/Ctrl", "]"]} />), use as
+  teclas físicas à direita do `P` — funciona independente do caractere que o teclado imprime.
+</Callout>
 
 "Substituir" e "Copiar" só agem sobre o resultado **completo**: nunca sobre um stream parcial nem
 depois de um erro. Nesse caso, tente de novo.

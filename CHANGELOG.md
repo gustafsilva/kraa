@@ -11,6 +11,9 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 - Suíte E2E com Playwright contra o backend real (modo servidor do Wails) e um LLM fake.
 - Gate de cobertura na CI para backend, frontend e CLI npm, além de typecheck e ESLint no frontend.
+- Versões no modal: cada ação gera uma versão navegável (`⌘/Ctrl+[` e `⌘/Ctrl+]`), com "Gerar de
+  novo" (`⌘/Ctrl+R`), campo "Refinar" (`⌘/Ctrl+L`) e "Mudanças" com diff por palavras
+  (`⌘/Ctrl+D`).
 
 ### Alterado
 
@@ -19,6 +22,10 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - O pacote npm passa a se chamar `@gustavofsilva/kraa` (o npm recusou o nome `kraa` por ser
   parecido demais com pacotes existentes). O comando continua `kraa`:
   `npm i -g @gustavofsilva/kraa && kraa start`.
+- System prompt reforçado: o texto selecionado nunca é respondido nem executado, o idioma do
+  original é mantido e as regras não vazam para o resultado.
+- Resposta vazia do modelo vira erro com "Tentar novamente"; erros 429 e 402 do provedor ganham
+  mensagens legíveis.
 
 ### Corrigido
 

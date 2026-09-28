@@ -1,0 +1,60 @@
+---
+title: Versões e refino
+description: Navegue entre alternativas do resultado, peça outra versão, refine e veja as mudanças.
+illustration: spot-shortcuts
+---
+import Callout from "@/components/mdx/Callout";
+import Kbd from "@/components/mdx/Kbd";
+
+Cada ação ou instrução livre gera uma **versão** do resultado sobre o texto original. Você pode
+navegar entre elas, pedir outra alternativa, refinar a que está na tela ou ver exatamente o que
+mudou.
+
+## Versões
+
+- O contador `‹ 2/3 ›`, acima do resultado, mostra a versão exibida e o total da sessão.
+- <Kbd keys={["⌘/Ctrl", "["]} /> e <Kbd keys={["⌘/Ctrl", "]"]} /> navegam para a versão anterior e
+  a seguinte.
+- Uma sessão guarda até **20 versões**; a mais antiga sai quando a 21ª entra.
+- Uma nova seleção de texto começa do zero (as versões da seleção anterior somem).
+- **Substituir** e **Copiar** sempre agem sobre a versão exibida no momento, não sobre a mais
+  recente.
+
+<Callout type="note" title="Teclado ABNT2">
+  Nos atalhos de versão, use as teclas físicas à direita do `P` (onde o layout US tem `[` e `]`) —
+  funciona independente do caractere que o teclado imprime.
+</Callout>
+
+## Gerar de novo
+
+<Kbd keys={["⌘/Ctrl", "R"]} /> pede outra alternativa para o mesmo pedido, mantendo a ação ou
+instrução original.
+
+- Com `provider.temperature` definida no [config.yaml](/docs/configuracao/arquivo/), essa chamada
+  usa pelo menos **0.8**, para garantir uma alternativa de fato diferente.
+- Sem a linha `temperature`, só o prompt pede uma versão diferente da anterior (o provedor decide
+  a temperatura).
+
+## Refinar
+
+<Kbd keys={["⌘/Ctrl", "L"]} /> foca o campo **Refinar**, abaixo do resultado.
+
+Digite um ajuste (ex.: "deixe mais curto", "adicione um emoji no final") e confirme: o Kraa aplica
+esse ajuste à versão exibida — incluindo qualquer edição manual que você tenha feito nela — e
+mantém o restante do texto intacto.
+
+## Mudanças
+
+<Kbd keys={["⌘/Ctrl", "D"]} /> alterna a visualização de **Mudanças**: um diff por palavras entre
+a versão exibida e a sua base (o texto original, ou a versão refinada, quando a atual veio de um
+refino).
+
+Desligue o diff (mesmo atalho) para voltar a editar o texto livremente.
+
+## Erros
+
+| Situação | Mensagem |
+|---|---|
+| O modelo respondeu vazio | "O modelo não retornou texto. Tente novamente." |
+| Provedor recusou por excesso de requisições (HTTP 429) | "O provedor recusou por excesso de requisições simultâneas. Aguarde alguns segundos e tente novamente." |
+| Modelo exige plano pago no provedor (HTTP 402) | "Este modelo exige plano pago no provedor. Escolha outro no seletor de modelo." |
