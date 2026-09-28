@@ -7,6 +7,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não lançado]
 
+## [0.2.0] - 2026-09-28
+
 ### Adicionado
 
 - Suíte E2E com Playwright contra o backend real (modo servidor do Wails) e um LLM fake.
@@ -81,5 +83,6 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
   publicação no npm por trusted publishing (OIDC, sem token) em modo staging, que só vai ao ar
   com a aprovação do mantenedor com 2FA.
 
-[Não lançado]: https://github.com/gustafsilva/kraa/compare/v0.1.0...HEAD
+[Não lançado]: https://github.com/gustafsilva/kraa/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/gustafsilva/kraa/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/gustafsilva/kraa/releases/tag/v0.1.0
