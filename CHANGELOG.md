@@ -13,7 +13,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - Gate de cobertura na CI para backend, frontend e CLI npm, além de typecheck e ESLint no frontend.
 - Versões no modal: cada ação gera uma versão navegável (`⌘/Ctrl+[` e `⌘/Ctrl+]`), com "Gerar de
   novo" (`⌘/Ctrl+R`), campo "Refinar" (`⌘/Ctrl+L`) e "Mudanças" com diff por palavras
-  (`⌘/Ctrl+D`).
+  (`⌘/Ctrl+D`). "Gerar de novo" numa versão refinada mantém o ajuste pedido; os atalhos de versão
+  seguem os caracteres `[` e `]` (no ABNT2, as teclas marcadas com eles) e não disparam com AltGr.
 
 ### Alterado
 

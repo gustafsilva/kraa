@@ -264,7 +264,7 @@ Kubernetes ou fintech.
 
 ---
 
-## 7. Versões e refino
+## 6. Versões e refino
 
 | Texto | Ação | Depois | Esperado |
 |---|---|---|---|
@@ -277,7 +277,7 @@ elas; **Mudanças** (`⌘/Ctrl+D`) destaca o que mudou em relação ao texto ori
 refinada, no caso do refino); Substituir/Copiar aplicam a versão exibida no momento, não a mais
 recente.
 
-## 8. Fluxo no app (checklist rápido)
+## 7. Fluxo no app (checklist rápido)
 
 Use qualquer texto acima para validar, em cada SO:
 
