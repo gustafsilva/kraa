@@ -79,11 +79,14 @@ type State struct {
 	Model      string      `json:"model"`
 }
 
-// StartRequest is the input of Start.
+// StartRequest is the input of Start. Mode is "" (rewrite), "refine" or
+// "variation"; Previous is the version to avoid in "variation".
 type StartRequest struct {
 	Text            string `json:"text"`
 	ActionID        string `json:"actionId"`
 	FreeInstruction string `json:"freeInstruction"`
+	Mode            string `json:"mode"`
+	Previous        string `json:"previous"`
 }
 
 // ChunkEvent is the payload of improve:chunk.
@@ -232,6 +235,8 @@ func (s *ImproveService) Start(req StartRequest) (string, error) {
 		Text:            req.Text,
 		ActionID:        req.ActionID,
 		FreeInstruction: req.FreeInstruction,
+		Mode:            improver.Mode(req.Mode),
+		Previous:        req.Previous,
 	})
 	return r.id, nil
 }
@@ -370,10 +375,13 @@ func (s *ImproveService) run(r *request, runner Runner, cfg *config.Config, req 
 	if s.cur != r || r.ctx.Err() != nil || errors.Is(err, context.Canceled) {
 		return
 	}
-	if err == nil {
-		s.em.Emit(EventDone, DoneEvent{ID: r.id, Text: improver.Clean(total.String())})
-	} else {
+	switch text := improver.Clean(total.String()); {
+	case err != nil:
 		s.em.Emit(EventError, ErrorEvent{ID: r.id, Message: errorMessage(err, cfg)})
+	case text == "":
+		s.em.Emit(EventError, ErrorEvent{ID: r.id, Message: "O modelo não retornou texto. Tente novamente."})
+	default:
+		s.em.Emit(EventDone, DoneEvent{ID: r.id, Text: text})
 	}
 	s.cur = nil
 	r.cancel()
@@ -424,6 +432,10 @@ func errorMessage(err error, cfg *config.Config) string {
 			return msg + " — verifique a api_key"
 		case 404:
 			return msg + " — verifique o model"
+		case 402:
+			return "Este modelo exige plano pago no provedor. Escolha outro no seletor de modelo."
+		case 429:
+			return "O provedor recusou por excesso de requisições simultâneas. Aguarde alguns segundos e tente novamente."
 		}
 		return msg
 	case errors.Is(err, context.DeadlineExceeded):
@@ -436,6 +448,10 @@ func errorMessage(err error, cfg *config.Config) string {
 		return "Escolha uma ação ou escreva uma instrução."
 	case errors.Is(err, improver.ErrUnknownAction):
 		return "Ação desconhecida. Recarregue a configuração."
+	case errors.Is(err, improver.ErrNoPrevious):
+		return "Não há versão anterior para gerar de novo."
+	case errors.Is(err, improver.ErrUnknownMode):
+		return "Modo de melhoria desconhecido."
 	}
 	return "Erro inesperado: " + err.Error()
 }

@@ -242,6 +242,45 @@ func TestStartEmitsChunksThenDoneWithSameIDAndCleanedText(t *testing.T) {
 	}
 }
 
+func TestStartForwardsModeAndPrevious(t *testing.T) {
+	got := make(chan improver.Request, 1)
+	runner := fakeRunner{run: func(ctx context.Context, r improver.Request, onChunk func(string)) error {
+		got <- r
+		onChunk("ok")
+		return nil
+	}}
+	h := newHarness(t, runner, canSimulate)
+	if _, err := h.svc.Start(StartRequest{Text: "oi", ActionID: "fix", Mode: "variation", Previous: "Olá."}); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	r := <-got
+	if r.Mode != improver.ModeVariation || r.Previous != "Olá." {
+		t.Fatalf("runner got mode=%q previous=%q", r.Mode, r.Previous)
+	}
+}
+
+func TestEmptyCleanedOutputBecomesErrorEvent(t *testing.T) {
+	for _, out := range []string{"", "   ", `  ""  `} {
+		runner := fakeRunner{run: func(ctx context.Context, r improver.Request, onChunk func(string)) error {
+			if out != "" {
+				onChunk(out)
+			}
+			return nil
+		}}
+		h := newHarness(t, runner, canSimulate)
+		id, _ := h.svc.Start(StartRequest{Text: "x", ActionID: "fix"})
+		ev := h.em.waitFor(t, isEvent(EventError, id))
+		if msg := ev.data.(ErrorEvent).Message; msg != "O modelo não retornou texto. Tente novamente." {
+			t.Fatalf("output %q: message = %q", out, msg)
+		}
+		for _, e := range h.em.snapshot() {
+			if e.name == EventDone {
+				t.Fatalf("output %q: unexpected done event", out)
+			}
+		}
+	}
+}
+
 // blockingRunner emits "a", then blocks until ctx is cancelled, then tries
 // to emit a late chunk (the service must drop it) and returns ctx.Err().
 func blockingRunner(started chan<- string) Runner {
@@ -381,6 +420,12 @@ func TestRunnerErrorsBecomePTBRErrorEvents(t *testing.T) {
 		{"empty", improver.ErrEmptyText, "O texto está vazio. Selecione ou digite um texto."},
 		{"no instruction", improver.ErrNoInstruction, "Escolha uma ação ou escreva uma instrução."},
 		{"unknown action", improver.ErrUnknownAction, "Ação desconhecida. Recarregue a configuração."},
+		{"429", &llm.APIError{Status: 429, Message: "too many concurrent requests"},
+			"O provedor recusou por excesso de requisições simultâneas. Aguarde alguns segundos e tente novamente."},
+		{"402", &llm.APIError{Status: 402, Message: "this model is not included in your free usage"},
+			"Este modelo exige plano pago no provedor. Escolha outro no seletor de modelo."},
+		{"no previous", improver.ErrNoPrevious, "Não há versão anterior para gerar de novo."},
+		{"unknown mode", improver.ErrUnknownMode, "Modo de melhoria desconhecido."},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

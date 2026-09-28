@@ -130,6 +130,8 @@ describe("<App /> — atalhos e ações do resultado", () => {
           text: "Texto capturado de teste",
           actionId: "",
           freeInstruction: "outra instrução",
+          mode: "",
+          previous: "",
         })
       );
       expect(ImproveService.Replace).not.toHaveBeenCalled();

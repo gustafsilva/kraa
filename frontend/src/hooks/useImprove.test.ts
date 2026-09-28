@@ -80,6 +80,8 @@ describe("useImprove", () => {
         text: "texto digitado",
         actionId: "fix",
         freeInstruction: "",
+        mode: "",
+        previous: "",
       })
     );
   });
@@ -151,6 +153,8 @@ describe("useImprove", () => {
         text: "nova captura",
         actionId: "fix",
         freeInstruction: "",
+        mode: "",
+        previous: "",
       })
     );
   });
@@ -173,6 +177,8 @@ describe("useImprove", () => {
       text: "texto capturado",
       actionId: "fix-grammar",
       freeInstruction: "",
+      mode: "",
+      previous: "",
     });
     expect(result.current.status).toBe("streaming");
   });
@@ -195,6 +201,8 @@ describe("useImprove", () => {
       text: "texto",
       actionId: "",
       freeInstruction: "deixe mais formal",
+      mode: "",
+      previous: "",
     });
   });
 
@@ -282,6 +290,8 @@ describe("useImprove", () => {
       text: "",
       actionId: "a1",
       freeInstruction: "",
+      mode: "",
+      previous: "",
     });
   });
 

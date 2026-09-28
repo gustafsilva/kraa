@@ -34,6 +34,8 @@ describe("<App /> — erros de configuração e de pedido", () => {
       text: "Texto capturado de teste",
       actionId: "b1",
       freeInstruction: "",
+      mode: "",
+      previous: "",
     });
   });
 

@@ -52,12 +52,15 @@ export interface SelectionEvent {
 }
 
 /**
- * StartRequest is the input of Start.
+ * StartRequest is the input of Start. Mode is "" (rewrite), "refine" or
+ * "variation"; Previous is the version to avoid in "variation".
  */
 export interface StartRequest {
     "text": string;
     "actionId": string;
     "freeInstruction": string;
+    "mode": string;
+    "previous": string;
 }
 
 /**

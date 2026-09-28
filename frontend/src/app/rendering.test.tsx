@@ -64,6 +64,8 @@ describe("<App /> — renderização e edição do texto", () => {
         text: "meu texto novo",
         actionId: "b1",
         freeInstruction: "",
+        mode: "",
+        previous: "",
       })
     );
   });

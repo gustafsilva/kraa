@@ -275,6 +275,8 @@ export function useImprove(): UseImproveResult {
         text: stateRef.current.text,
         actionId: opts.actionId ?? "",
         freeInstruction: opts.freeInstruction ?? "",
+        mode: "",
+        previous: "",
       };
       startWithRequest(req);
     },

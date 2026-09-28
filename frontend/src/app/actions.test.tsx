@@ -25,6 +25,8 @@ describe("<App /> — disparo de ações", () => {
         text: "Texto capturado de teste",
         actionId: "b1",
         freeInstruction: "",
+        mode: "",
+        previous: "",
       })
     );
   });
@@ -41,6 +43,8 @@ describe("<App /> — disparo de ações", () => {
         text: "Texto capturado de teste",
         actionId: "",
         freeInstruction: "deixe mais direto",
+        mode: "",
+        previous: "",
       })
     );
   });
